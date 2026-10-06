@@ -51,7 +51,7 @@ export const listReservations = endpoint(async (request: Request) => {
   await exigerAdmin(request);
   const statut = params.get('statut');
   if (statut && !['en_attente', 'payee', 'annulee'].includes(statut)) throw new ApiError(400, 'Statut invalide');
-  return json(await prisma.reservation.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' }, select: { id: true, sessionId: true, userId: true, nom: true, email: true, telephone: true, nbPersonnes: true, montantCents: true, statut: true, stripeSessionId: true, createdAt: true } }));
+  return json(await prisma.reservation.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' }, select: { id: true, sessionId: true, userId: true, nom: true, email: true, telephone: true, nbPersonnes: true, montantCents: true, statut: true, stripeSessionId: true, createdAt: true, session: { select: { dateDebut: true, experience: { select: { titre: true } } } } } }));
 });
 
 export const cancel = endpoint(async (request: Request, context: RouteContext) => {

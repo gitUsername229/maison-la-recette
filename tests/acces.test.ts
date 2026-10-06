@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { rm, stat } from 'node:fs/promises';
 import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
 import { preparerBaseDeTest } from './outils';
@@ -11,6 +12,9 @@ let auth: typeof import('../src/backend/auth/auth').auth;
 let handlers: typeof import('../src/backend/ateliers/payment-handlers');
 let devis: typeof import('../src/backend/ateliers/devis');
 let catalogue: typeof import('../src/backend/ateliers/catalogue');
+let utilisateurs: typeof import('../src/backend/comptes/utilisateurs');
+let contenus: typeof import('../src/backend/contenus/contenus');
+let images: typeof import('../src/backend/contenus/images');
 
 before(async () => {
   nettoyer = await preparerBaseDeTest();
@@ -19,6 +23,9 @@ before(async () => {
   handlers = await import('../src/backend/ateliers/payment-handlers');
   devis = await import('../src/backend/ateliers/devis');
   catalogue = await import('../src/backend/ateliers/catalogue');
+  utilisateurs = await import('../src/backend/comptes/utilisateurs');
+  contenus = await import('../src/backend/contenus/contenus');
+  images = await import('../src/backend/contenus/images');
 });
 
 after(async () => {
@@ -45,6 +52,9 @@ function requete(chemin: string, { cookie, methode = 'GET', corps, entetes = {} 
     ...(corps === undefined ? {} : { body: JSON.stringify(corps) }),
   });
 }
+
+const avecId = (id: string | number) => ({ params: Promise.resolve({ id: String(id) }) });
+const CLE_ADMIN = () => ({ 'x-admin-key': process.env.ADMIN_KEY! });
 
 const DEVIS = { entreprise: 'Acme', typeDemande: 'studio', message: 'Un podcast pour notre marque' };
 
@@ -100,5 +110,59 @@ test('x-admin-key est accepté en développement et refusé en production', asyn
   } finally {
     if (environnement === undefined) Reflect.deleteProperty(process.env, 'NODE_ENV');
     else Object.assign(process.env, { NODE_ENV: environnement });
+  }
+});
+
+test('le dernier compte admin ne peut être ni rétrogradé ni supprimé, même par lui-même', async () => {
+  const julie = await inscrire('julie@example.com');
+  await prisma.user.update({ where: { id: julie.id }, data: { role: 'admin' } });
+  const modifier = (cookie: string, id: string, corps: unknown) =>
+    utilisateurs.updateUtilisateur(requete(`/api/utilisateurs/${id}`, { cookie, methode: 'PATCH', corps }), avecId(id));
+  const supprimer = (cookie: string, id: string) =>
+    utilisateurs.deleteUtilisateur(requete(`/api/utilisateurs/${id}`, { cookie, methode: 'DELETE' }), avecId(id));
+
+  assert.equal((await modifier(julie.cookie, julie.id, { role: 'client' })).status, 409);
+  assert.equal((await supprimer(julie.cookie, julie.id)).status, 409);
+
+  // Avec un second admin, Julie peut se rétrograder ; Marc devient alors le dernier.
+  const marc = await inscrire('marc@example.com');
+  assert.equal((await modifier(julie.cookie, marc.id, { role: 'admin' })).status, 200);
+  assert.equal((await modifier(julie.cookie, julie.id, { role: 'client' })).status, 200);
+  assert.equal((await modifier(julie.cookie, marc.id, { role: 'client' })).status, 403);
+  assert.equal((await supprimer(marc.cookie, marc.id)).status, 409);
+  assert.equal(await prisma.user.count({ where: { role: 'admin' } }), 1);
+});
+
+test('un contenu masqué n’est visible que par l’admin, et une modification partielle ne le rend pas visible', async () => {
+  const { id } = await prisma.avis.create({ data: { nom: 'Claire D.', citation: 'Super atelier', contexte: 'Team building', visible: false } });
+  const lister = async (entetes: Record<string, string> = {}) => (await (await contenus.avis.lister(requete('/api/avis', { entetes }))).json()) as unknown[];
+  assert.equal((await lister()).length, 0);
+  assert.equal((await lister(CLE_ADMIN())).length, 1);
+
+  const reponse = await contenus.avis.modifier(requete(`/api/avis/${id}`, { methode: 'PUT', corps: { citation: 'Très bel atelier' }, entetes: CLE_ADMIN() }), avecId(id));
+  assert.equal(reponse.status, 200);
+  assert.equal((await prisma.avis.findUniqueOrThrow({ where: { id } })).visible, false);
+});
+
+test('l’envoi d’image vérifie le contenu du fichier et la suppression efface la photo', async () => {
+  const envoyer = (contenu: Uint8Array<ArrayBuffer>, nom: string) => {
+    const formulaire = new FormData();
+    formulaire.append('fichier', new File([contenu], nom));
+    return images.envoyerFichier(new Request(`${BASE}/api/images/fichier`, { method: 'POST', headers: CLE_ADMIN(), body: formulaire }));
+  };
+  assert.equal((await envoyer(new TextEncoder().encode('<script>alert(1)</script>'), 'faux.jpg')).status, 400);
+
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+  const reponse = await envoyer(png, 'photo.png');
+  assert.equal(reponse.status, 201);
+  const { url } = await reponse.json() as { url: string };
+  const fichier = `${process.cwd()}/public${url}`;
+  try {
+    assert.match(url, /^\/images\/uploads\/[\w-]+\.png$/);
+    const image = await prisma.image.create({ data: { url, alt: 'Atelier', page: '/a-propos' } });
+    assert.equal((await images.images.supprimer(requete(`/api/images/${image.id}`, { methode: 'DELETE', entetes: CLE_ADMIN() }), avecId(image.id))).status, 200);
+    await assert.rejects(stat(fichier));
+  } finally {
+    await rm(fichier, { force: true });
   }
 });

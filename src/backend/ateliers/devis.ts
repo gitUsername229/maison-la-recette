@@ -23,7 +23,7 @@ export const listDevis = endpoint(async (request: Request) => {
   await exigerAdmin(request);
   const statut = new URL(request.url).searchParams.get('statut');
   if (statut && !['nouvelle', 'en_cours', 'traitee'].includes(statut)) throw new ApiError(400, 'Statut invalide');
-  return json(await prisma.demandeDevis.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' } }));
+  return json(await prisma.demandeDevis.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' }, include: { experience: { select: { titre: true } } } }));
 });
 
 export const updateDevis = endpoint(async (request: Request, context: RouteContext) => {

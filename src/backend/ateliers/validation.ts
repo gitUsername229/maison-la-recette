@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cheminImage } from '@/backend/contenus/validation';
 
 const text = z.string().trim().min(1).max(500);
 const money = z.number().int().min(0).max(10_000_000);
@@ -9,7 +10,7 @@ export const experienceSchema = z.object({
   titre: text, accroche: text, description: z.string().trim().min(1).max(30_000),
   dureeMin: positive, prixCents: money, prixEntrepriseCents: money.nullable().optional(),
   capaciteMax: positive, lieu: text.nullable().optional(),
-  image: z.string().max(500).refine(v => v === '' || /^\/images\/[\w/.-]+$/.test(v) && !v.includes('..')),
+  image: cheminImage,
   imageAlt: z.string().trim().max(500), actif: z.boolean().default(true),
   reservableEnLigne: z.boolean().default(true),
 }).strict();

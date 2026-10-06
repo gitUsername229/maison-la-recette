@@ -1,13 +1,15 @@
 import 'server-only';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/backend/db/prisma';
-import { exigerAdmin } from '@/backend/auth/acces';
+import { estAdmin, exigerAdmin } from '@/backend/auth/acces';
 import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
 import { experienceSchema, experienceUpdateSchema, sessionSchema, sessionUpdateSchema } from './validation';
 import { lockSession, pendingSeats } from './inventory';
 
 // Utilisées par les routes /api et par les pages serveur du front.
-export function experiencesActives(type?: string) {
-  return prisma.experience.findMany({ where: { actif: true, ...(type ? { type } : {}) }, orderBy: { id: 'asc' } });
+/** Expériences actives ; `inclureMasquees` (admin) ajoute les expériences désactivées. */
+export function listerExperiences(type?: string, inclureMasquees = false) {
+  return prisma.experience.findMany({ where: { ...(inclureMasquees ? {} : { actif: true }), ...(type ? { type } : {}) }, orderBy: { id: 'asc' } });
 }
 
 export async function experiencePublique(slug: string) {
@@ -21,7 +23,7 @@ export async function experiencePublique(slug: string) {
 export const listExperiences = endpoint(async (request: Request) => {
   const type = new URL(request.url).searchParams.get('type');
   if (type && !['atelier', 'good_tour', 'immersion'].includes(type)) throw new ApiError(400, 'Type inconnu');
-  return json(await experiencesActives(type ?? undefined));
+  return json(await listerExperiences(type ?? undefined, await estAdmin(request)));
 });
 
 export const getExperience = endpoint(async (_request: Request, context: RouteContext) => {
@@ -57,8 +59,13 @@ export const listSessions = endpoint(async (request: Request) => {
   const params = new URL(request.url).searchParams;
   const available = params.get('disponible');
   if (available && !['true', 'false'].includes(available)) throw new ApiError(400, 'disponible doit être true ou false');
-  const sessions = await prisma.session.findMany({ where: { dateDebut: { gt: new Date() }, statut: { not: 'annulee' }, experience: { actif: true, ...(params.get('experience') ? { slug: params.get('experience')! } : {}) } }, include: { experience: true, reservations: { where: { statut: 'en_attente' }, select: { nbPersonnes: true } } }, orderBy: { dateDebut: 'asc' } });
-  const results = sessions.map(({ experience, reservations, ...s }) => ({ ...s, prixCents: s.prixCents ?? experience.prixCents, placesRestantes: Math.max(0, s.placesTotal - s.placesPrises - reservations.reduce((n, r) => n + r.nbPersonnes, 0)) }));
+  // Un admin voit aussi les sessions passées, annulées ou d'expériences masquées,
+  // avec le prix propre à la session (null = prix de l'expérience).
+  const admin = await estAdmin(request);
+  const experience = params.get('experience') ? { slug: params.get('experience')! } : {};
+  const where: Prisma.SessionWhereInput = admin ? { experience } : { dateDebut: { gt: new Date() }, statut: { not: 'annulee' }, experience: { actif: true, ...experience } };
+  const sessions = await prisma.session.findMany({ where, include: { experience: true, reservations: { where: { statut: 'en_attente' }, select: { nbPersonnes: true } } }, orderBy: { dateDebut: admin ? 'desc' : 'asc' } });
+  const results = sessions.map(({ experience, reservations, ...s }) => ({ ...s, experience: { titre: experience.titre, slug: experience.slug }, prixCents: admin ? s.prixCents : s.prixCents ?? experience.prixCents, placesRestantes: Math.max(0, s.placesTotal - s.placesPrises - reservations.reduce((n, r) => n + r.nbPersonnes, 0)) }));
   return json(available === 'true' ? results.filter(s => s.statut === 'ouverte' && s.placesRestantes > 0) : results);
 });
 
