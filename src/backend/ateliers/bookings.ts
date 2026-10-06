@@ -75,33 +75,38 @@ export async function createCheckout(client: Client, input: CheckoutInput, key: 
   }
 }
 
-export async function applyStripeSession(checkout: Stripe.Checkout.Session, eventType: string) {
+/**
+ * Applique un événement Stripe à la réservation. Renvoie son id uniquement si elle vient
+ * de passer à « payée » (null sinon, y compris pour un événement répété) : c'est le signal
+ * pour envoyer la confirmation, une seule fois.
+ */
+export async function applyStripeSession(checkout: Stripe.Checkout.Session, eventType: string): Promise<number | null> {
   const metadataId = checkout.metadata?.reservationId;
-  if (!metadataId || !/^[1-9]\d*$/.test(metadataId)) return;
+  if (!metadataId || !/^[1-9]\d*$/.test(metadataId)) return null;
   const id = Number(metadataId);
-  if (!Number.isSafeInteger(id)) return;
-  await prisma.$transaction(async tx => {
+  if (!Number.isSafeInteger(id)) return null;
+  return prisma.$transaction(async tx => {
     // Prendre d'abord un verrou d'écriture, puis relire l'état courant.
     await tx.reservation.updateMany({ where: { id }, data: { id } });
     const reservation = await tx.reservation.findUnique({ where: { id } });
-    if (!reservation) return;
+    if (!reservation) return null;
     const invalidReference = reservation.checkoutKey
       ? checkout.client_reference_id !== String(id)
       : checkout.client_reference_id != null && checkout.client_reference_id !== String(id);
     if (checkout.livemode || checkout.mode !== 'payment' || invalidReference) throw new ApiError(400, 'Paiement incompatible');
     if (reservation.stripeSessionId && reservation.stripeSessionId !== checkout.id) throw new ApiError(409, 'Session Stripe différente de la réservation');
-    if (reservation.statut !== 'en_attente') return;
+    if (reservation.statut !== 'en_attente') return null;
     if (eventType === 'checkout.session.expired') {
       if (checkout.status !== 'expired') throw new ApiError(400, 'Expiration invalide');
       await tx.reservation.update({ where: { id }, data: { statut: 'annulee', stripeSessionId: checkout.id } });
-      return;
+      return null;
     }
     if (eventType === 'checkout.session.async_payment_failed') {
       if (checkout.status !== 'complete' || checkout.payment_status !== 'unpaid') throw new ApiError(400, 'Échec de paiement invalide');
       await tx.reservation.update({ where: { id }, data: { statut: 'annulee', stripeSessionId: checkout.id } });
-      return;
+      return null;
     }
-    if (checkout.payment_status !== 'paid' || checkout.status !== 'complete') return;
+    if (checkout.payment_status !== 'paid' || checkout.status !== 'complete') return null;
     if (checkout.currency !== 'eur' || checkout.amount_total !== reservation.montantCents) throw new ApiError(400, 'Montant ou devise du paiement incorrect');
     const session = await lockSession(tx, reservation.sessionId);
     if (session.placesPrises + reservation.nbPersonnes > session.placesTotal) throw new ApiError(409, 'Capacité incohérente : intervention nécessaire');
@@ -110,6 +115,7 @@ export async function applyStripeSession(checkout: Stripe.Checkout.Session, even
       placesPrises: { increment: reservation.nbPersonnes },
       ...(session.placesPrises + reservation.nbPersonnes === session.placesTotal ? { statut: 'complete' } : {}),
     } });
+    return id;
   });
 }
 

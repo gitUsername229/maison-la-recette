@@ -2,13 +2,10 @@ import assert from 'node:assert/strict';
 import { rm, stat } from 'node:fs/promises';
 import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
-import { preparerBaseDeTest } from './outils';
-
-const BASE = 'http://localhost:3000';
+import { BASE, inscrire, preparerBaseDeTest, requete } from './outils';
 
 let nettoyer: () => Promise<void>;
 let prisma: PrismaClient;
-let auth: typeof import('../src/backend/auth/auth').auth;
 let handlers: typeof import('../src/backend/ateliers/payment-handlers');
 let devis: typeof import('../src/backend/ateliers/devis');
 let catalogue: typeof import('../src/backend/ateliers/catalogue');
@@ -19,7 +16,6 @@ let images: typeof import('../src/backend/contenus/images');
 before(async () => {
   nettoyer = await preparerBaseDeTest();
   ({ prisma } = await import('../src/backend/db/prisma'));
-  ({ auth } = await import('../src/backend/auth/auth'));
   handlers = await import('../src/backend/ateliers/payment-handlers');
   devis = await import('../src/backend/ateliers/devis');
   catalogue = await import('../src/backend/ateliers/catalogue');
@@ -32,26 +28,6 @@ after(async () => {
   if (prisma) await prisma.$disconnect();
   await nettoyer?.();
 });
-
-/** Inscription par la vraie route Better Auth ; renvoie le cookie de session. */
-async function inscrire(email: string, telephone?: string) {
-  const corps = { name: `Client ${email}`, email, password: 'motdepasse-de-test', ...(telephone ? { telephone } : {}) };
-  const reponse = await auth.handler(new Request(`${BASE}/api/auth/sign-up/email`, {
-    method: 'POST', headers: { 'content-type': 'application/json', origin: BASE }, body: JSON.stringify(corps),
-  }));
-  assert.equal(reponse.status, 200);
-  const cookie = reponse.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
-  const utilisateur = await prisma.user.findUniqueOrThrow({ where: { email } });
-  return { cookie, id: utilisateur.id };
-}
-
-function requete(chemin: string, { cookie, methode = 'GET', corps, entetes = {} }: { cookie?: string; methode?: string; corps?: unknown; entetes?: Record<string, string> } = {}) {
-  return new Request(`${BASE}${chemin}`, {
-    method: methode,
-    headers: { 'content-type': 'application/json', ...(cookie ? { cookie } : {}), ...entetes },
-    ...(corps === undefined ? {} : { body: JSON.stringify(corps) }),
-  });
-}
 
 const avecId = (id: string | number) => ({ params: Promise.resolve({ id: String(id) }) });
 const CLE_ADMIN = () => ({ 'x-admin-key': process.env.ADMIN_KEY! });

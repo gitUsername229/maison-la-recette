@@ -1,6 +1,8 @@
 import 'server-only';
 import { z } from 'zod';
 import { prisma } from '@/backend/db/prisma';
+import { enArrierePlan } from '@/backend/mails/envoi';
+import { envoyerMailsDevis } from '@/backend/mails/notifications';
 import { exigerAdmin, exigerConnexion } from '@/backend/auth/acces';
 import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
 import { devisSchema } from './validation';
@@ -16,7 +18,9 @@ export const createDevis = endpoint(async (request: Request) => {
   // Un téléphone saisi ici complète le compte pour les prochaines demandes.
   if (!utilisateur.telephone) await prisma.user.update({ where: { id: utilisateur.id }, data: { telephone } });
   const contact = { contactNom: utilisateur.nom, email: utilisateur.email, telephone, userId: utilisateur.id };
-  return json(await prisma.demandeDevis.create({ data: { ...data, ...contact }, select: { id: true, statut: true } }), 201);
+  const devis = await prisma.demandeDevis.create({ data: { ...data, ...contact }, select: { id: true, statut: true } });
+  enArrierePlan(envoyerMailsDevis(devis.id));
+  return json(devis, 201);
 });
 
 export const listDevis = endpoint(async (request: Request) => {

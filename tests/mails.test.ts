@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
+import type { PrismaClient } from '@prisma/client';
 import nodemailer from 'nodemailer';
-import { preparerBaseDeTest } from './outils';
+import Stripe from 'stripe';
+import { BASE, inscrire, preparerBaseDeTest, requete } from './outils';
 
 type Envoye = { to: string; subject: string; html: string; text: string; replyTo?: string };
 
@@ -9,6 +11,9 @@ const envoyes: Envoye[] = [];
 let nettoyer: () => Promise<void>;
 let envoi: typeof import('../src/backend/mails/envoi');
 let modeles: typeof import('../src/backend/mails/modeles');
+let prisma: PrismaClient;
+let handlers: typeof import('../src/backend/ateliers/payment-handlers');
+let devis: typeof import('../src/backend/ateliers/devis');
 
 /** Transport Nodemailer en mémoire : les e-mails « envoyés » sont gardés dans `envoyes`. */
 function transportMemoire() {
@@ -26,12 +31,16 @@ before(async () => {
   nettoyer = await preparerBaseDeTest();
   envoi = await import('../src/backend/mails/envoi');
   modeles = await import('../src/backend/mails/modeles');
+  ({ prisma } = await import('../src/backend/db/prisma'));
+  handlers = await import('../src/backend/ateliers/payment-handlers');
+  devis = await import('../src/backend/ateliers/devis');
   envoi.utiliserTransport(transportMemoire());
 });
 
 beforeEach(() => { envoyes.length = 0; });
 
 after(async () => {
+  if (prisma) await prisma.$disconnect();
   await nettoyer?.();
 });
 
@@ -55,4 +64,60 @@ test('un envoi en arrière-plan qui échoue est journalisé, sans erreur propag�
   envoi.enArrierePlan(Promise.reject(new Error('SMTP indisponible')));
   await envoi.attendreLesEnvois();
   assert.equal(journal.mock.callCount(), 1);
+});
+
+/** Réservation en attente + événement Stripe « paiement réussi » signé, comme l'enverrait Stripe. */
+async function paiementReussi(stripeSessionId: string) {
+  const experience = await prisma.experience.create({ data: { slug: stripeSessionId.replaceAll('_', '-').toLowerCase(), type: 'atelier', titre: 'Atelier pain perdu', accroche: 'A', description: 'D', dureeMin: 120, prixCents: 4500, capaciteMax: 10, image: '', imageAlt: '' } });
+  const session = await prisma.session.create({ data: { experienceId: experience.id, dateDebut: new Date('2027-03-06T09:00:00Z'), dateFin: new Date('2027-03-06T11:00:00Z'), lieu: 'La Rochelle', placesTotal: 10 } });
+  const reservation = await prisma.reservation.create({ data: { sessionId: session.id, nom: 'Camille', email: 'camille@example.com', nbPersonnes: 2, montantCents: 9000, stripeSessionId } });
+  const paye = { id: stripeSessionId, mode: 'payment', status: 'complete', payment_status: 'paid', amount_total: 9000, currency: 'eur', livemode: false, client_reference_id: null, metadata: { reservationId: String(reservation.id) } };
+  const corps = JSON.stringify({ id: `evt_${stripeSessionId}`, type: 'checkout.session.completed', livemode: false, data: { object: paye } });
+  const signature = Stripe.webhooks.generateTestHeaderString({ payload: corps, secret: process.env.STRIPE_WEBHOOK_SECRET! });
+  const envoyer = () => handlers.webhook(new Request(`${BASE}/api/webhook`, { method: 'POST', body: corps, headers: { 'stripe-signature': signature } }));
+  return { reservation, envoyer };
+}
+
+test('un paiement confirmé envoie la confirmation au client et l’information à Julie, une seule fois', async () => {
+  const { envoyer } = await paiementReussi('cs_test_mail_unique');
+  assert.equal((await envoyer()).status, 200);
+  assert.equal((await envoyer()).status, 200); // Stripe renvoie le même événement
+  await envoi.attendreLesEnvois();
+
+  assert.deepEqual(envoyes.map(m => m.to).sort(), ['camille@example.com', 'julie@exemple.fr']);
+  const client = envoyes.find(m => m.to === 'camille@example.com')!;
+  assert.match(client.subject, /Réservation confirmée : Atelier pain perdu/);
+  assert.match(client.text, /Participants : 2/);
+  assert.match(client.text, /Montant payé : 90,00\s€/);
+  assert.equal(envoyes.find(m => m.to === 'julie@exemple.fr')!.replyTo, 'camille@example.com');
+});
+
+test('une demande de devis envoie le détail à Julie (réponse directe au client) et un accusé, sans HTML injecté', async () => {
+  const { cookie } = await inscrire('devis-mail@example.com', '0600000002');
+  const message = '<img src=x onerror=alert(1)> Team building';
+  const reponse = await devis.createDevis(requete('/api/devis', { cookie, methode: 'POST', corps: { entreprise: 'Acme', typeDemande: 'evenement', lieuSouhaite: 'a_proximite', message } }));
+  assert.equal(reponse.status, 201);
+  await envoi.attendreLesEnvois();
+
+  const pourJulie = envoyes.find(m => m.to === 'julie@exemple.fr')!;
+  const accuse = envoyes.find(m => m.to === 'devis-mail@example.com')!;
+  assert.match(pourJulie.subject, /Nouvelle demande de devis : Acme/);
+  assert.equal(pourJulie.replyTo, 'devis-mail@example.com');
+  assert.match(pourJulie.text, /Téléphone : 0600000002/);
+  assert.match(pourJulie.text, /Lieu : Dans un lieu proche de nos locaux/);
+  assert.ok(!pourJulie.html.includes('<img') && pourJulie.html.includes('&lt;img src=x'));
+  assert.match(accuse.subject, /bien reçu/);
+});
+
+test('un serveur SMTP en panne n’empêche pas d’enregistrer le paiement', async t => {
+  t.mock.method(console, 'error', () => undefined);
+  envoi.utiliserTransport(nodemailer.createTransport({ name: 'panne', version: '1', send: (mail, fin) => fin(new Error('SMTP indisponible'), { envelope: mail.message.getEnvelope(), messageId: '' }) }));
+  try {
+    const { reservation, envoyer } = await paiementReussi('cs_test_mail_panne');
+    assert.equal((await envoyer()).status, 200);
+    await envoi.attendreLesEnvois();
+    assert.equal((await prisma.reservation.findUniqueOrThrow({ where: { id: reservation.id } })).statut, 'payee');
+  } finally {
+    envoi.utiliserTransport(transportMemoire());
+  }
 });

@@ -1,4 +1,5 @@
 import 'server-only';
+import { formatDate, formatDateHeure, formatPrix, libelle, LIEUX_DEVIS, TYPES_DEVIS } from '@/frontend/format';
 import type { Mail } from './envoi';
 
 const ENTITES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -48,4 +49,78 @@ function texte({ titre, paragraphes, details = [], lien }: Contenu) {
 /** Mise en page commune à tous les e-mails, en HTML et en texte brut. */
 export function composer(a: string, sujet: string, contenu: Contenu, repondreA?: string): Mail {
   return { a, sujet, html: html(contenu), texte: texte(contenu), repondreA };
+}
+
+// --- Réservations et devis
+
+export type ReservationMail = {
+  id: number; nom: string; email: string; telephone: string | null; nbPersonnes: number; montantCents: number;
+  session: { dateDebut: Date; lieu: string; experience: { titre: string } };
+};
+
+export type DevisMail = {
+  id: number; entreprise: string; contactNom: string; email: string; telephone: string | null; typeDemande: string;
+  nbParticipants: number | null; dateSouhaitee: Date | null; lieuSouhaite: string | null; message: string;
+  experience: { titre: string } | null;
+};
+
+function detailsReservation(r: ReservationMail): [string, string][] {
+  return [
+    ['Expérience', r.session.experience.titre],
+    ['Date', formatDateHeure(r.session.dateDebut)],
+    ['Lieu', r.session.lieu],
+    ['Participants', String(r.nbPersonnes)],
+    ['Montant payé', formatPrix(r.montantCents)],
+    ['Réservation', `n° ${r.id}`],
+  ];
+}
+
+export function confirmationReservation(r: ReservationMail): Mail {
+  return composer(r.email, `Réservation confirmée : ${r.session.experience.titre}`, {
+    titre: 'Votre place est réservée',
+    paragraphes: [`Bonjour ${r.nom},`, 'Merci ! Votre paiement est bien reçu : nous avons hâte de vous accueillir.'],
+    details: detailsReservation(r),
+    lien: { texte: 'Voir mes réservations', url: urlDuSite('/compte') },
+  });
+}
+
+export function reservationPourJulie(a: string, r: ReservationMail): Mail {
+  return composer(a, `Nouvelle réservation payée : ${r.session.experience.titre}`, {
+    titre: 'Nouvelle réservation payée',
+    paragraphes: [`${r.nom} vient de réserver et de payer en ligne.`],
+    details: [['Client', r.nom], ['E-mail', r.email], ['Téléphone', r.telephone ?? '—'], ...detailsReservation(r)],
+    lien: { texte: 'Voir les réservations', url: urlDuSite('/admin/reservations') },
+  }, r.email);
+}
+
+function detailsDevis(d: DevisMail): [string, string][] {
+  const lignes: [string, string | null][] = [
+    ['Demande', libelle(TYPES_DEVIS, d.typeDemande)],
+    ['Expérience', d.experience?.titre ?? null],
+    ['Entreprise', d.entreprise],
+    ['Participants', d.nbParticipants ? String(d.nbParticipants) : null],
+    ['Date souhaitée', d.dateSouhaitee ? formatDate(d.dateSouhaitee) : null],
+    ['Lieu', d.lieuSouhaite ? libelle(LIEUX_DEVIS, d.lieuSouhaite) : null],
+    ['Message', d.message],
+  ];
+  // Les champs facultatifs laissés vides ne sont pas affichés.
+  return lignes.filter((ligne): ligne is [string, string] => ligne[1] !== null);
+}
+
+export function devisPourJulie(a: string, d: DevisMail): Mail {
+  return composer(a, `Nouvelle demande de devis : ${d.entreprise}`, {
+    titre: 'Nouvelle demande de devis',
+    paragraphes: [`${d.contactNom} attend votre appel (réponse promise sous 48 h). Répondre à cet e-mail lui écrit directement.`],
+    details: [['Contact', d.contactNom], ['E-mail', d.email], ['Téléphone', d.telephone ?? '—'], ...detailsDevis(d)],
+    lien: { texte: 'Voir les demandes de devis', url: urlDuSite('/admin/devis') },
+  }, d.email);
+}
+
+export function accuseDevis(d: DevisMail): Mail {
+  return composer(d.email, 'Nous avons bien reçu votre demande de devis', {
+    titre: 'Demande bien reçue',
+    paragraphes: [`Bonjour ${d.contactNom},`, 'Merci pour votre demande : Julie vous rappelle sous 48 h pour en parler. Voici ce que vous nous avez envoyé.'],
+    details: detailsDevis(d),
+    lien: { texte: 'Suivre mes demandes', url: urlDuSite('/compte') },
+  });
 }
