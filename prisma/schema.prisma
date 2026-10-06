@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Experience {
+  id                  Int               @id @default(autoincrement())
+  slug                String            @unique
+  type                String
+  titre               String
+  accroche            String
+  description         String
+  dureeMin            Int
+  prixCents           Int
+  prixEntrepriseCents Int?
+  capaciteMax         Int
+  lieu                String?
+  image               String
+  imageAlt            String
+  actif               Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  images              ExperienceImage[]
+  sessions            Session[]
+  demandesDevis       DemandeDevis[]
+}
+
+model ExperienceImage {
+  id           Int        @id @default(autoincrement())
+  experienceId Int
+  url          String
+  alt          String
+  ordre        Int        @default(0)
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+
+  @@index([experienceId, ordre])
+}
+
+model Session {
+  id           Int           @id @default(autoincrement())
+  experienceId Int
+  dateDebut    DateTime
+  dateFin      DateTime
+  lieu         String
+  placesTotal  Int
+  placesPrises Int           @default(0)
+  prixCents    Int?
+  statut       String        @default("ouverte")
+  experience   Experience    @relation(fields: [experienceId], references: [id], onDelete: Restrict)
+  reservations Reservation[]
+
+  @@index([experienceId, dateDebut])
+}
+
+model Reservation {
+  id              Int      @id @default(autoincrement())
+  sessionId       Int
+  nom             String
+  email           String
+  telephone       String?
+  nbPersonnes     Int
+  montantCents    Int
+  statut          String   @default("en_attente")
+  stripeSessionId String?  @unique
+  createdAt       DateTime @default(now())
+  session         Session  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@index([sessionId])
+}
+
+model DemandeDevis {
+  id             Int         @id @default(autoincrement())
+  entreprise     String
+  contactNom     String
+  email          String
+  telephone      String?
+  typeDemande    String
+  experienceId   Int?
+  nbParticipants Int?
+  dateSouhaitee  DateTime?
+  message        String
+  statut         String      @default("nouvelle")
+  createdAt      DateTime    @default(now())
+  experience     Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
+
+  @@index([experienceId])
+}
+
+model Episode {
+  id              Int      @id @default(autoincrement())
+  numero          Int
+  titre           String
+  description     String
+  invite          String?
+  datePublication DateTime
+  dureeMin        Int
+  image           String
+  embedUrl        String
+  spotifyUrl      String?
+  deezerUrl       String?
+  appleUrl        String?
+  youtubeUrl      String?
+}
+
+model Reference {
+  id       Int     @id @default(autoincrement())
+  nom      String
+  type     String
+  logo     String?
+  citation String?
+  auteur   String?
+  ordre    Int     @default(0)
+}
+
+model Newsletter {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
