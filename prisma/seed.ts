@@ -1,10 +1,12 @@
+import { randomUUID } from 'node:crypto';
 import { loadEnvConfig } from '@next/env';
 import { PrismaClient } from '@prisma/client';
+import { hacherMotDePasse, LONGUEUR_MIN_MOT_DE_PASSE } from '../src/backend/auth/mot-de-passe';
 
 loadEnvConfig(process.cwd());
 const prisma = new PrismaClient();
 
-async function main() {
+async function creerExperiences() {
   // Démonstration uniquement. Les upserts ne remplacent pas les contenus existants,
   // sauf reservableEnLigne (ajouté après coup) : les immersions se réservent sur devis.
   const experiences = [
@@ -45,6 +47,42 @@ async function main() {
   }
 
   console.log('Données de démonstration créées : 3 expériences et leurs sessions.');
+}
+
+// Compte admin : identifiants lus dans .env.local, jamais écrits dans le code.
+// Même format que Better Auth : le mot de passe haché vit dans un compte « credential ».
+async function creerAdmin() {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const motDePasse = process.env.ADMIN_PASSWORD;
+  if (!email || !motDePasse) {
+    console.warn('ADMIN_EMAIL ou ADMIN_PASSWORD absent de .env.local : compte admin non créé.');
+    return;
+  }
+  if (motDePasse.length < LONGUEUR_MIN_MOT_DE_PASSE) {
+    throw new Error(`ADMIN_PASSWORD doit contenir au moins ${LONGUEUR_MIN_MOT_DE_PASSE} caractères.`);
+  }
+
+  const existant = await prisma.user.findUnique({ where: { email } });
+  if (existant) {
+    // Le mot de passe d'un compte existant n'est jamais remplacé par le seed.
+    if (existant.role !== 'admin') await prisma.user.update({ where: { id: existant.id }, data: { role: 'admin' } });
+    console.log(`Compte admin déjà présent : ${email}`);
+    return;
+  }
+
+  const id = randomUUID();
+  await prisma.user.create({
+    data: {
+      id, email, nom: 'Administration', role: 'admin', emailVerified: true,
+      comptes: { create: { id: randomUUID(), accountId: id, providerId: 'credential', password: await hacherMotDePasse(motDePasse) } },
+    },
+  });
+  console.log(`Compte admin créé : ${email}`);
+}
+
+async function main() {
+  await creerExperiences();
+  await creerAdmin();
 }
 
 main()

@@ -11,9 +11,11 @@ export function experiencesActives(type?: string) {
 }
 
 export async function experiencePublique(slug: string) {
-  const result = await prisma.experience.findUnique({ where: { slug }, include: { images: { orderBy: { ordre: 'asc' } }, sessions: { where: { dateDebut: { gt: new Date() }, statut: { not: 'annulee' } }, orderBy: { dateDebut: 'asc' }, include: { reservations: { where: { statut: 'en_attente' }, select: { nbPersonnes: true } } } } } });
+  const result = await prisma.experience.findUnique({ where: { slug }, include: { sessions: { where: { dateDebut: { gt: new Date() }, statut: { not: 'annulee' } }, orderBy: { dateDebut: 'asc' }, include: { reservations: { where: { statut: 'en_attente' }, select: { nbPersonnes: true } } } } } });
   if (!result?.actif) return null;
-  return { ...result, sessions: result.sessions.map(({ reservations, ...s }) => ({ ...s, placesRestantes: Math.max(0, s.placesTotal - s.placesPrises - reservations.reduce((n, r) => n + r.nbPersonnes, 0)) })) };
+  // La galerie d'une expérience = les images de sa page.
+  const images = await prisma.image.findMany({ where: { page: `/experiences/${slug}` }, orderBy: { ordre: 'asc' } });
+  return { ...result, images, sessions: result.sessions.map(({ reservations, ...s }) => ({ ...s, placesRestantes: Math.max(0, s.placesTotal - s.placesPrises - reservations.reduce((n, r) => n + r.nbPersonnes, 0)) })) };
 }
 
 export const listExperiences = endpoint(async (request: Request) => {

@@ -8,8 +8,8 @@ datasource db {
 }
 
 model Experience {
-  id                  Int               @id @default(autoincrement())
-  slug                String            @unique
+  id                  Int            @id @default(autoincrement())
+  slug                String         @unique
   type                String
   titre               String
   accroche            String
@@ -21,23 +21,11 @@ model Experience {
   lieu                String?
   image               String
   imageAlt            String
-  reservableEnLigne   Boolean           @default(true)
-  actif               Boolean           @default(true)
-  createdAt           DateTime          @default(now())
-  images              ExperienceImage[]
+  reservableEnLigne   Boolean        @default(true)
+  actif               Boolean        @default(true)
+  createdAt           DateTime       @default(now())
   sessions            Session[]
   demandesDevis       DemandeDevis[]
-}
-
-model ExperienceImage {
-  id           Int        @id @default(autoincrement())
-  experienceId Int
-  url          String
-  alt          String
-  ordre        Int        @default(0)
-  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
-
-  @@index([experienceId, ordre])
 }
 
 model Session {
@@ -69,9 +57,12 @@ model Reservation {
   checkoutKey     String?  @unique
   checkoutPayload String?
   createdAt       DateTime @default(now())
+  userId          String?
   session         Session  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([sessionId])
+  @@index([userId])
 }
 
 model DemandeDevis {
@@ -84,19 +75,26 @@ model DemandeDevis {
   experienceId   Int?
   nbParticipants Int?
   dateSouhaitee  DateTime?
+  lieuSouhaite   String?
   message        String
   statut         String      @default("nouvelle")
   createdAt      DateTime    @default(now())
+  userId         String?
   experience     Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
+  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([experienceId])
+  @@index([userId])
 }
 
 model Episode {
   id              Int      @id @default(autoincrement())
+  guid            String?  @unique
+  saison          Int      @default(1)
   numero          Int
   titre           String
   description     String
+  resume          String   @default("")
   invite          String?
   datePublication DateTime
   dureeMin        Int
@@ -108,18 +106,113 @@ model Episode {
   youtubeUrl      String?
 }
 
-model Reference {
+model Article {
+  id              Int      @id @default(autoincrement())
+  slug            String   @unique
+  titre           String
+  extrait         String
+  contenu         String
+  image           String
+  imageAlt        String
+  datePublication DateTime @default(now())
+  publie          Boolean  @default(false)
+}
+
+model Avis {
   id       Int     @id @default(autoincrement())
   nom      String
-  type     String
-  logo     String?
-  citation String?
-  auteur   String?
-  ordre    Int     @default(0)
+  citation String
+  contexte String
+  note     Int?
+  visible  Boolean @default(true)
+}
+
+model Partenaire {
+  id          Int     @id @default(autoincrement())
+  nom         String
+  metier      String
+  photo       String
+  photoAlt    String
+  description String
+  visible     Boolean @default(false)
+}
+
+model Image {
+  id    Int    @id @default(autoincrement())
+  url   String
+  alt   String
+  page  String
+  ordre Int    @default(0)
+
+  @@index([page, ordre])
 }
 
 model Newsletter {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+// Comptes : tables imposées par Better Auth (src/backend/auth/auth.ts).
+// Les modèles Auth* ne s'appellent pas Session/Account pour ne pas entrer en
+// conflit avec Session (dates des expériences).
+
+model User {
+  id            String         @id
+  nom           String
+  email         String         @unique
+  emailVerified Boolean        @default(false)
+  image         String?
+  telephone     String?
+  role          String         @default("client")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sessions      AuthSession[]
+  comptes       AuthAccount[]
+  reservations  Reservation[]
+  demandesDevis DemandeDevis[]
+}
+
+model AuthSession {
+  id        String   @id
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuthAccount {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuthVerification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }

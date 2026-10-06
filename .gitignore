@@ -80,6 +80,10 @@ out
 # Régénéré par next dev / next build (chemins différents selon la commande)
 next-env.d.ts
 
+# Images envoyées depuis /admin (contenu local, pas du code)
+public/images/uploads/*
+!public/images/uploads/.gitkeep
+
 # Nuxt.js build / generate output
 .nuxt
 dist

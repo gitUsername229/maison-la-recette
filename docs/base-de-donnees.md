@@ -14,12 +14,17 @@
 | `Partenaire` | Un producteur ou artisan partenaire |
 | `Image` | Une photo de galerie, rattachée à une page du site |
 | `Newsletter` | Un e-mail inscrit à la newsletter |
+| `User` | Un compte (client ou admin) |
+| `AuthSession`, `AuthAccount`, `AuthVerification` | Tables techniques de Better Auth : sessions de connexion, mot de passe haché, jetons |
 
 Relations :
 
 ```
 Experience 1 ──── n Session 1 ──── n Reservation
 Experience 1 ──── n DemandeDevis   (optionnel)
+User       1 ──── n Reservation    (userId, vide pour les réservations faites avant les comptes)
+User       1 ──── n DemandeDevis   (userId, idem)
+User       1 ──── n AuthSession / AuthAccount  (supprimés avec le compte)
 Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé étrangère
 ```
 
@@ -64,9 +69,10 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 |---|---|---|
 | `id` | Int | Clé primaire |
 | `sessionId` | Int | Clé étrangère vers `Session` |
-| `nom` | String | |
-| `email` | String | |
-| `telephone` | String? | |
+| `userId` | String? | Clé étrangère vers `User`, renseignée par le serveur depuis la session (jamais par le front). Mise à vide si le compte est supprimé |
+| `nom` | String | Copié du compte au moment de la réservation |
+| `email` | String | Copié du compte au moment de la réservation |
+| `telephone` | String? | Copié du compte au moment de la réservation |
 | `nbPersonnes` | Int | |
 | `montantCents` | Int | Total payé |
 | `statut` | String | `en_attente`, `payee` ou `annulee` |
@@ -80,10 +86,11 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
+| `userId` | String? | Clé étrangère vers `User`, renseignée par le serveur depuis la session. Mise à vide si le compte est supprimé |
 | `entreprise` | String | |
-| `contactNom` | String | |
-| `email` | String | |
-| `telephone` | String | Obligatoire : Julie rappelle avant de répondre |
+| `contactNom` | String | Nom du compte |
+| `email` | String | E-mail du compte |
+| `telephone` | String? | Téléphone du compte (ou saisi dans le formulaire si le compte n'en a pas) : Julie rappelle avant de répondre |
 | `typeDemande` | String | `experience`, `sponsoring`, `studio` ou `evenement` |
 | `experienceId` | Int? | Clé étrangère vers `Experience`, optionnelle |
 | `nbParticipants` | Int? | |
@@ -98,8 +105,8 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
-| `guid` | String | Unique, identifiant de l'épisode dans le flux RSS (évite les doublons à l'import) |
-| `saison` | Int | Numéro de la saison |
+| `guid` | String? | Unique, identifiant de l'épisode dans le flux RSS (évite les doublons à l'import). Vide pour un épisode saisi à la main |
+| `saison` | Int | Numéro de la saison (`1` par défaut) |
 | `numero` | Int | Numéro de l'épisode |
 | `titre` | String | |
 | `description` | String | Description complète, importée du flux RSS |
@@ -162,7 +169,7 @@ Pas de logos clients : seuls les avis (texte) sont affichés.
 | `id` | Int | Clé primaire |
 | `url` | String | Ex : `/images/ateliers/photo-2.jpg` |
 | `alt` | String | Texte alternatif (obligatoire) |
-| `page` | String | Chemin de la page qui affiche la galerie, ex : `/`, `/a-propos`, `/experiences/atelier-cuisine-anti-gaspi` |
+| `page` | String | Chemin de la page qui affiche la galerie, ex : `/`, `/a-propos`, `/experiences/atelier-cuisine-anti-gaspi` (galerie de l'expérience) |
 | `ordre` | Int | Position dans la galerie |
 
 ## `Newsletter`
@@ -172,3 +179,36 @@ Pas de logos clients : seuls les avis (texte) sont affichés.
 | `id` | Int | Clé primaire |
 | `email` | String | Unique |
 | `createdAt` | DateTime | |
+
+## `User`
+
+Un compte, créé par l'inscription (`/inscription`) ou par le seed pour l'admin.
+
+| Colonne | Type | Détail |
+|---|---|---|
+| `id` | String | Clé primaire (générée par Better Auth) |
+| `nom` | String | Champ `name` de Better Auth, stocké dans la colonne `nom` |
+| `email` | String | Unique, en minuscules |
+| `emailVerified` | Boolean | Non utilisé pour l'instant (pas d'e-mail de vérification) |
+| `image` | String? | Champ de Better Auth, non utilisé |
+| `telephone` | String? | Optionnel |
+| `role` | String | `client` (par défaut) ou `admin`. Impossible à choisir à l'inscription : seul un admin peut le changer |
+| `createdAt` | DateTime | |
+| `updatedAt` | DateTime | |
+
+Le **mot de passe** n'est pas dans `User` : Better Auth le range, haché en **argon2id**, dans `AuthAccount`
+(`providerId = "credential"`, `accountId` = id du compte). Le seed crée le compte admin à partir de
+`ADMIN_EMAIL` et `ADMIN_PASSWORD` (`.env.local`) et ne remplace jamais le mot de passe d'un compte existant.
+
+Le dernier compte `admin` ne peut être ni supprimé ni rétrogradé.
+
+## Tables techniques de Better Auth
+
+| Table | Rôle |
+|---|---|
+| `AuthSession` | Une connexion active : `token` (dans le cookie httpOnly), `expiresAt`, `ipAddress`, `userAgent`, `userId` |
+| `AuthAccount` | Une méthode de connexion d'un compte : `providerId` (`credential`), `password` (haché), jetons OAuth inutilisés |
+| `AuthVerification` | Jetons temporaires (vérification d'e-mail, réinitialisation), inutilisés pour l'instant |
+
+Elles s'appellent `Auth…` pour ne pas entrer en conflit avec `Session` (les dates des expériences).
+Ne pas les modifier à la main : elles suivent le format imposé par Better Auth.
