@@ -21,15 +21,23 @@ Prérequis : Node.js 22.12 ou supérieur et npm.
 git clone https://github.com/gitUsername229/maison-la-recette.git
 cd maison-la-recette
 npm install
-cp .env.example .env.local      # puis remplir les clés
+cp .env.example .env.local      # puis remplir les clés (voir ci-dessous)
 npx prisma migrate dev          # crée la base SQLite
-npx prisma db seed              # données de démo
+npx prisma db seed              # données de démo + compte admin
 npm run dev                     # http://localhost:3000
 ```
 
 Sous PowerShell, utiliser `Copy-Item .env.example .env.local` à la place de `cp`.
 Les commandes Prisma et Next.js chargent toutes deux le fichier `.env.local`.
-Les clés Stripe peuvent être remplies lorsque le parcours de paiement sera développé.
+
+Dans `.env.local`, avant le seed :
+- `BETTER_AUTH_SECRET` : une longue chaîne aléatoire (`openssl rand -base64 32`), qui signe les sessions ;
+- `ADMIN_EMAIL` et `ADMIN_PASSWORD` (8 caractères minimum) : le seed crée le compte admin avec ces identifiants.
+  Ils ne sont jamais écrits dans le code ; le seed ne remplace pas le mot de passe d'un compte existant ;
+- les clés Stripe sandbox pour tester le paiement (voir [docs/stripe.md](docs/stripe.md)).
+
+Après un `git pull` qui ajoute une migration : `npx prisma migrate dev`, puis `npx prisma db seed`.
+Tests automatiques : `npm test` (base SQLite jetable, n'utilise pas `dev.db`).
 
 ## Séparation front / back
 
@@ -49,26 +57,38 @@ Les fichiers `src/app/page.tsx` et `src/app/api/**/route.ts` délèguent aux dos
 front et back. Les modules sensibles du backend sont réservés au serveur avec
 `server-only`; le frontend utilisera les routes `/api` pour accéder aux données.
 
-### État de l'initialisation
+### État du projet
 
-Le socle comprend Next.js, React, TypeScript, Tailwind, les huit modèles Prisma,
-un seed de trois expériences avec sessions, une page d'accueil provisoire et
-`GET /api/health`. Les routes admin utilisent le contrôle `x-admin-key`.
+**En place :**
+- Next.js, React, TypeScript, Tailwind, Prisma (SQLite) ; seed de trois expériences avec sessions et du compte admin.
+- **Comptes** ([Better Auth](https://www.better-auth.com)) : inscription, connexion, déconnexion (`/inscription`, `/connexion`),
+  mots de passe hachés en argon2id, session en cookie httpOnly. Rôles `client` et `admin`.
+- **Site public sans compte** : accueil, `/experiences` et `/experiences/[slug]` (dates et places restantes),
+  et les API publiques des contenus (épisodes, articles, avis, partenaires, galeries photos).
+- **Réservation et paiement Stripe Checkout (sandbox)**, réservés aux comptes connectés
+  (voir [docs/stripe.md](docs/stripe.md) et [docs/ateliers-stripe.md](docs/ateliers-stripe.md)).
+- **Demande de devis** (`/contact`), réservée aux comptes connectés : nom, e-mail et téléphone repris du compte.
+- **Espace `/compte`** : les réservations et les demandes de devis du client connecté, et uniquement les siennes.
+- **Administration `/admin`** (rôle admin) : réservations, devis, expériences, sessions, photos (envoi de fichiers),
+  épisodes, articles, avis, partenaires et utilisateurs. Le dernier compte admin ne peut être ni rétrogradé ni supprimé.
 
-Le paiement Stripe Checkout (sandbox) et le webhook sont implémentés :
-`POST /api/checkout`, `POST /api/webhook`, `GET /api/reservations`, les pages
-`/reservation/succes` et `/reservation/annule` et le formulaire de réservation
-(voir [docs/stripe.md](docs/stripe.md)). Les pages `/experiences` (liste) et
-`/experiences/[slug]` (détail + bouton « Réserver et payer », ou « Demander un devis »
-pour les immersions) permettent de tester le parcours depuis le navigateur.
-Reste à faire pour le paiement : envoyer l'e-mail de confirmation après paiement.
+**Reste à faire :**
+1. **E-mails** (Nodemailer + Mailpit) : confirmation au client après paiement, demande de devis envoyée à Julie,
+   mot de passe oublié et vérification de l'adresse e-mail.
+2. Pages publiques podcast, à propos et blog (les API qu'elles utiliseront sont prêtes).
+3. Import des épisodes depuis le flux RSS Ausha (`POST /api/episodes/import`) et inscription à la newsletter.
+4. Contenus réels (photos, textes, liens Ausha) : le seed n'en contient pas de fictifs.
 
-Les routes ateliers, sessions, devis et annulation des réservations sont aussi
-implémentées, avec contrôle des places et reprise des paiements Stripe.
-Voir [docs/ateliers-stripe.md](docs/ateliers-stripe.md) pour les règles détaillées.
-Les autres pages et routes décrites ci-dessous restent à développer, dont
-l'interface admin et l'envoi d'e-mails de devis. Le seed ne contient pas de photos ni de liens Ausha fictifs :
-ajouter les contenus réels lors du développement.
+### Sécurité des comptes
+
+- Un seul contrôle d'accès, `verifierAcces` (`src/backend/auth/acces.ts`), utilisé par toutes les routes API
+  (`401` non connecté, `403` rôle insuffisant) et par les pages `/compte`, `/contact` et `/admin` (redirection
+  vers `/connexion` ou `/acces-refuse`). Il est appelé dans chaque page et route, pas seulement dans un layout.
+- `/api/checkout` et `/api/devis` prennent le compte dans la session : un `userId` ou un e-mail envoyé par le front est refusé.
+- Un client ne voit que ses propres réservations et demandes (`404` pour celles des autres).
+- Le rôle ne se choisit pas à l'inscription ; seul un admin le modifie.
+- Le header `x-admin-key` (`ADMIN_KEY`) remplace la session admin **en développement uniquement**,
+  pour les tests curl ([docs/curl-admin.md](docs/curl-admin.md)) ; il est refusé en production (`npm start`).
 
 Commandes complémentaires : `npm run lint`, `npm run typecheck`, `npm run build`
 et `npm start` (après compilation).
@@ -83,7 +103,7 @@ stripe listen --events checkout.session.completed,checkout.session.expired,check
 docker run --rm -p 8025:8025 -p 1025:1025 axllent/mailpit
 ```
 
-Pour récupérer les épisodes du podcast : bouton « Importer depuis Ausha » dans `/admin/episodes` (ou `POST /api/episodes/import`, voir [docs/curl-admin.md](docs/curl-admin.md)).
+Les épisodes du podcast se saisissent pour l'instant dans `/admin/episodes` ; l'import depuis le flux Ausha est prévu (voir « Reste à faire »).
 
 ## Principes du site
 
@@ -107,7 +127,8 @@ Tout tourne en local sur `http://localhost:3000`.
 | Paiement | **Stripe Checkout (sandbox)** | Paiement simulé, gratuit, carte de test `4242 4242 4242 4242`. Seulement pour les expériences réservables en ligne |
 | E-mails | **Nodemailer + Mailpit** | Chaque demande de devis est envoyée par e-mail à Julie ; en local, Mailpit capture les e-mails sans rien envoyer |
 | Podcast | **Flux RSS Ausha** importé dans la table `Episode` + lecteur intégré Ausha | Pas de double saisie : les audios restent chez Ausha, seuls les liens et métadonnées sont en base |
-| Admin | **Interface `/admin` protégée par mot de passe** + clé `x-admin-key` pour les devs | Julie gère le site seule, sans toucher au code (voir plus bas) |
+| Comptes | **Better Auth** + argon2id (`@node-rs/argon2`) | Librairie reconnue : inscription, connexion, sessions en base et cookie httpOnly, sans authentification faite maison |
+| Admin | **Interface `/admin` réservée au rôle admin** + clé `x-admin-key` pour les devs (développement uniquement) | Julie gère le site seule, sans toucher au code (voir plus bas) |
 
 ## Pages du site
 
@@ -121,8 +142,10 @@ Tout tourne en local sur `http://localhost:3000`.
 | Blog (`/blog`) | Liste des articles publiés | Tous | `GET /api/articles` |
 | Article (`/blog/[slug]`) | Un article complet | Tous | `GET /api/articles/[slug]` |
 | À propos | Mission, histoire, Julie Van Ossel, partenaires, avis | Tous | `GET /api/partenaires`, `GET /api/avis` |
-| Contact | Demande de devis (B2B : expérience, sponsoring, studio, événement ; réponse sous 48h) + réservation en ligne (B2C) | B2B / B2C | `POST /api/devis`, `POST /api/checkout` |
-| Réservation (succès / annulée) | Confirmation après le paiement | B2C | `GET /api/reservations?session_id=` |
+| Contact (`/contact`) | Demande de devis (B2B : expérience, sponsoring, studio, événement ; réponse sous 48h). Compte requis | B2B | `POST /api/devis` |
+| Réservation (succès / annulée) | Confirmation après le paiement (succès : propriétaire de la réservation uniquement) | B2C | `GET /api/reservations?session_id=` |
+| Connexion / Inscription | `/connexion` et `/inscription` ; un compte est requis pour réserver et demander un devis | Tous | `/api/auth/*` |
+| Mon compte (`/compte`) | Mes réservations et mes demandes de devis | Clients | `GET /api/compte` |
 | Admin (`/admin`) | Interface de gestion protégée par mot de passe (voir ci-dessous) | Julie | routes admin |
 
 Chaque page peut afficher une galerie de photos : `GET /api/images?page=<chemin de la page>`.
@@ -131,7 +154,9 @@ Pas de logos clients : la crédibilité passe par les avis et les partenaires (a
 ## Interface d'administration (`/admin`)
 
 Julie gère le site seule et n'est pas technique : tout se fait avec des formulaires dans `/admin`.
-L'accès est protégé par un mot de passe (`ADMIN_PASSWORD`). Après connexion sur `/admin/connexion`, un cookie de session (httpOnly) la garde connectée.
+L'accès est réservé aux comptes au rôle **admin** : Julie se connecte sur `/connexion` avec le compte créé par le seed
+(`ADMIN_EMAIL` / `ADMIN_PASSWORD`), puis le lien « Administration » apparaît dans l'en-tête. Elle peut donner le rôle
+admin à un autre compte dans `/admin/utilisateurs`. Un client qui ouvre `/admin` est redirigé vers « Accès refusé ».
 
 | Page admin | Ce que Julie peut y faire |
 |---|---|
@@ -140,18 +165,21 @@ L'accès est protégé par un mot de passe (`ADMIN_PASSWORD`). Après connexion 
 | `/admin/experiences` | Créer, modifier, masquer ou supprimer une expérience, choisir « réservable en ligne » ou « sur devis » |
 | `/admin/sessions` | Ajouter des dates, modifier les places, fermer une session |
 | `/admin/photos` | Envoyer des photos, choisir la page, le texte alternatif et l'ordre |
-| `/admin/episodes` | Importer les épisodes depuis Ausha, modifier le résumé, l'invité et les liens |
+| `/admin/episodes` | Ajouter ou modifier un épisode : résumé, invité, liens (import Ausha à venir) |
 | `/admin/articles` | Écrire, publier ou dépublier un article du blog |
 | `/admin/avis` | Ajouter un avis client, l'afficher ou le masquer |
 | `/admin/partenaires` | Ajouter un partenaire, l'afficher une fois son accord obtenu |
+| `/admin/utilisateurs` | Voir les comptes, modifier un nom, un téléphone ou un rôle, supprimer un compte |
 
-Les formulaires appellent les mêmes routes API que les exemples de [docs/curl-admin.md](docs/curl-admin.md). Les curl (header `x-admin-key`) restent disponibles pour les devs.
+Toutes les rubriques utilisent la même page (`src/app/admin/[ressource]`), décrite dans `src/frontend/admin/ressources.ts` :
+ajouter une rubrique revient à y décrire ses colonnes et ses champs. Les formulaires appellent les mêmes routes API
+que les exemples de [docs/curl-admin.md](docs/curl-admin.md).
 
 > En production, on recommandera un CMS (par exemple Strapi, Sanity ou Payload) : éditeur visuel, gestion des médias, plusieurs comptes. L'interface `/admin` couvre les besoins du projet.
 
 ## Variables d'environnement
 
-`.env.example` (à copier en `.env.local`) :
+`.env.example` (à copier en `.env.local`, qui n'est jamais commité) :
 
 ```
 DATABASE_URL="file:./dev.db"
@@ -161,17 +189,13 @@ STRIPE_SECRET_KEY=sk_test_xxx
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 
-ADMIN_PASSWORD=mot-de-passe-de-julie
-ADMIN_SESSION_SECRET=une-longue-chaine-aleatoire
-ADMIN_KEY=ma-cle-secrete
-
-SMTP_HOST=localhost
-SMTP_PORT=1025
-MAIL_FROM=site@maison-la-recette.local
-MAIL_DEVIS_TO=julie@exemple.fr
-
-AUSHA_RSS_URL=https://feed.ausha.co/xxxxxxxx
+BETTER_AUTH_SECRET=remplacer-par-une-longue-chaine-aleatoire
+ADMIN_EMAIL=admin@exemple.fr
+ADMIN_PASSWORD=remplacer-par-un-mot-de-passe-solide
+ADMIN_KEY=remplacer-par-une-cle-locale-aleatoire   # x-admin-key, développement uniquement
 ```
+
+Prévues avec les e-mails et l'import Ausha : `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM`, `MAIL_DEVIS_TO`, `AUSHA_RSS_URL`.
 
 Exclusions déjà configurées dans `.gitignore` :
 
@@ -180,6 +204,7 @@ Exclusions déjà configurées dans `.gitignore` :
 .env.local
 prisma/dev.db
 prisma/dev.db-journal
+public/images/uploads/   (photos envoyées depuis /admin)
 node_modules
 .next
 ```

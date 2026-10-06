@@ -15,7 +15,7 @@ Tout est simulé : aucun vrai argent, aucune vérification d'identité.
 | `src/backend/auth/admin.ts` | Contrôle de la clé `x-admin-key` (liste admin des réservations) |
 | `src/app/api/checkout/route.ts` | `POST` : crée la réservation et la page de paiement Stripe |
 | `src/app/api/webhook/route.ts` | `POST` : reçoit la confirmation de Stripe |
-| `src/app/api/reservations/route.ts` | `GET` : retrouve une réservation (public) ou les liste (admin) |
+| `src/app/api/reservations/route.ts` | `GET` : retrouve une réservation (son propriétaire connecté) ou les liste (admin) |
 | `src/app/reservation/succes/page.tsx` | Page affichée après un paiement réussi |
 | `src/app/reservation/annule/page.tsx` | Page affichée si la personne annule le paiement (libère les places) |
 | `src/frontend/components/ReservationForm.tsx` | Formulaire de réservation à placer sur les pages d'expériences |
@@ -112,7 +112,7 @@ Le formulaire est affiché sur `/experiences/[slug]` (accessible depuis l'accuei
 | `src/app/experiences/page.tsx` | Charge les expériences actives (`experiencesActives`) |
 | `src/app/experiences/[slug]/page.tsx` | Charge l'expérience et ses sessions ouvertes (`experiencePublique`), les passe au front |
 | `src/frontend/pages/experiences.tsx` | Liste des expériences |
-| `src/frontend/pages/experience.tsx` | Détail + `ReservationForm`, ou « Demander un devis » si `reservableEnLigne = false` |
+| `src/frontend/pages/experience.tsx` | Détail + `ReservationForm` (ou « Se connecter pour réserver » pour un visiteur), ou « Demander un devis » si `reservableEnLigne = false` |
 
 Les données sont chargées dans `src/app` car ESLint interdit à `src/frontend` d'importer le backend.
 En développement, la page rappelle la carte de test `4242 4242 4242 4242` sous le bouton de paiement.
@@ -121,7 +121,7 @@ Les pages `/reservation/succes` et `/reservation/annule` renvoient vers la liste
 
 ## Parcours complet
 
-1. La personne choisit une date, le nombre de participants, son nom et son e-mail.
+1. La personne, **connectée à son compte**, choisit une date et le nombre de participants. Le nom, l'e-mail et le téléphone de la réservation sont ceux du compte (lus par le serveur, jamais envoyés par le formulaire).
 2. `POST /api/checkout` vérifie les places, crée une réservation `en_attente` et une session Stripe expirant après 35 min. Les places restent bloquées jusqu'à confirmation d'expiration par Stripe. Un header `Idempotency-Key` UUID est recommandé pour les reprises ; il reste optionnel pour le formulaire existant.
 3. Redirection vers la page de paiement Stripe.
 4. **Paiement réussi** : Stripe redirige vers `/reservation/succes` et envoie `checkout.session.completed` au webhook. La réservation passe à `payee`, les places sont comptées, et la session passe à `complete` si elle est pleine.
@@ -143,11 +143,17 @@ npm run dev
 #    (--events est obligatoire avec les versions récentes de la CLI : ce sont les événements traités par le webhook)
 stripe listen --events checkout.session.completed,checkout.session.expired,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to localhost:3000/api/webhook
 
-# 3. Tests
-curl -X POST http://localhost:3000/api/checkout \
+# 3. Tests : se connecter (compte créé sur /inscription), puis réserver
+curl -X POST http://localhost:3000/api/auth/sign-in/email \
+  -H "Content-Type: application/json" -H "Origin: http://localhost:3000" -c cookies.txt \
+  -d '{"email":"camille@example.com","password":"un-mot-de-passe"}'
+curl -X POST http://localhost:3000/api/checkout -b cookies.txt \
   -H "Content-Type: application/json" \
-  -d '{"sessionId":1,"nom":"Camille Martin","email":"camille@example.com","nbPersonnes":2}'
+  -d '{"sessionId":1,"nbPersonnes":2}'
 ```
+
+Le plus simple reste le navigateur : accueil → « Réserver une expérience » → l'atelier → se connecter → « Réserver et payer ».
+Sans compte connecté, `POST /api/checkout` répond `401`.
 
 Ouvrir le `checkoutUrl` renvoyé et payer avec une carte de test (date future et CVC quelconques) :
 
@@ -167,6 +173,8 @@ npx prisma studio   # la réservation est "payee" et placesPrises a augmenté
 
 - Réserver plus de places qu'il n'en reste : erreur `409` « Il ne reste que X places ».
 - Réserver une immersion (`reservableEnLigne = false`) : erreur `400`.
+- Réserver sans être connecté : bouton « Se connecter pour réserver » sur la page, `401` sur l'API.
+- Ouvrir `/reservation/succes?session_id=…` d'une réservation avec le compte d'un autre client : « Réservation introuvable ».
 - Revenir depuis Stripe : retour sur `/reservation/annule`, puis réservation `annulee` après expiration Stripe ou annulation admin.
 - Payer la dernière place : la session passe à `complete` et disparaît du formulaire.
 - Couper `stripe listen` puis payer : la page de succès affiche quand même « Votre place est réservée » (vérification directe auprès de Stripe), mais la base n'est pas mise à jour. **Toujours lancer `stripe listen` pendant la démo.**

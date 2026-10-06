@@ -16,17 +16,17 @@ exposent les routes Next.js, sans logique métier côté frontend.
 | `POST /api/sessions` | Admin | Créer une session future |
 | `PUT /api/sessions/:id` | Admin | Modifier une session, avec contrôle des places |
 | `DELETE /api/sessions/:id` | Admin | Supprimer une session sans réservations |
-| `POST /api/checkout` | Public | Bloquer les places et ouvrir Stripe Checkout |
+| `POST /api/checkout` | Connecté | Bloquer les places et ouvrir Stripe Checkout (nom, e-mail, téléphone et `userId` pris du compte) |
 | `POST /api/webhook` | Signature Stripe | Confirmer un paiement ou libérer une expiration |
-| `GET /api/reservations?session_id=cs_test_...` | Lien Stripe secret | Résumé sans e-mail ni téléphone |
+| `GET /api/reservations?session_id=cs_test_...` | Connecté (propriétaire) | Résumé sans e-mail ni téléphone ; `404` pour un autre client |
 | `GET /api/reservations?statut=payee` | Admin | Liste des réservations |
 | `PATCH /api/reservations/:id` | Admin | Annuler après expiration ou remboursement intégral |
-| `POST /api/devis` | Public | Demande B2B |
+| `POST /api/devis` | Connecté | Demande B2B (contact repris du compte) |
 | `GET /api/devis` et `PATCH /api/devis/:id` | Admin | Gestion des demandes B2B |
 
-Les routes admin vérifient `x-admin-key` contre `ADMIN_KEY`. Les prix et places
-sont calculés côté serveur. Les champs inconnus sont refusés. Les fichiers et
-l'upload d'images restent à développer ; le catalogue lit déjà la galerie Prisma.
+Les routes admin exigent un compte au rôle `admin` (en développement seulement, `x-admin-key` contre `ADMIN_KEY`
+le remplace) ; voir `src/backend/auth/acces.ts`. Les prix et places sont calculés côté serveur. Les champs
+inconnus sont refusés. La galerie d'une expérience vient de la table `Image` (page `/experiences/<slug>`).
 
 ## Installation locale
 
@@ -58,7 +58,7 @@ const bookingKey = crypto.randomUUID();
 const response = await fetch('/api/checkout', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'Idempotency-Key': bookingKey },
-  body: JSON.stringify({ sessionId: 1, nom: 'Camille', email: 'camille@example.com', nbPersonnes: 2 }),
+  body: JSON.stringify({ sessionId: 1, nbPersonnes: 2 }), // compte connecté : cookie envoyé automatiquement
 });
 const result = await response.json();
 if (!response.ok) throw new Error(result.error);

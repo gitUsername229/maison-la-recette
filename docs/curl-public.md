@@ -6,6 +6,65 @@
 export BASE=http://localhost:3000
 ```
 
+Tout le site se consulte sans compte. Un compte est obligatoire pour **réserver**, **demander un devis**
+et consulter **son espace** : ces routes répondent `401` sans cookie de session.
+
+## Comptes (Better Auth)
+
+Les routes `/api/auth/*` sont fournies par Better Auth. Le cookie de session (`better-auth.session_token`,
+httpOnly) est gardé dans `cookies.txt` puis renvoyé avec `-b cookies.txt`. Better Auth vérifie l'origine
+des requêtes : ajouter `-H "Origin: $BASE"`.
+
+**Créer un compte** (connecte aussitôt ; `telephone` facultatif ; mot de passe de 8 caractères minimum)
+
+```bash
+curl -X POST "$BASE/api/auth/sign-up/email" \
+  -H "Content-Type: application/json" -H "Origin: $BASE" \
+  -c cookies.txt \
+  -d '{ "name": "Camille Martin", "email": "camille@example.com", "password": "un-mot-de-passe", "telephone": "0600000000" }'
+```
+
+Le rôle est toujours `client` : un champ `role` envoyé ici est ignoré. E-mail déjà utilisé : `422`.
+
+**Se connecter**
+
+```bash
+curl -X POST "$BASE/api/auth/sign-in/email" \
+  -H "Content-Type: application/json" -H "Origin: $BASE" \
+  -c cookies.txt \
+  -d '{ "email": "camille@example.com", "password": "un-mot-de-passe" }'
+```
+
+Mauvais identifiants : `401` avec `{ "code": "INVALID_EMAIL_OR_PASSWORD" }`.
+
+**Session en cours** (`null` si personne n'est connecté)
+
+```bash
+curl "$BASE/api/auth/get-session" -b cookies.txt
+```
+
+**Se déconnecter**
+
+```bash
+curl -X POST "$BASE/api/auth/sign-out" -H "Origin: $BASE" -b cookies.txt -c cookies.txt
+```
+
+**Mon espace** : le compte, ses réservations et ses demandes de devis (jamais celles d'un autre client)
+
+```bash
+curl "$BASE/api/compte" -b cookies.txt
+```
+
+Réponse `200` :
+
+```json
+{
+  "utilisateur": { "id": "…", "nom": "Camille Martin", "email": "camille@example.com", "telephone": "0600000000", "role": "client" },
+  "reservations": [{ "id": 7, "nbPersonnes": 2, "montantCents": 9000, "statut": "payee", "session": { "dateDebut": "…", "lieu": "La Rochelle", "experience": { "titre": "…", "slug": "…" } } }],
+  "demandesDevis": [{ "id": 3, "typeDemande": "studio", "entreprise": "Marque Exemple", "statut": "nouvelle" }]
+}
+```
+
 ## Expériences
 
 **Lister toutes les expériences**
@@ -289,21 +348,17 @@ Réponse `200` (triée par `ordre`) :
 
 ## Réserver et payer (B2C)
 
-Seulement pour les expériences réservables en ligne (`reservableEnLigne: true`).
+Seulement pour les expériences réservables en ligne (`reservableEnLigne: true`), avec un compte connecté.
+Le nom, l'e-mail et le téléphone de la réservation sont ceux du compte : ils ne s'envoient pas.
 
 **Créer la réservation et la session de paiement Stripe**
 
 ```bash
 curl -X POST "$BASE/api/checkout" \
+  -b cookies.txt \
   -H "Idempotency-Key: 9e205ddd-e3a2-4a1b-81d6-8d505c126998" \
   -H "Content-Type: application/json" \
-  -d '{
-    "sessionId": 4,
-    "nom": "Camille Martin",
-    "email": "camille@example.com",
-    "telephone": "0600000000",
-    "nbPersonnes": 2
-  }'
+  -d '{ "sessionId": 4, "nbPersonnes": 2 }'
 ```
 
 Réponse `200` :
@@ -325,6 +380,11 @@ Checkout et libérées sur son expiration signée ; voir [le guide](ateliers-str
 Erreurs possibles :
 
 ```json
+{ "error": "Connectez-vous pour continuer." }
+```
+(code `401`, sans cookie de session)
+
+```json
 { "error": "Il ne reste que 1 place" }
 ```
 (code `409`)
@@ -341,8 +401,10 @@ Erreurs possibles :
 
 **Retrouver la réservation après le paiement** (page `/reservation/succes?session_id=cs_test_...`)
 
+Réservé au compte qui a réservé (ou à un admin) : sans cookie `401`, avec le compte d'un autre client `404`.
+
 ```bash
-curl "$BASE/api/reservations?session_id=cs_test_a1B2c3"
+curl "$BASE/api/reservations?session_id=cs_test_a1B2c3" -b cookies.txt
 ```
 
 Réponse `200` :
@@ -382,18 +444,20 @@ Quand l'événement `checkout.session.completed` arrive : la réservation passe 
 
 ## Demande de devis (B2B)
 
-`typeDemande` : `experience`, `sponsoring`, `studio` ou `evenement`. Le `telephone` est obligatoire : Julie rappelle d'abord.
+Avec un compte connecté. `contactNom`, `email` et `telephone` sont repris du compte : ils ne s'envoient pas
+(un `userId` ou un `email` envoyé est refusé, `400`). Si le compte n'a pas de téléphone, envoyer `telephone` :
+il est obligatoire (Julie rappelle d'abord) et complète le compte.
+
+`typeDemande` : `experience`, `sponsoring`, `studio` ou `evenement`. Seule une demande `experience` peut viser une expérience (`experienceId`).
 
 **Devis pour une expérience en entreprise**
 
 ```bash
 curl -X POST "$BASE/api/devis" \
+  -b cookies.txt \
   -H "Content-Type: application/json" \
   -d '{
     "entreprise": "Entreprise Exemple",
-    "contactNom": "Julien Dupont",
-    "email": "julien@exemple.fr",
-    "telephone": "0611223344",
     "typeDemande": "experience",
     "experienceId": 3,
     "nbParticipants": 25,
@@ -409,12 +473,10 @@ curl -X POST "$BASE/api/devis" \
 
 ```bash
 curl -X POST "$BASE/api/devis" \
+  -b cookies.txt \
   -H "Content-Type: application/json" \
   -d '{
     "entreprise": "Marque Exemple",
-    "contactNom": "Sophie Leroy",
-    "email": "sophie@marque.fr",
-    "telephone": "0622334455",
     "typeDemande": "studio",
     "message": "Nous voulons lancer un podcast de marque."
   }'
@@ -425,18 +487,18 @@ Les demandes `sponsoring` (sponsoriser le podcast) et `evenement` s'envoient de 
 Réponse `201` :
 
 ```json
-{
-  "id": 3,
-  "statut": "nouvelle",
-  "message": "Merci ! Votre demande est bien reçue, nous vous répondons sous 48h."
-}
+{ "id": 3, "statut": "nouvelle" }
 ```
 
-Un e-mail avec le détail de la demande est envoyé à Julie (`MAIL_DEVIS_TO`). En local, il arrive dans Mailpit : http://localhost:8025.
+La demande apparaît dans `/admin/devis` et dans l'espace `/compte` du client. L'e-mail à Julie
+(`MAIL_DEVIS_TO`, Mailpit en local) n'est pas encore envoyé : voir « Reste à faire » dans le README.
 
-Téléphone manquant : `400` avec `{ "error": "Le téléphone est obligatoire" }`.
+Sans cookie : `401`. Compte sans téléphone et `telephone` absent : `400` avec
+`{ "error": "Indiquez un numéro de téléphone : Julie vous rappelle avant de répondre." }`.
 
 ## Newsletter
+
+Prévue, pas encore implémentée.
 
 ```bash
 curl -X POST "$BASE/api/newsletter" \

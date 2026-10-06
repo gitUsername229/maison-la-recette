@@ -2,36 +2,42 @@
 
 Ces exemples sont pour les devs. Julie, elle, passe par l'interface `/admin`, dont les formulaires appellent ces mêmes routes.
 
-Toutes ces routes exigent le header `x-admin-key` (valeur de `ADMIN_KEY` dans `.env.local`) ou le cookie de session de l'interface `/admin`. Sans l'un ni l'autre : `401`.
+Ces routes exigent un **compte admin connecté** (cookie de session) :
+
+- sans session : `401` avec `{ "error": "Connectez-vous pour continuer." }` ;
+- connecté avec un compte client : `403` avec `{ "error": "Accès réservé à l’administration." }`.
+
+**Uniquement en développement** (`npm run dev`, tests), le header `x-admin-key` (valeur de `ADMIN_KEY`
+dans `.env.local`) remplace la session admin pour ces exemples. Il est **refusé en production**
+(`NODE_ENV=production`, donc avec `npm start`) et ne permet jamais de réserver ni de demander un devis.
 
 ```bash
 export BASE=http://localhost:3000
 export ADMIN_KEY=ma-cle-secrete
 ```
 
-## Admin : connexion à l'interface
+## Admin : se connecter avec le compte admin
 
-C'est ce que fait le formulaire de `/admin/connexion` (mot de passe : `ADMIN_PASSWORD` dans `.env.local`).
+Le compte admin est créé par le seed à partir de `ADMIN_EMAIL` et `ADMIN_PASSWORD` (`.env.local`).
+C'est ce que fait le formulaire de `/connexion`.
 
 ```bash
-curl -X POST "$BASE/api/admin/connexion" \
-  -H "Content-Type: application/json" \
-  -d '{ "motDePasse": "mot-de-passe-de-julie" }' \
-  -c cookies.txt
+curl -X POST "$BASE/api/auth/sign-in/email" \
+  -H "Content-Type: application/json" -H "Origin: $BASE" \
+  -c admin.txt \
+  -d '{ "email": "admin@exemple.fr", "password": "mot-de-passe-admin" }'
 ```
 
-Réponse `200` : `{ "ok": true }` et un cookie `admin_session` (httpOnly). Mauvais mot de passe : `401`.
-
-Le cookie remplace alors la clé :
+Le cookie remplace alors la clé dans tous les exemples ci-dessous :
 
 ```bash
-curl "$BASE/api/devis" -b cookies.txt
+curl "$BASE/api/devis" -b admin.txt
 ```
 
 **Se déconnecter**
 
 ```bash
-curl -X POST "$BASE/api/admin/deconnexion" -b cookies.txt
+curl -X POST "$BASE/api/auth/sign-out" -H "Origin: $BASE" -b admin.txt -c admin.txt
 ```
 
 ## Admin : réservations
@@ -61,7 +67,7 @@ curl -X PATCH "$BASE/api/reservations/7" \
   -d '{ "statut": "annulee" }'
 ```
 
-Sans clé : `401` avec `{ "error": "Non autorisé" }`.
+Sans session admin (ni clé en développement) : `401`. Avec un compte client : `403`.
 
 ## Admin : devis
 
@@ -125,7 +131,7 @@ curl -X POST "$BASE/api/experiences" \
     "accroche": "Une journée les mains dans la terre avec votre équipe",
     "description": "Une journée complète ...",
     "dureeMin": 420,
-    "prixCents": null,
+    "prixCents": 6500,
     "reservableEnLigne": false,
     "capaciteMax": 30,
     "image": "/images/immersions/cover.jpg",
@@ -183,19 +189,26 @@ curl -X DELETE "$BASE/api/sessions/4" -H "x-admin-key: $ADMIN_KEY"
 
 ## Admin : épisodes du podcast
 
-**Importer depuis le flux RSS Ausha** (bouton « Importer depuis Ausha » de `/admin/episodes`)
+**Ajouter un épisode à la main** (`saison` vaut `1` par défaut, `resume` est facultatif)
 
 ```bash
-curl -X POST "$BASE/api/episodes/import" -H "x-admin-key: $ADMIN_KEY"
+curl -X POST "$BASE/api/episodes" \
+  -H "x-admin-key: $ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "saison": 1,
+    "numero": 12,
+    "titre": "Cuisiner les restes avec un chef",
+    "description": "Description complète de l'\''épisode ...",
+    "datePublication": "2026-10-01",
+    "dureeMin": 42,
+    "image": "https://image.ausha.co/...",
+    "embedUrl": "https://player.ausha.co/..."
+  }'
 ```
 
-Réponse `200` :
-
-```json
-{ "crees": 2, "misAJour": 22 }
-```
-
-Le flux lu est `AUSHA_RSS_URL`. Les épisodes sont retrouvés par leur `guid` : relancer l'import ne crée pas de doublons et n'écrase pas les champs saisis dans l'admin (`resume`, `invite`, liens des plateformes).
+**Importer depuis le flux RSS Ausha** : prévu, pas encore implémenté (`POST /api/episodes/import`).
+Les épisodes seront retrouvés par leur `guid` sans écraser les champs saisis dans l'admin.
 
 **Modifier un épisode** (texte affiché sur le site, invité, liens)
 
@@ -300,7 +313,7 @@ curl -X POST "$BASE/api/partenaires" \
   }'
 ```
 
-Réponse `201` : `{ "id": 1, "visible": false }`.
+Réponse `201` : le partenaire créé, avec `"visible": false`.
 
 **L'afficher une fois son accord obtenu**
 
@@ -317,48 +330,41 @@ curl -X PUT "$BASE/api/partenaires/1" \
 curl -X DELETE "$BASE/api/partenaires/1" -H "x-admin-key: $ADMIN_KEY"
 ```
 
-## Admin : images
+## Admin : photos (galeries)
 
-**Envoyer une image** (le fichier est enregistré dans `public/images/` et son chemin est renvoyé)
+**1. Envoyer le fichier** (JPG, PNG ou WebP, 5 Mo maximum). Le type est vérifié sur le contenu du fichier,
+qui est enregistré sous un nom aléatoire dans `public/images/uploads/` (ignoré par git).
 
 ```bash
-curl -X POST "$BASE/api/images" \
+curl -X POST "$BASE/api/images/fichier" \
   -H "x-admin-key: $ADMIN_KEY" \
-  -F "file=@./photo-atelier.jpg" \
-  -F "dossier=ateliers"
+  -F "fichier=@./photo-atelier.jpg"
 ```
 
 Réponse `201` :
 
 ```json
-{ "url": "/images/ateliers/photo-atelier.jpg" }
+{ "url": "/images/uploads/3f1c…e9.jpg" }
 ```
 
-**Ajouter l'image à la galerie d'une page** (`page` = chemin de la page, `alt` obligatoire)
+Ce chemin sert aussi pour la couverture d'une expérience ou d'un article (`image`) et la photo d'un partenaire (`photo`).
+Fichier d'un autre type : `400` avec `{ "error": "Format non accepté : JPG, PNG ou WebP uniquement" }`.
+
+**2. L'ajouter à la galerie d'une page** (`page` = chemin de la page, `alt` obligatoire, `ordre` facultatif)
 
 ```bash
 curl -X POST "$BASE/api/images" \
   -H "x-admin-key: $ADMIN_KEY" \
-  -F "file=@./photo-atelier.jpg" \
-  -F "dossier=ateliers" \
-  -F "page=/experiences/atelier-cuisine-anti-gaspi" \
-  -F "alt=Participants en pleine préparation" \
-  -F "ordre=3"
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "/images/uploads/3f1c…e9.jpg",
+    "alt": "Participants en pleine préparation",
+    "page": "/experiences/atelier-cuisine-anti-gaspi",
+    "ordre": 3
+  }'
 ```
 
-Réponse `201` :
-
-```json
-{
-  "id": 7,
-  "url": "/images/ateliers/photo-atelier.jpg",
-  "alt": "Participants en pleine préparation",
-  "page": "/experiences/atelier-cuisine-anti-gaspi",
-  "ordre": 3
-}
-```
-
-Avec `page` mais sans `alt` : `400`.
+Réponse `201` : la photo créée (`id`, `url`, `alt`, `page`, `ordre`). Sans `alt` : `400`.
 
 **Modifier le texte alternatif ou l'ordre**
 
@@ -369,8 +375,34 @@ curl -X PUT "$BASE/api/images/7" \
   -d '{ "alt": "Participants qui épluchent des légumes", "ordre": 1 }'
 ```
 
-**Supprimer une image de galerie**
+**Supprimer une photo de galerie** (le fichier est effacé s'il n'est plus utilisé ailleurs sur le site)
 
 ```bash
 curl -X DELETE "$BASE/api/images/2" -H "x-admin-key: $ADMIN_KEY"
 ```
+
+## Admin : utilisateurs
+
+**Lister les comptes** (sans aucune donnée d'authentification ; nombre de réservations et de devis inclus)
+
+```bash
+curl "$BASE/api/utilisateurs" -H "x-admin-key: $ADMIN_KEY"
+```
+
+**Modifier un compte** (`nom`, `telephone` ou `role` : `client` ou `admin`)
+
+```bash
+curl -X PATCH "$BASE/api/utilisateurs/ID_DU_COMPTE" \
+  -H "x-admin-key: $ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "role": "admin" }'
+```
+
+**Supprimer un compte** (ses réservations et demandes de devis sont conservées, détachées du compte)
+
+```bash
+curl -X DELETE "$BASE/api/utilisateurs/ID_DU_COMPTE" -H "x-admin-key: $ADMIN_KEY"
+```
+
+Le **dernier compte admin** ne peut être ni rétrogradé en `client` ni supprimé, y compris par lui-même :
+`409` avec `{ "error": "Impossible : c’est le dernier compte administrateur. Donnez d’abord le rôle admin à un autre compte." }`.
