@@ -371,7 +371,7 @@ Cette route est appelée par Stripe, pas à la main : la signature du message es
 npm run dev
 
 # Terminal 2 : redirige les événements Stripe vers le site
-stripe listen --forward-to localhost:3000/api/webhook
+stripe listen --events checkout.session.completed,checkout.session.expired,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to localhost:3000/api/webhook
 # → affiche un secret "whsec_..." à copier dans .env.local (STRIPE_WEBHOOK_SECRET)
 
 # Terminal 3 (optionnel) : simuler un paiement réussi sans passer par le navigateur

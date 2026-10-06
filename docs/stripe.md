@@ -36,15 +36,16 @@ npm install stripe
 
 ### 3. Stripe CLI (pour recevoir les webhooks en local)
 
-- macOS : `brew install stripe/stripe-cli/stripe`
-- Windows : `scoop install stripe`, ou télécharger l'exécutable depuis la page GitHub `stripe/stripe-cli`
-- Linux : voir la doc Stripe CLI
-
-Puis :
+Sur macOS, Windows et Linux (Node.js est déjà installé pour le projet) :
 
 ```bash
+npm install -g @stripe/cli
 stripe login
 ```
+
+`stripe login` affiche un code et ouvre le navigateur : valider l'accès en choisissant **la même sandbox**
+que celle des clés `sk_test_`, sinon les webhooks n'arrivent pas. Sans `stripe login`, on peut aussi
+donner la clé secrète à la CLI avec la variable d'environnement `STRIPE_API_KEY`.
 
 ### 4. Variables d'environnement (`.env.local`)
 
@@ -171,7 +172,8 @@ Trois terminaux :
 npm run dev
 
 # 2. Les webhooks Stripe → copier le whsec_... affiché dans .env.local, puis relancer npm run dev
-stripe listen --forward-to localhost:3000/api/webhook
+#    (--events est obligatoire avec les versions récentes de la CLI : ce sont les événements traités par le webhook)
+stripe listen --events checkout.session.completed,checkout.session.expired,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to localhost:3000/api/webhook
 
 # 3. Tests
 curl -X POST http://localhost:3000/api/checkout \
