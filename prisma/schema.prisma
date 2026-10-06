@@ -78,6 +78,7 @@ model DemandeDevis {
   lieuSouhaite   String?
   message        String
   statut         String      @default("nouvelle")
+  noteInterne    String?
   createdAt      DateTime    @default(now())
   userId         String?
   experience     Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)

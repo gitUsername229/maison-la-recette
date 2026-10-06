@@ -2,7 +2,7 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/backend/db/prisma';
 import { estAdmin, exigerAdmin } from '@/backend/auth/acces';
-import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
+import { ApiError, endpoint, json, pluriel, positiveId, type RouteContext } from '@/backend/http';
 import { experienceSchema, experienceUpdateSchema, sessionSchema, sessionUpdateSchema } from './validation';
 import { placesBloquees, reservationsBloquantes } from '@/backend/places';
 import { lockSession } from './inventory';
@@ -52,7 +52,11 @@ export const updateExperience = endpoint(async (request: Request, context: Route
 
 export const deleteExperience = endpoint(async (request: Request, context: RouteContext) => {
   await exigerAdmin(request);
-  await prisma.experience.delete({ where: { id: positiveId((await context.params).id) } });
+  const id = positiveId((await context.params).id);
+  // Ses sessions portent les réservations (historique, comptabilité) : on masque au lieu de supprimer.
+  const sessions = await prisma.session.count({ where: { experienceId: id } });
+  if (sessions) throw new ApiError(409, `Cette expérience a ${pluriel(sessions, 'session')} (et leurs réservations) : elle ne peut pas être supprimée, pour garder l’historique. Masquez-la : elle n’apparaîtra plus sur le site.`, { suggestion: 'masquer' });
+  await prisma.experience.delete({ where: { id } });
   return json({ ok: true });
 });
 
@@ -89,15 +93,24 @@ export const updateSession = endpoint(async (request: Request, context: RouteCon
     const current = await lockSession(tx, id);
     const occupied = current.placesPrises + await placesBloquees(tx, id);
     const next = { ...current, ...data };
-    if (next.dateFin <= next.dateDebut || (data.dateDebut && next.dateDebut <= new Date())) throw new ApiError(400, 'Dates invalides');
-    if (occupied && (data.dateDebut || data.dateFin || data.lieu || data.statut === 'annulee')) throw new ApiError(409, 'Annuler les réservations avant de déplacer ou annuler cette session');
-    if (next.placesTotal < occupied || next.placesTotal > current.experience.capaciteMax) throw new ApiError(409, 'Capacité incompatible avec les réservations ou l’expérience');
+    // Le formulaire renvoie tous les champs : seules les vraies modifications comptent.
+    const debutChange = data.dateDebut !== undefined && data.dateDebut.getTime() !== current.dateDebut.getTime();
+    const deplacee = debutChange || (data.dateFin !== undefined && data.dateFin.getTime() !== current.dateFin.getTime()) || (data.lieu !== undefined && data.lieu !== current.lieu);
+    if (next.dateFin <= next.dateDebut) throw new ApiError(400, 'La fin doit être après le début.', { champ: 'dateFin' });
+    if (debutChange && next.dateDebut <= new Date()) throw new ApiError(400, 'La nouvelle date de début doit être dans le futur.', { champ: 'dateDebut' });
+    if (occupied && (deplacee || (data.statut === 'annulee' && current.statut !== 'annulee'))) throw new ApiError(409, `Cette session a déjà ${pluriel(occupied, 'place')} vendue(s) ou en cours de paiement : elle ne peut être ni déplacée ni annulée. Fermez-la, ou annulez d’abord les réservations.`);
+    if (next.placesTotal < occupied) throw new ApiError(409, `Déjà ${pluriel(occupied, 'place')} vendue(s) ou en cours de paiement : le nombre de places ne peut pas descendre sous ${occupied}.`, { champ: 'placesTotal' });
+    if (next.placesTotal > current.experience.capaciteMax) throw new ApiError(409, `Le nombre de places ne peut pas dépasser la capacité de l’expérience (${current.experience.capaciteMax} participants).`, { champ: 'placesTotal' });
     return tx.session.update({ where: { id }, data });
   }));
 });
 
 export const deleteSession = endpoint(async (request: Request, context: RouteContext) => {
   await exigerAdmin(request);
-  await prisma.session.delete({ where: { id: positiveId((await context.params).id) } });
+  const id = positiveId((await context.params).id);
+  // Les réservations ne sont jamais supprimées (historique, comptabilité) : on ferme la session à la place.
+  const reservations = await prisma.reservation.count({ where: { sessionId: id } });
+  if (reservations) throw new ApiError(409, `Cette session a ${pluriel(reservations, 'réservation')} : elle ne peut pas être supprimée. Fermez-la pour arrêter les réservations.`, { suggestion: 'fermer' });
+  await prisma.session.delete({ where: { id } });
   return json({ ok: true });
 });

@@ -30,8 +30,22 @@ export const listDevis = endpoint(async (request: Request) => {
   return json(await prisma.demandeDevis.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' }, include: { experience: { select: { titre: true } } } }));
 });
 
+const modificationDevisSchema = z.object({
+  statut: z.enum(['nouvelle', 'en_cours', 'traitee']),
+  // Note interne : visible seulement dans l'admin, jamais par le client.
+  noteInterne: z.string().trim().max(5000).nullable(),
+}).partial().strict();
+
+/** PATCH /api/devis/[id] (admin) : statut et/ou note interne. */
 export const updateDevis = endpoint(async (request: Request, context: RouteContext) => {
   await exigerAdmin(request);
-  const data = z.object({ statut: z.enum(['nouvelle', 'en_cours', 'traitee']) }).strict().parse(await request.json());
+  const data = modificationDevisSchema.parse(await request.json());
   return json(await prisma.demandeDevis.update({ where: { id: positiveId((await context.params).id) }, data }));
+});
+
+/** DELETE /api/devis/[id] (admin). */
+export const deleteDevis = endpoint(async (request: Request, context: RouteContext) => {
+  await exigerAdmin(request);
+  await prisma.demandeDevis.delete({ where: { id: positiveId((await context.params).id) } });
+  return json({ ok: true });
 });

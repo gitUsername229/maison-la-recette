@@ -44,7 +44,13 @@ export const images = routesRessource({
     orderBy: [{ page: 'asc' }, { ordre: 'asc' }],
   }),
   creer: data => prisma.image.create({ data }),
-  modifier: (id, data) => prisma.image.update({ where: { id }, data }),
+  modifier: async (id, data) => {
+    const avant = await prisma.image.findUniqueOrThrow({ where: { id }, select: { url: true } });
+    const image = await prisma.image.update({ where: { id }, data });
+    // Photo remplacée : l'ancien fichier est supprimé s'il ne sert plus nulle part.
+    if (image.url !== avant.url) await supprimerFichierOrphelin(avant.url);
+    return image;
+  },
   supprimer: async id => {
     const image = await prisma.image.delete({ where: { id } });
     await supprimerFichierOrphelin(image.url);

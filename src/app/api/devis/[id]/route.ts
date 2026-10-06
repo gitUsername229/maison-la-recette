@@ -1,2 +1,2 @@
 export const runtime = 'nodejs';
-export { updateDevis as PATCH } from '@/backend/ateliers/devis';
+export { deleteDevis as DELETE, updateDevis as PATCH } from '@/backend/ateliers/devis';
