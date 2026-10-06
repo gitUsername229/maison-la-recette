@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { formatDuree, formatPrix, libelleType } from '@/frontend/format';
 
@@ -16,6 +17,8 @@ export type ExperienceResume = {
   dureeMin: number;
   prixCents: number;
   reservableEnLigne: boolean;
+  image: string;
+  imageAlt: string;
 };
 
 export default function Experiences({ experiences }: { experiences: ExperienceResume[] }) {
@@ -31,6 +34,7 @@ export default function Experiences({ experiences }: { experiences: ExperienceRe
         <div className="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
           {experiences.map(experience => (
             <Link key={experience.id} href={`/experiences/${experience.slug}`} className="group flex flex-col border-t border-stone-300 pt-5">
+              {experience.image && <Image src={experience.image} alt={experience.imageAlt} width={600} height={400} className="mb-4 aspect-[3/2] w-full rounded-xl object-cover" />}
               <p className="text-xs uppercase tracking-widest text-stone-500">{libelleType(experience.type)}</p>
               <h2 className="mt-2 font-serif text-2xl group-hover:underline">{experience.titre}</h2>
               <p className="mt-3 flex-1 leading-relaxed text-stone-600">{experience.accroche}</p>

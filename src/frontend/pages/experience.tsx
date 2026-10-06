@@ -1,6 +1,8 @@
+import Image from 'next/image';
 import Link from 'next/link';
+import Galerie, { type PhotoGalerie } from '@/frontend/components/Galerie';
 import ReservationForm, { type SessionDisponible } from '@/frontend/components/ReservationForm';
-import { formatDuree, formatPrix, libelleType } from '@/frontend/format';
+import { formatDateHeure, formatDuree, formatPrix, libelleType } from '@/frontend/format';
 import { classeBouton } from '@/frontend/styles/classes';
 
 export type ExperienceDetail = {
@@ -13,8 +15,28 @@ export type ExperienceDetail = {
   lieu: string | null;
   prixCents: number;
   reservableEnLigne: boolean;
+  image: string;
+  imageAlt: string;
+  images: PhotoGalerie[];
   sessions: SessionDisponible[];
 };
+
+/** Dates ouvertes, visibles sans compte (le formulaire de réservation, lui, demande un compte). */
+function ProchainesDates({ sessions }: { sessions: SessionDisponible[] }) {
+  if (sessions.length === 0) return <p className="mb-5 text-sm text-stone-600">Aucune date ouverte pour le moment.</p>;
+  return (
+    <ul className="mb-5 grid gap-2 text-sm">
+      {sessions.map(s => (
+        <li key={s.id} className="rounded-lg bg-stone-50 px-3 py-2">
+          <span className="font-medium">{formatDateHeure(s.dateDebut)}</span>
+          <span className="block text-stone-500">
+            {s.lieu} · {s.placesRestantes > 0 ? `${s.placesRestantes} place${s.placesRestantes > 1 ? 's' : ''}` : 'Complet'} · {formatPrix(s.prixCents)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 type Props = {
   experience: ExperienceDetail;
@@ -34,6 +56,7 @@ export default function Experience({ experience, utilisateur }: Props) {
           <p className="text-xs uppercase tracking-widest text-stone-500">{libelleType(experience.type)}</p>
           <h1 className="mt-3 font-serif text-4xl sm:text-5xl">{experience.titre}</h1>
           <p className="mt-5 text-lg leading-relaxed">{experience.accroche}</p>
+          {experience.image && <Image src={experience.image} alt={experience.imageAlt} width={1200} height={750} priority className="mt-8 aspect-[16/10] w-full rounded-2xl object-cover" />}
 
           <dl className="mt-8 grid grid-cols-2 gap-6 border-t border-stone-300 pt-6 text-sm sm:grid-cols-3">
             <div>
@@ -51,6 +74,7 @@ export default function Experience({ experience, utilisateur }: Props) {
           </dl>
 
           <p className="mt-8 whitespace-pre-line leading-relaxed text-stone-700">{experience.description}</p>
+          <Galerie photos={experience.images} />
         </article>
 
         <aside className="h-fit rounded-2xl bg-white p-6 shadow-sm ring-1 ring-stone-200">
@@ -62,6 +86,7 @@ export default function Experience({ experience, utilisateur }: Props) {
                 <ReservationForm sessions={experience.sessions} utilisateur={utilisateur} />
               ) : (
                 <div className="grid gap-3">
+                  <ProchainesDates sessions={experience.sessions} />
                   <p className="leading-relaxed text-stone-600">Un compte est nécessaire pour réserver : vous retrouverez ensuite vos réservations dans « Mon compte ».</p>
                   <Link href={`/connexion?retour=${retour}`} className={`text-center ${classeBouton}`}>Se connecter pour réserver</Link>
                   <Link href={`/inscription?retour=${retour}`} className="text-center text-sm underline">Créer un compte</Link>

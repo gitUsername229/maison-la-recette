@@ -36,13 +36,18 @@ async function supprimerFichierOrphelin(url: string) {
   if (utilisations.every(n => n === 0)) await unlink(cheminDisque(url)).catch(() => undefined);
 }
 
+/** Photos de la galerie d'une page du site, dans l'ordre choisi par l'admin. */
+export function imagesDePage(page: string) {
+  return prisma.image.findMany({ where: { page }, orderBy: [{ ordre: 'asc' }, { id: 'asc' }] });
+}
+
 /** Galerie : ?page=/a-propos pour les images d'une page, dans l'ordre choisi par l'admin. */
 export const images = routesRessource({
   schemas: imageSchemas,
-  lister: (_admin, params) => prisma.image.findMany({
-    where: params.get('page') ? { page: params.get('page')! } : {},
-    orderBy: [{ page: 'asc' }, { ordre: 'asc' }],
-  }),
+  lister: (_admin, params) => {
+    const page = params.get('page');
+    return page ? imagesDePage(page) : prisma.image.findMany({ orderBy: [{ page: 'asc' }, { ordre: 'asc' }] });
+  },
   creer: data => prisma.image.create({ data }),
   modifier: async (id, data) => {
     const avant = await prisma.image.findUniqueOrThrow({ where: { id }, select: { url: true } });

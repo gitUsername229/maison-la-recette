@@ -6,10 +6,30 @@ import { TYPES_EPISODE, type TypeEpisode } from '@/backend/podcast/emission';
 import { entierParametre, routesRessource } from './crud';
 import { articleSchemas, avisSchemas, episodeSchemas, partenaireSchemas } from './validation';
 
+// Lectures publiques (pages du site) ; `tout` (admin) inclut brouillons et contenus masqués.
+
+export function listerArticles({ tout = false, limite }: { tout?: boolean; limite?: number } = {}) {
+  return prisma.article.findMany({ where: tout ? {} : { publie: true }, orderBy: { datePublication: 'desc' }, take: limite });
+}
+
+/** Article publié (null pour un brouillon ou une adresse inconnue). */
+export async function articlePublie(slug: string) {
+  const article = await prisma.article.findUnique({ where: { slug } });
+  return article?.publie ? article : null;
+}
+
+export function listerAvis({ tout = false, limite }: { tout?: boolean; limite?: number } = {}) {
+  return prisma.avis.findMany({ where: tout ? {} : { visible: true }, orderBy: { id: 'desc' }, take: limite });
+}
+
+export function listerPartenaires({ tout = false }: { tout?: boolean } = {}) {
+  return prisma.partenaire.findMany({ where: tout ? {} : { visible: true }, orderBy: { nom: 'asc' } });
+}
+
 export const articles = routesRessource({
   schemas: articleSchemas,
   // ?limit=3 pour l'accueil
-  lister: (admin, params) => prisma.article.findMany({ where: admin ? {} : { publie: true }, orderBy: { datePublication: 'desc' }, take: entierParametre(params, 'limit', 50) }),
+  lister: (admin, params) => listerArticles({ tout: admin, limite: entierParametre(params, 'limit', 50) }),
   creer: data => prisma.article.create({ data }),
   modifier: (id, data) => prisma.article.update({ where: { id }, data }),
   supprimer: id => prisma.article.delete({ where: { id } }),
@@ -24,7 +44,7 @@ export const articleParSlug = endpoint(async (request: Request, context: RouteCo
 
 export const avis = routesRessource({
   schemas: avisSchemas,
-  lister: admin => prisma.avis.findMany({ where: admin ? {} : { visible: true }, orderBy: { id: 'desc' } }),
+  lister: (admin, params) => listerAvis({ tout: admin, limite: entierParametre(params, 'limit', 100) }),
   creer: data => prisma.avis.create({ data }),
   modifier: (id, data) => prisma.avis.update({ where: { id }, data }),
   supprimer: id => prisma.avis.delete({ where: { id } }),
@@ -32,7 +52,7 @@ export const avis = routesRessource({
 
 export const partenaires = routesRessource({
   schemas: partenaireSchemas,
-  lister: admin => prisma.partenaire.findMany({ where: admin ? {} : { visible: true }, orderBy: { nom: 'asc' } }),
+  lister: admin => listerPartenaires({ tout: admin }),
   creer: data => prisma.partenaire.create({ data }),
   modifier: (id, data) => prisma.partenaire.update({ where: { id }, data }),
   supprimer: id => prisma.partenaire.delete({ where: { id } }),

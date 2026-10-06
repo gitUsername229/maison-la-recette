@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import Galerie, { type PhotoGalerie } from '@/frontend/components/Galerie';
+import ListeAvis, { type AvisAffiche } from '@/frontend/components/ListeAvis';
 
 const univers = [
   { titre: 'Podcast', description: 'Des voix et des histoires autour de ce qui nous nourrit.' },
@@ -6,7 +8,8 @@ const univers = [
   { titre: 'Studio', description: 'Des podcasts à imaginer et à produire pour les marques.' },
 ];
 
-export default function Home() {
+/** Avis et photos de l'accueil : gérés dans /admin/avis et /admin/photos (page « / »). */
+export default function Home({ avis, photos }: { avis: AvisAffiche[]; photos: PhotoGalerie[] }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-6 py-20">
       <p className="mb-6 text-sm uppercase tracking-widest">Podcast · Expériences · Studio</p>
@@ -23,6 +26,8 @@ export default function Home() {
           </section>
         ))}
       </div>
+      <ListeAvis avis={avis} />
+      <Galerie photos={photos} />
       <p className="mt-16 text-sm text-stone-500">Le site est en préparation.</p>
     </main>
   );
