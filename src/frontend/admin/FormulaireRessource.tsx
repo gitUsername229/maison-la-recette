@@ -19,19 +19,31 @@ type Props = {
 
 const majuscule = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
 
-/** Liste des expériences (pour choisir celle d'une session), chargée seulement si nécessaire. */
+type ExperienceListe = { id: number; titre: string; slug: string };
+
+/** Liste des expériences (celle d'une session, la page d'une photo), chargée seulement si nécessaire. */
 function useExperiences(necessaire: boolean) {
-  const [experiences, setExperiences] = useState<Libelles>({});
+  const [experiences, setExperiences] = useState<ExperienceListe[]>([]);
   useEffect(() => {
     if (!necessaire) return;
-    appelerApi<{ id: number; titre: string }[]>('/api/experiences').then(resultat => {
-      if (resultat.ok) setExperiences(Object.fromEntries(resultat.donnees.map(e => [String(e.id), e.titre])));
+    appelerApi<ExperienceListe[]>('/api/experiences').then(resultat => {
+      if (resultat.ok) setExperiences(resultat.donnees);
     });
   }, [necessaire]);
   return experiences;
 }
 
-type ProprietesChamp = { champ: ChampAdmin; ligne: Ligne | null; experiences: Libelles; erreur?: string };
+/** Pages du site qui affichent une galerie ; une page déjà enregistrée hors de cette liste reste proposée. */
+function pagesAvecGalerie(experiences: ExperienceListe[], actuelle: string): Libelles {
+  const pages: Libelles = {
+    '/': 'Accueil',
+    '/a-propos': 'À propos',
+    ...Object.fromEntries(experiences.map(e => [`/experiences/${e.slug}`, `Expérience : ${e.titre}`])),
+  };
+  return actuelle && !(actuelle in pages) ? { ...pages, [actuelle]: actuelle } : pages;
+}
+
+type ProprietesChamp = { champ: ChampAdmin; ligne: Ligne | null; experiences: ExperienceListe[]; erreur?: string };
 
 function ChampFormulaire({ champ, ligne, experiences, erreur }: ProprietesChamp) {
   const initiale = valeurInitiale(champ, ligne);
@@ -47,7 +59,8 @@ function ChampFormulaire({ champ, ligne, experiences, erreur }: ProprietesChamp)
     case 'texteLong': return <ChampTexte {...commun} defaultValue={String(initiale)} />;
     case 'image': return <ChampImage nom={champ.nom} libelle={champ.libelle} requis={champ.requis} aide={champ.aide} erreur={erreur} valeurInitiale={String(initiale)} />;
     case 'liste': return <ChampListe {...commun} options={champ.options ?? {}} vide={champ.requis ? undefined : '—'} defaultValue={String(initiale)} />;
-    case 'experience': return <ChampListe key={Object.keys(experiences).length} {...commun} options={experiences} vide="Choisir…" defaultValue={String(initiale)} />;
+    case 'experience': return <ChampListe key={experiences.length} {...commun} options={Object.fromEntries(experiences.map(e => [String(e.id), e.titre]))} vide="Choisir…" defaultValue={String(initiale)} />;
+    case 'pageGalerie': return <ChampListe key={experiences.length} {...commun} options={pagesAvecGalerie(experiences, String(initiale))} vide="Choisir…" defaultValue={String(initiale)} />;
     case 'nombre': return <Champ {...commun} type="number" min={0} defaultValue={String(initiale)} />;
     // Prix en euros, virgule ou point acceptés (45 ; 45,50 ; 45.50).
     case 'prix': return <Champ {...commun} inputMode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" title="Un montant en euros, ex : 45 ou 45,50" placeholder="ex : 45,00" defaultValue={String(initiale)} />;
@@ -74,7 +87,7 @@ function Fiche({ ressource, ligne }: { ressource: RessourceAdmin; ligne: Ligne }
 export default function FormulaireRessource({ ressource, ligne, onEnregistre, onAnnule }: Props) {
   const champs = ressource.champs ?? [];
   const creation = ligne === null;
-  const experiences = useExperiences(champs.some(c => c.type === 'experience'));
+  const experiences = useExperiences(champs.some(c => c.type === 'experience' || c.type === 'pageGalerie'));
   const [erreur, setErreur] = useState<string | null>(null);
   const [erreursChamps, setErreursChamps] = useState<Record<string, string>>({});
   const [envoi, setEnvoi] = useState(false);

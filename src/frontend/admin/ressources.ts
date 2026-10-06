@@ -6,7 +6,7 @@ import { lire, type Ligne } from './valeurs';
 // Description des écrans d'administration : une entrée par ressource, affichée par
 // TableauRessource (liste + actions) et FormulaireRessource (création / modification).
 
-export type TypeChamp = 'texte' | 'texteLong' | 'nombre' | 'prix' | 'booleen' | 'date' | 'dateHeure' | 'liste' | 'image' | 'experience';
+export type TypeChamp = 'texte' | 'texteLong' | 'nombre' | 'prix' | 'booleen' | 'date' | 'dateHeure' | 'liste' | 'image' | 'experience' | 'pageGalerie';
 
 export type ChampAdmin = {
   nom: string;
@@ -223,7 +223,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     champs: [
       { nom: 'url', libelle: 'Photo', type: 'image', requis: true },
       { nom: 'alt', libelle: 'Description de la photo', type: 'texte', requis: true, aide: 'Lue aux personnes malvoyantes.' },
-      { nom: 'page', libelle: 'Page', type: 'texte', requis: true, aide: 'Ex : / (accueil), /a-propos, /experiences/atelier-cuisine-anti-gaspi.' },
+      { nom: 'page', libelle: 'Page qui affiche la photo', type: 'pageGalerie', requis: true },
       { nom: 'ordre', libelle: 'Ordre dans la galerie', type: 'nombre', defaut: '0' },
     ],
     methodeModification: 'PUT', suppression: true,
