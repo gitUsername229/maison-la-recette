@@ -7,14 +7,17 @@ import { classeBouton, classeErreur } from '@/frontend/styles/classes';
 import { appelerApi } from './api';
 import ChampImage from './ChampImage';
 import type { ChampAdmin, RessourceAdmin } from './ressources';
+import Valeur from './Valeur';
 import { corpsFormulaire, valeurInitiale, type Ligne } from './valeurs';
 
 type Props = {
   ressource: RessourceAdmin;
-  ligne: Ligne | null;           // null : création
-  onEnregistre: () => void;
+  ligne: Ligne | null;              // null : création
+  onEnregistre: (message: string) => void;
   onAnnule: () => void;
 };
+
+const majuscule = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
 
 /** Liste des expériences (pour choisir celle d'une session), chargée seulement si nécessaire. */
 function useExperiences(necessaire: boolean) {
@@ -28,9 +31,11 @@ function useExperiences(necessaire: boolean) {
   return experiences;
 }
 
-function ChampFormulaire({ champ, ligne, experiences }: { champ: ChampAdmin; ligne: Ligne | null; experiences: Libelles }) {
+type ProprietesChamp = { champ: ChampAdmin; ligne: Ligne | null; experiences: Libelles; erreur?: string };
+
+function ChampFormulaire({ champ, ligne, experiences, erreur }: ProprietesChamp) {
   const initiale = valeurInitiale(champ, ligne);
-  const commun = { libelle: champ.libelle, aide: champ.aide, name: champ.nom, required: champ.requis, disabled: champ.creationSeulement && ligne !== null };
+  const commun = { libelle: champ.libelle, aide: champ.aide, erreur, name: champ.nom, required: champ.requis, disabled: champ.creationSeulement && ligne !== null };
   switch (champ.type) {
     case 'booleen':
       return (
@@ -40,15 +45,30 @@ function ChampFormulaire({ champ, ligne, experiences }: { champ: ChampAdmin; lig
         </label>
       );
     case 'texteLong': return <ChampTexte {...commun} defaultValue={String(initiale)} />;
-    case 'image': return <ChampImage nom={champ.nom} libelle={champ.libelle} requis={champ.requis} aide={champ.aide} valeurInitiale={String(initiale)} />;
+    case 'image': return <ChampImage nom={champ.nom} libelle={champ.libelle} requis={champ.requis} aide={champ.aide} erreur={erreur} valeurInitiale={String(initiale)} />;
     case 'liste': return <ChampListe {...commun} options={champ.options ?? {}} vide={champ.requis ? undefined : '—'} defaultValue={String(initiale)} />;
     case 'experience': return <ChampListe key={Object.keys(experiences).length} {...commun} options={experiences} vide="Choisir…" defaultValue={String(initiale)} />;
     case 'nombre': return <Champ {...commun} type="number" min={0} defaultValue={String(initiale)} />;
-    case 'prix': return <Champ {...commun} type="number" min={0} step="0.01" defaultValue={String(initiale)} />;
+    // Prix en euros, virgule ou point acceptés (45 ; 45,50 ; 45.50).
+    case 'prix': return <Champ {...commun} inputMode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" title="Un montant en euros, ex : 45 ou 45,50" placeholder="ex : 45,00" defaultValue={String(initiale)} />;
     case 'date': return <Champ {...commun} type="date" defaultValue={String(initiale)} />;
     case 'dateHeure': return <Champ {...commun} type="datetime-local" defaultValue={String(initiale)} />;
     default: return <Champ {...commun} defaultValue={String(initiale)} />;
   }
+}
+
+/** Fiche en lecture seule (réservations, devis…). */
+function Fiche({ ressource, ligne }: { ressource: RessourceAdmin; ligne: Ligne }) {
+  return (
+    <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
+      {ressource.fiche?.map(colonne => (
+        <div key={colonne.chemin} className="contents">
+          <dt className="text-stone-500">{colonne.libelle}</dt>
+          <dd className="whitespace-pre-line"><Valeur colonne={colonne} ligne={ligne} /></dd>
+        </div>
+      ))}
+    </dl>
+  );
 }
 
 export default function FormulaireRessource({ ressource, ligne, onEnregistre, onAnnule }: Props) {
@@ -56,6 +76,7 @@ export default function FormulaireRessource({ ressource, ligne, onEnregistre, on
   const creation = ligne === null;
   const experiences = useExperiences(champs.some(c => c.type === 'experience'));
   const [erreur, setErreur] = useState<string | null>(null);
+  const [erreursChamps, setErreursChamps] = useState<Record<string, string>>({});
   const [envoi, setEnvoi] = useState(false);
 
   async function enregistrer(event: React.SubmitEvent<HTMLFormElement>) {
@@ -63,35 +84,51 @@ export default function FormulaireRessource({ ressource, ligne, onEnregistre, on
     const formulaire = new FormData(event.currentTarget);
     // Les photos passent par un champ caché, que le navigateur ne vérifie pas.
     const photoManquante = champs.find(c => c.type === 'image' && c.requis && !formulaire.get(c.nom));
-    if (photoManquante) return setErreur(`Ajoutez : ${photoManquante.libelle}.`);
-
+    if (photoManquante) {
+      setErreursChamps({ [photoManquante.nom]: 'Ajoutez une photo.' });
+      return setErreur(`« ${photoManquante.libelle} » : ajoutez une photo.`);
+    }
     setEnvoi(true);
     setErreur(null);
+    setErreursChamps({});
     const resultat = await appelerApi(creation ? ressource.api : `${ressource.api}/${ligne.id}`, {
       methode: creation ? 'POST' : ressource.methodeModification ?? 'PUT',
       corps: corpsFormulaire(champs, formulaire, creation),
       libelles: Object.fromEntries(champs.map(c => [c.nom, c.libelle])),
     });
     setEnvoi(false);
-    if (!resultat.ok) return setErreur(resultat.message);
-    onEnregistre();
+    if (!resultat.ok) {
+      setErreursChamps(resultat.erreursChamps);
+      return setErreur(resultat.message);
+    }
+    onEnregistre(ressource.textes.enregistre);
   }
 
+  const titre = creation ? `Ajouter ${ressource.singulier}` : `${champs.length ? 'Modifier ' : ''}${champs.length ? ressource.designation(ligne) : majuscule(ressource.designation(ligne))}`;
+
   return (
-    <form onSubmit={enregistrer} className="grid gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-200 sm:p-6">
-      <h2 className="font-serif text-2xl">{creation ? `Ajouter ${ressource.singulier}` : 'Modifier'}</h2>
-      <div className="grid gap-4 md:grid-cols-2">
-        {champs.map(champ => (
-          <div key={champ.nom} className={champ.type === 'texteLong' || champ.type === 'image' ? 'md:col-span-2' : undefined}>
-            <ChampFormulaire champ={champ} ligne={ligne} experiences={experiences} />
+    <div className="grid gap-5 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-200 sm:p-6">
+      <h2 className="font-serif text-2xl">{titre}</h2>
+      {!creation && ressource.fiche && <Fiche ressource={ressource} ligne={ligne} />}
+      {champs.length > 0 ? (
+        <form onSubmit={enregistrer} className="grid gap-4">
+          <p className="text-xs text-stone-500">Les champs marqués <span className="text-red-700">*</span> sont obligatoires.</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {champs.map(champ => (
+              <div key={champ.nom} className={champ.type === 'texteLong' || champ.type === 'image' ? 'md:col-span-2' : undefined}>
+                <ChampFormulaire champ={champ} ligne={ligne} experiences={experiences} erreur={erreursChamps[champ.nom]} />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      {erreur && <p role="alert" className={classeErreur}>{erreur}</p>}
-      <div className="flex flex-wrap gap-3">
-        <button type="submit" disabled={envoi} className={classeBouton}>{envoi ? 'Enregistrement…' : 'Enregistrer'}</button>
-        <button type="button" onClick={onAnnule} className="rounded-full px-5 py-3 ring-1 ring-stone-300 hover:bg-stone-100">Annuler</button>
-      </div>
-    </form>
+          {erreur && <p role="alert" className={classeErreur}>{erreur}</p>}
+          <div className="flex flex-wrap gap-3">
+            <button type="submit" disabled={envoi} className={classeBouton}>{envoi ? 'Enregistrement…' : 'Enregistrer'}</button>
+            <button type="button" onClick={onAnnule} className="rounded-full px-5 py-3 ring-1 ring-stone-300 hover:bg-stone-100">Annuler</button>
+          </div>
+        </form>
+      ) : (
+        <div><button type="button" onClick={onAnnule} className="rounded-full px-5 py-3 ring-1 ring-stone-300 hover:bg-stone-100">Fermer</button></div>
+      )}
+    </div>
   );
 }

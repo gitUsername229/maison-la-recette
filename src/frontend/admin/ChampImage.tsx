@@ -5,10 +5,10 @@ import { useState } from 'react';
 import { classeLibelle } from '@/frontend/styles/classes';
 import { appelerApi } from './api';
 
-type Props = { nom: string; libelle: string; requis?: boolean; aide?: string; valeurInitiale: string };
+type Props = { nom: string; libelle: string; requis?: boolean; aide?: string; erreur?: string; valeurInitiale: string };
 
 /** Choix d'une photo : envoi du fichier, puis le chemin obtenu est enregistré avec le formulaire. */
-export default function ChampImage({ nom, libelle, requis, aide, valeurInitiale }: Props) {
+export default function ChampImage({ nom, libelle, requis, aide, erreur, valeurInitiale }: Props) {
   const [url, setUrl] = useState(valeurInitiale);
   const [etat, setEtat] = useState<string | null>(null);
 
@@ -27,7 +27,7 @@ export default function ChampImage({ nom, libelle, requis, aide, valeurInitiale 
 
   return (
     <div className={classeLibelle}>
-      <span className="text-sm font-medium">{libelle}{requis && ' *'}</span>
+      <span className="text-sm font-medium">{libelle}{requis && <span className="text-red-700" title="Obligatoire"> *</span>}</span>
       <input type="hidden" name={nom} value={url} />
       <div className="flex flex-wrap items-center gap-3">
         {url && <Image src={url} alt="" width={64} height={64} unoptimized className="h-16 w-16 rounded-lg object-cover ring-1 ring-stone-200" />}
@@ -37,7 +37,9 @@ export default function ChampImage({ nom, libelle, requis, aide, valeurInitiale 
         </label>
         {url && !requis && <button type="button" onClick={() => setUrl('')} className="text-sm underline">Retirer</button>}
       </div>
-      <span className="text-xs text-stone-500">{etat ?? aide ?? 'JPG, PNG ou WebP, 5 Mo maximum.'}</span>
+      {erreur && !etat
+        ? <span className="text-xs font-medium text-red-700">{erreur}</span>
+        : <span className="text-xs text-stone-500">{etat ?? aide ?? 'JPG, PNG ou WebP, 5 Mo maximum.'}</span>}
     </div>
   );
 }

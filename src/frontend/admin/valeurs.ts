@@ -19,7 +19,7 @@ export function valeurInitiale(champ: ChampAdmin, ligne: Ligne | null): string |
   const valeur = ligne[champ.nom];
   if (champ.type === 'booleen') return Boolean(valeur);
   if (valeur === null || valeur === undefined) return '';
-  if (champ.type === 'prix') return (Number(valeur) / 100).toFixed(2);
+  if (champ.type === 'prix') return (Number(valeur) / 100).toFixed(2).replace('.', ','); // 45,00 : virgule française
   if (champ.type === 'date') return String(valeur).slice(0, 10);
   if (champ.type === 'dateHeure') return versDateHeureLocale(String(valeur));
   return String(valeur);

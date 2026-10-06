@@ -36,7 +36,7 @@ test('en modification : champ « création seulement » ignoré, prix vide effac
 
 test('les valeurs en base sont préremplies au format des champs, sans décalage horaire', () => {
   const ligne = { id: 1, prixCents: 4500, actif: true, dateDebut: '2026-11-14T09:00:00.000Z', lieu: null };
-  assert.equal(valeurInitiale(CHAMPS[1], ligne), '45.00');
+  assert.equal(valeurInitiale(CHAMPS[1], ligne), '45,00'); // virgule française, renvoyée telle quelle à l'API
   assert.equal(valeurInitiale(CHAMPS[4], ligne), true);
   assert.equal(valeurInitiale(CHAMPS[6], ligne), '');
   // Aller-retour : la date affichée puis renvoyée retombe sur la même heure.

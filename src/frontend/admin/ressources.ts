@@ -1,6 +1,7 @@
 import {
-  LIEUX_DEVIS, ROLES, STATUTS_DEVIS, STATUTS_RESERVATION, STATUTS_SESSION, TYPES_DEVIS, TYPES_EPISODE, TYPES_EXPERIENCE, type Libelles,
+  formatDateHeure, libelle, LIEUX_DEVIS, ROLES, STATUTS_DEVIS, STATUTS_RESERVATION, STATUTS_SESSION, TYPES_DEVIS, TYPES_EPISODE, TYPES_EXPERIENCE, type Libelles,
 } from '@/frontend/format';
+import { lire, type Ligne } from './valeurs';
 
 // Description des écrans d'administration : une entrée par ressource, affichée par
 // TableauRessource (liste + actions) et FormulaireRessource (création / modification).
@@ -29,10 +30,23 @@ export type ColonneAdmin = {
   complements?: string[];      // autres valeurs affichées en petit dessous (ex : e-mail, téléphone)
 };
 
+/** Action sur une ligne (Masquer, Fermer la session, Annuler…), proposée seulement si la condition `si` est remplie. */
+export type ActionLigne = {
+  id: string;                  // peut être proposée par l'API à la place d'une suppression refusée (suggestion)
+  libelle: string;
+  si: { chemin: string; valeurs: unknown[] };
+  methode: 'PUT' | 'PATCH';
+  corps: Record<string, unknown>;
+  confirmation?: (ligne: Ligne) => string;
+  message: string;             // affiché après l'action
+};
+
 export type RessourceAdmin = {
   cle: string;                 // /admin/<cle>
   titre: string;
   singulier: string;           // « une expérience »
+  textes: { enregistre: string; supprime: string };     // messages après l'action, ex : « Expérience enregistrée »
+  designation: (ligne: Ligne) => string;                 // dans les confirmations : « l’atelier « Pain perdu » »
   description: string;
   api: string;
   colonnes: ColonneAdmin[];
@@ -42,16 +56,32 @@ export type RessourceAdmin = {
   suppression?: boolean;
   statut?: { champ: string; options: Libelles };        // statut modifiable dans la liste
   filtre?: { parametre: string; options: Libelles };    // filtre de la liste (?statut=…)
-  annulation?: boolean;        // bouton « Annuler » (réservations)
+  fiche?: ColonneAdmin[];      // fiche détaillée (lecture seule) ouverte par « Voir » ou en tête du formulaire
+  actions?: ActionLigne[];
   actionGlobale?: { libelle: string; api: string };     // bouton de rubrique (ex : import Ausha), POST sur `api`
 };
 
+const nommer = (article: string, chemin: string) => (ligne: Ligne) => `${article} « ${String(lire(ligne, chemin) ?? '')} »`;
+
+/** Paire Masquer / Afficher sur un champ booléen (actif, visible, publie). */
+function visibilite(champ: string, textes: { masquer: string; afficher: string; masque: string; affiche: string }): ActionLigne[] {
+  return [
+    { id: 'masquer', libelle: textes.masquer, si: { chemin: champ, valeurs: [true] }, methode: 'PUT', corps: { [champ]: false }, message: textes.masque },
+    { id: 'afficher', libelle: textes.afficher, si: { chemin: champ, valeurs: [false] }, methode: 'PUT', corps: { [champ]: true }, message: textes.affiche },
+  ];
+}
+
+const ARTICLES_EXPERIENCE: Libelles = { atelier: 'l’atelier', good_tour: 'le good tour', immersion: 'l’immersion' };
+
 const visible = (aide: string, defaut: boolean): ChampAdmin => ({ nom: 'visible', libelle: 'Visible sur le site', type: 'booleen', aide, defaut });
+const masquerAfficher = visibilite('visible', { masquer: 'Masquer', afficher: 'Afficher', masque: 'Masqué : n’apparaît plus sur le site.', affiche: 'De nouveau visible sur le site.' });
 
 export const RESSOURCES_ADMIN: RessourceAdmin[] = [
   {
     cle: 'reservations', titre: 'Réservations', singulier: 'une réservation', api: '/api/reservations',
-    description: 'Les réservations payées en ligne. Annuler une réservation payée demande d’abord de la rembourser dans Stripe.',
+    textes: { enregistre: 'Réservation enregistrée', supprime: 'Réservation supprimée' },
+    designation: ligne => `la réservation n° ${ligne.id} (${String(lire(ligne, 'nom'))})`,
+    description: 'Les réservations payées en ligne. Elles ne se suppriment jamais (historique et comptabilité) : on les annule. Une réservation payée doit d’abord être remboursée dans Stripe.',
     colonnes: [
       { libelle: 'N°', chemin: 'id' },
       { libelle: 'Expérience', chemin: 'session.experience.titre' },
@@ -62,11 +92,30 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { libelle: 'Statut', chemin: 'statut', format: 'statut', libelles: STATUTS_RESERVATION },
     ],
     filtre: { parametre: 'statut', options: STATUTS_RESERVATION },
-    annulation: true,
+    fiche: [
+      { libelle: 'Réservation', chemin: 'id' },
+      { libelle: 'Statut', chemin: 'statut', format: 'statut', libelles: STATUTS_RESERVATION },
+      { libelle: 'Expérience', chemin: 'session.experience.titre' },
+      { libelle: 'Date', chemin: 'session.dateDebut', format: 'dateHeure' },
+      { libelle: 'Client', chemin: 'nom' },
+      { libelle: 'E-mail', chemin: 'email' },
+      { libelle: 'Téléphone', chemin: 'telephone' },
+      { libelle: 'Personnes', chemin: 'nbPersonnes' },
+      { libelle: 'Montant', chemin: 'montantCents', format: 'prix' },
+      { libelle: 'Réservée le', chemin: 'createdAt', format: 'dateHeure' },
+      { libelle: 'Paiement Stripe', chemin: 'stripeSessionId' },
+    ],
+    actions: [{
+      id: 'annuler', libelle: 'Annuler', si: { chemin: 'statut', valeurs: ['en_attente', 'payee'] }, methode: 'PATCH', corps: { statut: 'annulee' },
+      confirmation: ligne => `Annuler la réservation n° ${ligne.id} (${String(lire(ligne, 'nom'))}) ? Les places seront libérées. Si elle est payée, remboursez-la d’abord dans Stripe.`,
+      message: 'Réservation annulée : les places sont libérées.',
+    }],
   },
   {
     cle: 'devis', titre: 'Demandes de devis', singulier: 'une demande', api: '/api/devis',
-    description: 'Les demandes des entreprises et des groupes. Passez-les « en cours » quand vous les traitez.',
+    textes: { enregistre: 'Demande de devis enregistrée', supprime: 'Demande de devis supprimée' },
+    designation: ligne => `la demande de devis de ${String(lire(ligne, 'entreprise'))}`,
+    description: 'Les demandes des entreprises et des groupes. Passez-les « en cours » quand vous les traitez ; la note interne n’est visible que par vous.',
     colonnes: [
       { libelle: 'Reçue le', chemin: 'createdAt', format: 'date' },
       { libelle: 'Entreprise', chemin: 'entreprise' },
@@ -76,13 +125,31 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { libelle: 'Date souhaitée', chemin: 'dateSouhaitee', format: 'date' },
       { libelle: 'Lieu', chemin: 'lieuSouhaite', libelles: LIEUX_DEVIS },
       { libelle: 'Message', chemin: 'message' },
+      { libelle: 'Note interne', chemin: 'noteInterne' },
     ],
     statut: { champ: 'statut', options: STATUTS_DEVIS },
     filtre: { parametre: 'statut', options: STATUTS_DEVIS },
+    fiche: [
+      { libelle: 'Reçue le', chemin: 'createdAt', format: 'dateHeure' },
+      { libelle: 'Entreprise', chemin: 'entreprise' },
+      { libelle: 'Contact', chemin: 'contactNom', complements: ['email', 'telephone'] },
+      { libelle: 'Demande', chemin: 'typeDemande', libelles: TYPES_DEVIS, complements: ['experience.titre'] },
+      { libelle: 'Participants', chemin: 'nbParticipants' },
+      { libelle: 'Date souhaitée', chemin: 'dateSouhaitee', format: 'date' },
+      { libelle: 'Lieu', chemin: 'lieuSouhaite', libelles: LIEUX_DEVIS },
+      { libelle: 'Message', chemin: 'message' },
+    ],
+    champs: [
+      { nom: 'statut', libelle: 'Statut', type: 'liste', options: STATUTS_DEVIS, requis: true },
+      { nom: 'noteInterne', libelle: 'Note interne', type: 'texteLong', nullable: true, aide: 'Visible seulement dans l’administration, jamais par le client.' },
+    ],
+    creation: false, methodeModification: 'PATCH', suppression: true,
   },
   {
     cle: 'experiences', titre: 'Expériences', singulier: 'une expérience', api: '/api/experiences',
-    description: 'Ateliers, good tours et immersions. Décochez « Visible » pour masquer une expérience sans la supprimer.',
+    textes: { enregistre: 'Expérience enregistrée', supprime: 'Expérience supprimée' },
+    designation: ligne => `${libelle(ARTICLES_EXPERIENCE, String(ligne.type))} « ${String(ligne.titre)} »`,
+    description: 'Ateliers, good tours et immersions. Une expérience qui a déjà des sessions ne se supprime pas : masquez-la, elle n’apparaîtra plus sur le site.',
     colonnes: [
       { libelle: 'Titre', chemin: 'titre' },
       { libelle: 'Type', chemin: 'type', libelles: TYPES_EXPERIENCE },
@@ -106,11 +173,14 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { nom: 'reservableEnLigne', libelle: 'Réservable et payable en ligne', type: 'booleen', defaut: true, aide: 'Décoché : sur devis uniquement (immersions).' },
       { nom: 'actif', libelle: 'Visible sur le site', type: 'booleen', defaut: true },
     ],
+    actions: visibilite('actif', { masquer: 'Masquer', afficher: 'Afficher', masque: 'Expérience masquée : elle n’apparaît plus sur le site.', affiche: 'Expérience de nouveau visible sur le site.' }),
     methodeModification: 'PUT', suppression: true,
   },
   {
     cle: 'sessions', titre: 'Sessions', singulier: 'une session', api: '/api/sessions',
-    description: 'Les dates de chaque expérience. Passez une session en « Annulée » pour la retirer du site.',
+    textes: { enregistre: 'Session enregistrée', supprime: 'Session supprimée' },
+    designation: ligne => `la session du ${formatDateHeure(String(lire(ligne, 'dateDebut')))} (${String(lire(ligne, 'experience.titre'))})`,
+    description: 'Les dates de chaque expérience. « Fermer » arrête les réservations ; une session qui a des réservations ne se supprime pas.',
     colonnes: [
       { libelle: 'Expérience', chemin: 'experience.titre' },
       { libelle: 'Début', chemin: 'dateDebut', format: 'dateHeure' },
@@ -129,10 +199,20 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { nom: 'prixCents', libelle: 'Prix par personne (€)', type: 'prix', nullable: true, aide: 'Vide : prix de l’expérience.' },
       { nom: 'statut', libelle: 'Statut', type: 'liste', options: STATUTS_SESSION, defaut: 'ouverte' },
     ],
+    actions: [
+      {
+        id: 'fermer', libelle: 'Fermer la session', si: { chemin: 'statut', valeurs: ['ouverte'] }, methode: 'PUT', corps: { statut: 'complete' },
+        confirmation: ligne => `Fermer la session du ${formatDateHeure(String(lire(ligne, 'dateDebut')))} ? Plus personne ne pourra réserver ; les réservations déjà faites sont gardées.`,
+        message: 'Session fermée : plus personne ne peut réserver.',
+      },
+      { id: 'rouvrir', libelle: 'Rouvrir', si: { chemin: 'statut', valeurs: ['complete'] }, methode: 'PUT', corps: { statut: 'ouverte' }, message: 'Session rouverte aux réservations.' },
+    ],
     methodeModification: 'PUT', suppression: true,
   },
   {
     cle: 'photos', titre: 'Photos', singulier: 'une photo', api: '/api/images',
+    textes: { enregistre: 'Photo enregistrée', supprime: 'Photo supprimée (le fichier aussi)' },
+    designation: nommer('la photo', 'alt'),
     description: 'Les galeries photos. Choisissez la page qui affiche la photo et son ordre.',
     colonnes: [
       { libelle: 'Aperçu', chemin: 'url', format: 'image' },
@@ -150,7 +230,9 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
   },
   {
     cle: 'episodes', titre: 'Épisodes du podcast', singulier: 'un épisode', api: '/api/episodes',
-    description: 'Les épisodes du podcast La recette. « Importer depuis Ausha » ajoute les nouveaux épisodes sans écraser le résumé, le type, l’invité ni les liens saisis ici.',
+    textes: { enregistre: 'Épisode enregistré', supprime: 'Épisode supprimé' },
+    designation: nommer('l’épisode', 'titre'),
+    description: 'Les épisodes du podcast La recette. « Importer depuis Ausha » ajoute les nouveaux épisodes sans écraser le résumé, le type, l’invité ni les liens saisis ici. Un épisode supprimé revient au prochain import : pour le retirer de la page « Épisodes complets », changez plutôt son type.',
     colonnes: [
       { libelle: 'Saison', chemin: 'saison' },
       { libelle: 'N°', chemin: 'numero' },
@@ -182,6 +264,8 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
   },
   {
     cle: 'articles', titre: 'Articles du blog', singulier: 'un article', api: '/api/articles',
+    textes: { enregistre: 'Article enregistré', supprime: 'Article supprimé' },
+    designation: nommer('l’article', 'titre'),
     description: 'Les articles du blog. Un article non publié reste un brouillon invisible sur le site.',
     colonnes: [
       { libelle: 'Titre', chemin: 'titre' },
@@ -198,10 +282,13 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { nom: 'datePublication', libelle: 'Date de publication', type: 'date' },
       { nom: 'publie', libelle: 'Publié', type: 'booleen', defaut: false },
     ],
+    actions: visibilite('publie', { masquer: 'Dépublier', afficher: 'Publier', masque: 'Article dépublié : il redevient un brouillon.', affiche: 'Article publié sur le blog.' }),
     methodeModification: 'PUT', suppression: true,
   },
   {
     cle: 'avis', titre: 'Avis clients', singulier: 'un avis', api: '/api/avis',
+    textes: { enregistre: 'Avis enregistré', supprime: 'Avis supprimé' },
+    designation: ligne => `l’avis de ${String(ligne.nom)}`,
     description: 'Les témoignages affichés sur le site.',
     colonnes: [
       { libelle: 'Nom', chemin: 'nom' },
@@ -216,10 +303,13 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { nom: 'note', libelle: 'Note sur 5', type: 'nombre', nullable: true, aide: 'Facultatif.' },
       visible('Décochez pour masquer l’avis.', true),
     ],
+    actions: masquerAfficher,
     methodeModification: 'PUT', suppression: true,
   },
   {
     cle: 'partenaires', titre: 'Partenaires', singulier: 'un partenaire', api: '/api/partenaires',
+    textes: { enregistre: 'Partenaire enregistré', supprime: 'Partenaire supprimé' },
+    designation: nommer('le partenaire', 'nom'),
     description: 'Producteurs et artisans partenaires, affichés seulement après leur accord.',
     colonnes: [
       { libelle: 'Photo', chemin: 'photo', format: 'image' },
@@ -235,10 +325,13 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { nom: 'description', libelle: 'Présentation', type: 'texteLong', requis: true },
       visible('À cocher seulement après l’accord du partenaire.', false),
     ],
+    actions: masquerAfficher,
     methodeModification: 'PUT', suppression: true,
   },
   {
     cle: 'utilisateurs', titre: 'Utilisateurs', singulier: 'un utilisateur', api: '/api/utilisateurs',
+    textes: { enregistre: 'Compte enregistré', supprime: 'Compte supprimé' },
+    designation: ligne => `le compte de ${String(ligne.nom)} (${String(ligne.email)})`,
     description: 'Les comptes du site. Le rôle « Administration » donne accès à cet espace. Supprimer un compte conserve ses réservations et ses devis.',
     colonnes: [
       { libelle: 'Nom', chemin: 'nom', complements: ['email', 'telephone'] },

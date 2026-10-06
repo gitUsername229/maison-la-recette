@@ -1,44 +1,26 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import Pastille from '@/frontend/components/Pastille';
-import { formatDate, formatDateHeure, formatPrix, libelle } from '@/frontend/format';
 import { classeBouton, classeChamp, classeErreur } from '@/frontend/styles/classes';
 import { appelerApi } from './api';
 import FormulaireRessource from './FormulaireRessource';
-import { ressourceAdmin, type ColonneAdmin, type RessourceAdmin } from './ressources';
+import { ressourceAdmin, type ActionLigne, type RessourceAdmin } from './ressources';
+import Valeur from './Valeur';
 import { lire, type Ligne } from './valeurs';
 
 const classeAction = 'text-sm underline decoration-stone-300 underline-offset-4 hover:decoration-stone-800';
 
-function Cellule({ colonne, ligne }: { colonne: ColonneAdmin; ligne: Ligne }) {
-  const valeur = lire(ligne, colonne.chemin);
-  if (valeur === null || valeur === undefined || valeur === '') return <span className="text-stone-400">—</span>;
-  const texte = String(valeur);
-  switch (colonne.format) {
-    case 'date': return <>{formatDate(texte)}</>;
-    case 'dateHeure': return <>{formatDateHeure(texte)}</>;
-    case 'prix': return <>{formatPrix(Number(valeur))}</>;
-    case 'booleen': return <>{valeur ? 'Oui' : 'Non'}</>;
-    case 'image': return <Image src={texte} alt="" width={48} height={48} unoptimized className="h-12 w-12 rounded object-cover" />;
-    case 'statut': return <Pastille statut={texte} texte={libelle(colonne.libelles ?? {}, texte)} />;
-    default: return <>{colonne.libelles ? libelle(colonne.libelles, texte) : texte}</>;
-  }
-}
+type Message = { erreur: boolean; texte: string; proposition?: { action: ActionLigne; ligne: Ligne } };
 
-/** Nom d'une ligne pour les confirmations (première colonne textuelle). */
-function nomLigne(ressource: RessourceAdmin, ligne: Ligne) {
-  const colonne = ressource.colonnes.find(c => c.format !== 'image') ?? ressource.colonnes[0];
-  return String(lire(ligne, colonne.chemin) ?? ligne.id);
-}
+const actionsPossibles = (ressource: RessourceAdmin, ligne: Ligne) =>
+  (ressource.actions ?? []).filter(action => action.si.valeurs.includes(lire(ligne, action.si.chemin)));
 
 export default function TableauRessource({ cle }: { cle: string }) {
   const ressource = ressourceAdmin(cle)!;
   const [lignes, setLignes] = useState<Ligne[] | null>(null);
   const [filtre, setFiltre] = useState('');
   const [edition, setEdition] = useState<Ligne | 'nouveau' | null>(null);
-  const [message, setMessage] = useState<{ erreur: boolean; texte: string } | null>(null);
+  const [message, setMessage] = useState<Message | null>(null);
   const [version, setVersion] = useState(0); // incrémentée pour recharger la liste
   const recharger = () => setVersion(v => v + 1);
 
@@ -53,15 +35,25 @@ export default function TableauRessource({ cle }: { cle: string }) {
     return () => { actuel = false; };
   }, [url, version]);
 
-  /** Action sur une ligne, puis rechargement de la liste. */
-  async function agir(ligne: Ligne, methode: 'PATCH' | 'DELETE', corps: unknown, reussite: string) {
+  /** Appel sur une ligne, puis message et rechargement ; une suggestion de l'API devient un bouton. */
+  async function appeler(ligne: Ligne, methode: 'PUT' | 'PATCH' | 'DELETE', corps: unknown, reussite: string) {
     const resultat = await appelerApi(`${ressource.api}/${ligne.id}`, { methode, corps });
-    setMessage(resultat.ok ? { erreur: false, texte: reussite } : { erreur: true, texte: resultat.message });
-    if (resultat.ok) recharger();
+    if (!resultat.ok) {
+      const action = ressource.actions?.find(a => a.id === resultat.suggestion);
+      return setMessage({ erreur: true, texte: resultat.message, proposition: action && { action, ligne } });
+    }
+    setEdition(null);
+    setMessage({ erreur: false, texte: reussite });
+    recharger();
+  }
+
+  function executer(action: ActionLigne, ligne: Ligne) {
+    if (action.confirmation && !confirm(action.confirmation(ligne))) return;
+    appeler(ligne, action.methode, action.corps, action.message);
   }
 
   function supprimer(ligne: Ligne) {
-    if (confirm(`Supprimer « ${nomLigne(ressource, ligne)} » ? Cette action est définitive.`)) agir(ligne, 'DELETE', undefined, 'Suppression effectuée.');
+    if (confirm(`Supprimer ${ressource.designation(ligne)} ? Cette action est définitive.`)) appeler(ligne, 'DELETE', undefined, ressource.textes.supprime);
   }
 
   async function lancerActionGlobale(action: { libelle: string; api: string }) {
@@ -71,18 +63,20 @@ export default function TableauRessource({ cle }: { cle: string }) {
     if (resultat.ok) recharger();
   }
 
-  function annuler(ligne: Ligne) {
-    if (confirm(`Annuler la réservation n° ${ligne.id} ? Les places seront libérées.`)) agir(ligne, 'PATCH', { statut: 'annulee' }, 'Réservation annulée.');
+  function ouvrir(ligne: Ligne | 'nouveau') {
+    setMessage(null);
+    setEdition(ligne);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function enregistre() {
+  function enregistre(texte: string) {
     setEdition(null);
-    setMessage({ erreur: false, texte: 'Enregistré.' });
+    setMessage({ erreur: false, texte });
     recharger();
   }
 
   const modifiable = Boolean(ressource.champs);
-  const avecActions = modifiable || ressource.suppression || ressource.annulation || ressource.statut;
+  const avecActions = modifiable || ressource.fiche || ressource.suppression || ressource.actions;
 
   return (
     <section>
@@ -98,12 +92,21 @@ export default function TableauRessource({ cle }: { cle: string }) {
             </button>
           )}
           {modifiable && ressource.creation !== false && edition === null && (
-            <button type="button" onClick={() => { setMessage(null); setEdition('nouveau'); }} className={classeBouton}>Ajouter</button>
+            <button type="button" onClick={() => ouvrir('nouveau')} className={classeBouton}>Ajouter</button>
           )}
         </div>
       </div>
 
-      {message && <p role="status" className={`mt-6 ${message.erreur ? classeErreur : 'rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800'}`}>{message.texte}</p>}
+      {message && (
+        <div role="status" className={`mt-6 ${message.erreur ? classeErreur : 'rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800'}`}>
+          {message.texte}
+          {message.proposition && (
+            <button type="button" onClick={() => executer(message.proposition!.action, message.proposition!.ligne)} className="ml-3 rounded-full bg-white px-3 py-1 font-medium text-stone-800 ring-1 ring-stone-300 hover:bg-stone-50">
+              {message.proposition.action.libelle}
+            </button>
+          )}
+        </div>
+      )}
 
       {edition !== null && (
         <div className="mt-6">
@@ -140,11 +143,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
                 <tr key={ligne.id} className="align-top">
                   {ressource.colonnes.map(c => (
                     <td key={c.chemin} className={`max-w-xs px-4 py-3 ${c.format && c.format !== 'texte' ? 'whitespace-nowrap' : 'whitespace-pre-line'}`}>
-                      <Cellule colonne={c} ligne={ligne} />
-                      {c.complements?.map(chemin => {
-                        const complement = lire(ligne, chemin);
-                        return complement ? <span key={chemin} className="block text-xs text-stone-500">{String(complement)}</span> : null;
-                      })}
+                      <Valeur colonne={c} ligne={ligne} />
                     </td>
                   ))}
                   {ressource.statut && (
@@ -153,7 +152,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
                         aria-label="Statut"
                         className="rounded-lg border border-stone-300 bg-white px-2 py-1.5"
                         value={String(lire(ligne, ressource.statut.champ))}
-                        onChange={e => agir(ligne, 'PATCH', { [ressource.statut!.champ]: e.target.value }, 'Statut mis à jour.')}
+                        onChange={e => appeler(ligne, 'PATCH', { [ressource.statut!.champ]: e.target.value }, 'Statut mis à jour.')}
                       >
                         {Object.entries(ressource.statut.options).map(([valeur, texte]) => <option key={valeur} value={valeur}>{texte}</option>)}
                       </select>
@@ -162,8 +161,10 @@ export default function TableauRessource({ cle }: { cle: string }) {
                   {avecActions && (
                     <td className="whitespace-nowrap px-4 py-3">
                       <div className="flex gap-4">
-                        {modifiable && <button type="button" onClick={() => { setMessage(null); setEdition(ligne); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={classeAction}>Modifier</button>}
-                        {ressource.annulation && ligne.statut !== 'annulee' && <button type="button" onClick={() => annuler(ligne)} className={classeAction}>Annuler</button>}
+                        {(modifiable || ressource.fiche) && <button type="button" onClick={() => ouvrir(ligne)} className={classeAction}>{modifiable ? 'Modifier' : 'Voir'}</button>}
+                        {actionsPossibles(ressource, ligne).map(action => (
+                          <button key={action.id} type="button" onClick={() => executer(action, ligne)} className={classeAction}>{action.libelle}</button>
+                        ))}
                         {ressource.suppression && <button type="button" onClick={() => supprimer(ligne)} className={`${classeAction} text-red-700`}>Supprimer</button>}
                       </div>
                     </td>
