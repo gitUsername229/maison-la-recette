@@ -79,6 +79,18 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 3. Import des épisodes depuis le flux RSS Ausha (`POST /api/episodes/import`) et inscription à la newsletter.
 4. Contenus réels (photos, textes, liens Ausha) : le seed n'en contient pas de fictifs.
 
+**Améliorations futures** (pas urgentes, à faire en équipe) :
+- **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
+  (« driver adapter »), nouveau générateur `prisma-client` et imports du client à adapter partout.
+- **Cache Components**, nouveau modèle de cache de Next.js 16 (optionnel) : activer `cacheComponents`
+  et restructurer les pages (`Suspense`, `"use cache"`).
+- **ESLint 10**, dès que la config ESLint de Next.js le supportera (ses plugins `react`, `import` et `jsx-a11y`
+  s'arrêtent à ESLint 9, d'où l'avertissement `npm warn deprecated eslint@9` à l'installation).
+
+> ⚠️ **Ne jamais lancer `npm audit fix --force`.** Les alertes de `npm audit` viennent d'outils de développement
+> (CLI Prisma, plugin ESLint de Next), sans version corrigée disponible ; ce « correctif » rétrograderait
+> `eslint-config-next` en v14 et `prisma` en 6.12 et casserait le projet.
+
 ### Sécurité des comptes
 
 - Un seul contrôle d'accès, `verifierAcces` (`src/backend/auth/acces.ts`), utilisé par toutes les routes API
