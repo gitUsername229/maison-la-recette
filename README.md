@@ -58,11 +58,10 @@ un seed de trois expériences avec sessions, une page d'accueil provisoire et
 Le paiement Stripe Checkout (sandbox) et le webhook sont implémentés :
 `POST /api/checkout`, `POST /api/webhook`, `GET /api/reservations`, les pages
 `/reservation/succes` et `/reservation/annule` et le formulaire de réservation
-(voir [docs/stripe.md](docs/stripe.md)). Reste à faire pour le paiement :
-
-- le tester de bout en bout avec de vraies clés `sk_test_` et la Stripe CLI ;
-- envoyer l'e-mail de confirmation après paiement ;
-- créer la page `/experiences`, vers laquelle renvoient les pages de réservation.
+(voir [docs/stripe.md](docs/stripe.md)). Les pages `/experiences` (liste) et
+`/experiences/[slug]` (détail + bouton « Réserver et payer », ou « Demander un devis »
+pour les immersions) permettent de tester le parcours depuis le navigateur.
+Reste à faire pour le paiement : envoyer l'e-mail de confirmation après paiement.
 
 Les routes ateliers, sessions, devis et annulation des réservations sont aussi
 implémentées, avec contrôle des places et reprise des paiements Stripe.

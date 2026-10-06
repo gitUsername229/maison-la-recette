@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatPrix } from "@/frontend/format";
 
 export type SessionDisponible = {
   id: number;
@@ -11,9 +12,6 @@ export type SessionDisponible = {
 };
 
 type Props = { sessions: SessionDisponible[] };
-
-const formatPrix = (cents: number) =>
-  (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", {
@@ -48,7 +46,8 @@ export default function ReservationForm({ sessions }: Props) {
     );
   }
 
-  async function reserver() {
+  async function reserver(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setErreur(null);
     if (!nom.trim() || !email.trim()) {
       setErreur("Indiquez votre nom et votre adresse e-mail.");
@@ -79,11 +78,11 @@ export default function ReservationForm({ sessions }: Props) {
   }
 
   return (
-    <div className="grid max-w-md gap-4">
-      <label className="grid gap-1">
-        <span className="font-medium">Date</span>
+    <form onSubmit={reserver} className="grid gap-4">
+      <label className="grid min-w-0 gap-1">
+        <span className="text-sm font-medium">Date</span>
         <select
-          className="rounded border px-3 py-2"
+          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
           value={sessionId}
           onChange={(e) => {
             setSessionId(Number(e.target.value));
@@ -99,13 +98,13 @@ export default function ReservationForm({ sessions }: Props) {
         </select>
       </label>
 
-      <label className="grid gap-1">
-        <span className="font-medium">Nombre de participants</span>
+      <label className="grid min-w-0 gap-1">
+        <span className="text-sm font-medium">Nombre de participants</span>
         <input
           type="number"
           min={1}
           max={maxPlaces}
-          className="rounded border px-3 py-2"
+          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
           value={nbPersonnes}
           onChange={(e) =>
             setNbPersonnes(Math.min(maxPlaces, Math.max(1, Number(e.target.value) || 1)))
@@ -113,57 +112,59 @@ export default function ReservationForm({ sessions }: Props) {
         />
       </label>
 
-      <label className="grid gap-1">
-        <span className="font-medium">Nom</span>
+      <label className="grid min-w-0 gap-1">
+        <span className="text-sm font-medium">Nom</span>
         <input
           type="text"
           autoComplete="name"
-          className="rounded border px-3 py-2"
+          required
+          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
           value={nom}
           onChange={(e) => setNom(e.target.value)}
         />
       </label>
 
-      <label className="grid gap-1">
-        <span className="font-medium">E-mail</span>
+      <label className="grid min-w-0 gap-1">
+        <span className="text-sm font-medium">E-mail</span>
         <input
           type="email"
           autoComplete="email"
-          className="rounded border px-3 py-2"
+          required
+          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
       </label>
 
-      <label className="grid gap-1">
-        <span className="font-medium">Téléphone (facultatif)</span>
+      <label className="grid min-w-0 gap-1">
+        <span className="text-sm font-medium">Téléphone (facultatif)</span>
         <input
           type="tel"
           autoComplete="tel"
-          className="rounded border px-3 py-2"
+          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
           value={telephone}
           onChange={(e) => setTelephone(e.target.value)}
         />
       </label>
 
-      <p className="text-lg">
-        Total : <strong>{formatPrix(total)}</strong>
+      <p className="flex items-baseline justify-between border-t border-stone-200 pt-4">
+        <span className="text-stone-600">Total</span>
+        <strong className="text-xl">{formatPrix(total)}</strong>
       </p>
 
       {erreur && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
           {erreur}
         </p>
       )}
 
       <button
-        type="button"
-        onClick={reserver}
+        type="submit"
         disabled={envoi}
-        className="rounded bg-black px-4 py-3 font-medium text-white disabled:opacity-60"
+        className="w-full rounded-full bg-encre px-5 py-3.5 font-medium text-creme transition hover:bg-black disabled:opacity-60"
       >
         {envoi ? "Redirection vers le paiement…" : `Réserver et payer ${formatPrix(total)}`}
       </button>
-    </div>
+    </form>
   );
 }

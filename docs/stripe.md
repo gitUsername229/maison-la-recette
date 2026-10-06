@@ -103,53 +103,21 @@ model Reservation {
 
 Après modification : `npx prisma migrate dev`.
 
-## Utiliser le formulaire sur une page d'expérience
+## Pages qui affichent le formulaire
 
-Exemple dans une page serveur (par exemple `src/app/experiences/ateliers/page.tsx`) :
+Le formulaire est affiché sur `/experiences/[slug]` (accessible depuis l'accueil, bouton « Réserver une expérience ») :
 
-```tsx
-import { prisma } from "@/backend/db/prisma";
-import { placesDisponibles } from "@/backend/places";
-import ReservationForm from "@/frontend/components/ReservationForm";
+| Fichier | Rôle |
+|---|---|
+| `src/app/experiences/page.tsx` | Charge les expériences actives (`experiencesActives`) |
+| `src/app/experiences/[slug]/page.tsx` | Charge l'expérience et ses sessions ouvertes (`experiencePublique`), les passe au front |
+| `src/frontend/pages/experiences.tsx` | Liste des expériences |
+| `src/frontend/pages/experience.tsx` | Détail + `ReservationForm`, ou « Demander un devis » si `reservableEnLigne = false` |
 
-export const dynamic = "force-dynamic";
+Les données sont chargées dans `src/app` car ESLint interdit à `src/frontend` d'importer le backend.
+En développement, la page rappelle la carte de test `4242 4242 4242 4242` sous le bouton de paiement.
 
-export default async function PageAteliers() {
-  const experience = await prisma.experience.findUnique({
-    where: { slug: "atelier-cuisine-anti-gaspi" },
-    include: {
-      sessions: {
-        where: { statut: "ouverte", dateDebut: { gt: new Date() } },
-        orderBy: { dateDebut: "asc" },
-      },
-    },
-  });
-  if (!experience) return null;
-
-  const sessions = await Promise.all(
-    experience.sessions.map(async (s) => ({
-      id: s.id,
-      dateDebut: s.dateDebut.toISOString(),
-      lieu: s.lieu,
-      prixCents: s.prixCents ?? experience.prixCents,
-      placesRestantes: await placesDisponibles(prisma, s.id),
-    }))
-  );
-
-  return (
-    <main>
-      <h1>{experience.titre}</h1>
-      {experience.reservableEnLigne ? (
-        <ReservationForm sessions={sessions} />
-      ) : (
-        <a href="/contact">Demander un devis</a>
-      )}
-    </main>
-  );
-}
-```
-
-Les pages `/reservation/succes` et `/reservation/annule` renvoient vers `/experiences` en attendant les pages d'expériences. Remplacer ce lien par `/experiences/[slug]` quand elles existeront.
+Les pages `/reservation/succes` et `/reservation/annule` renvoient vers la liste `/experiences`.
 
 ## Parcours complet
 

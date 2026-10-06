@@ -36,7 +36,7 @@ export default async function ReservationAnnulee({ searchParams }: Props) {
         Aucun montant n’a été débité et votre réservation n’a pas été enregistrée. Vous pouvez
         choisir une autre date ou réessayer.
       </p>
-      {/* À remplacer par /experiences/[slug] quand les pages d’expériences existeront */}
+      {/* Stripe ne renvoie pas l’identifiant de réservation ici : retour à la liste */}
       <Link href="/experiences" className="mt-8 inline-block underline">
         Revenir aux expériences
       </Link>

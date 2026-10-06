@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
+/* Couleurs du site, utilisables en classes Tailwind : bg-creme, text-encre… */
+@theme {
+  --color-creme: #faf7f2;
+  --color-encre: #302c25;
+}
+
 body {
   margin: 0;
-  background: #faf7f2;
-  color: #302c25;
+  background: var(--color-creme);
+  color: var(--color-encre);
   font-family: Arial, Helvetica, sans-serif;
 }

@@ -5,17 +5,28 @@ import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backe
 import { experienceSchema, experienceUpdateSchema, sessionSchema, sessionUpdateSchema } from './validation';
 import { lockSession, pendingSeats } from './inventory';
 
+// Utilisées par les routes /api et par les pages serveur du front.
+export function experiencesActives(type?: string) {
+  return prisma.experience.findMany({ where: { actif: true, ...(type ? { type } : {}) }, orderBy: { id: 'asc' } });
+}
+
+export async function experiencePublique(slug: string) {
+  const result = await prisma.experience.findUnique({ where: { slug }, include: { images: { orderBy: { ordre: 'asc' } }, sessions: { where: { dateDebut: { gt: new Date() }, statut: { not: 'annulee' } }, orderBy: { dateDebut: 'asc' }, include: { reservations: { where: { statut: 'en_attente' }, select: { nbPersonnes: true } } } } } });
+  if (!result?.actif) return null;
+  return { ...result, sessions: result.sessions.map(({ reservations, ...s }) => ({ ...s, placesRestantes: Math.max(0, s.placesTotal - s.placesPrises - reservations.reduce((n, r) => n + r.nbPersonnes, 0)) })) };
+}
+
 export const listExperiences = endpoint(async (request: Request) => {
   const type = new URL(request.url).searchParams.get('type');
   if (type && !['atelier', 'good_tour', 'immersion'].includes(type)) throw new ApiError(400, 'Type inconnu');
-  return json(await prisma.experience.findMany({ where: { actif: true, ...(type ? { type } : {}) }, orderBy: { id: 'asc' } }));
+  return json(await experiencesActives(type ?? undefined));
 });
 
 export const getExperience = endpoint(async (_request: Request, context: RouteContext) => {
   const { id: slug } = await context.params;
-  const result = await prisma.experience.findUnique({ where: { slug }, include: { images: { orderBy: { ordre: 'asc' } }, sessions: { where: { dateDebut: { gt: new Date() }, statut: { not: 'annulee' } }, orderBy: { dateDebut: 'asc' }, include: { reservations: { where: { statut: 'en_attente' }, select: { nbPersonnes: true } } } } } });
-  if (!result?.actif) throw new ApiError(404, 'Expérience introuvable');
-  return json({ ...result, sessions: result.sessions.map(({ reservations, ...s }) => ({ ...s, placesRestantes: Math.max(0, s.placesTotal - s.placesPrises - reservations.reduce((n, r) => n + r.nbPersonnes, 0)) })) });
+  const result = await experiencePublique(slug);
+  if (!result) throw new ApiError(404, 'Expérience introuvable');
+  return json(result);
 });
 
 export const createExperience = endpoint(async (request: Request) => {
