@@ -153,11 +153,14 @@ Les pages `/reservation/succes` et `/reservation/annule` renvoient vers `/experi
 ## Parcours complet
 
 1. La personne choisit une date, le nombre de participants, son nom et son e-mail.
-2. `POST /api/checkout` vérifie les places, crée une réservation `en_attente` (places bloquées 30 min) et une session Stripe.
+2. `POST /api/checkout` vérifie les places, crée une réservation `en_attente` et une session Stripe expirant après 35 min. Les places restent bloquées jusqu'à confirmation d'expiration par Stripe. Un header `Idempotency-Key` UUID est recommandé pour les reprises ; il reste optionnel pour le formulaire existant.
 3. Redirection vers la page de paiement Stripe.
 4. **Paiement réussi** : Stripe redirige vers `/reservation/succes` et envoie `checkout.session.completed` au webhook. La réservation passe à `payee`, les places sont comptées, et la session passe à `complete` si elle est pleine.
-5. **Paiement annulé** : Stripe redirige vers `/reservation/annule`, qui annule la réservation et libère les places.
-6. **Page de paiement abandonnée** : après 30 min, Stripe envoie `checkout.session.expired` et la réservation passe à `annulee`.
+5. **Retour sans paiement** : Stripe redirige vers `/reservation/annule` sans identifiant de réservation. Les places sont libérées à réception de l'expiration Stripe ou après annulation admin vérifiée.
+6. **Page de paiement abandonnée** : après 35 min, Stripe envoie `checkout.session.expired` et la réservation passe à `annulee`.
+
+Voir [le guide du backend ateliers](ateliers-stripe.md) pour les règles de reprise,
+les annulations après remboursement et les tests automatisés.
 
 ## Tester en local
 
@@ -194,7 +197,7 @@ npx prisma studio   # la réservation est "payee" et placesPrises a augmenté
 
 - Réserver plus de places qu'il n'en reste : erreur `409` « Il ne reste que X places ».
 - Réserver une immersion (`reservableEnLigne = false`) : erreur `400`.
-- Annuler sur la page Stripe : retour sur `/reservation/annule`, réservation `annulee`.
+- Revenir depuis Stripe : retour sur `/reservation/annule`, puis réservation `annulee` après expiration Stripe ou annulation admin.
 - Payer la dernière place : la session passe à `complete` et disparaît du formulaire.
 - Couper `stripe listen` puis payer : la page de succès affiche quand même « Votre place est réservée » (vérification directe auprès de Stripe), mais la base n'est pas mise à jour. **Toujours lancer `stripe listen` pendant la démo.**
 

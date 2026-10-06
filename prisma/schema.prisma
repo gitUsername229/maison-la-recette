@@ -66,6 +66,8 @@ model Reservation {
   montantCents    Int
   statut          String   @default("en_attente")
   stripeSessionId String?  @unique
+  checkoutKey     String?  @unique
+  checkoutPayload String?
   createdAt       DateTime @default(now())
   session         Session  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
 

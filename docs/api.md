@@ -1,5 +1,13 @@
 # Routes API
 
+Les routes expériences, sessions, checkout, webhook, réservations et devis sont
+implémentées. Épisodes, références, newsletter et upload d'images restent prévus.
+Voir [le guide ateliers/Stripe](ateliers-stripe.md) pour les comportements détaillés.
+`POST /api/checkout` accepte un header `Idempotency-Key` contenant un UUID,
+à conserver lors des nouvelles tentatives d'une même réservation. Sans ce header,
+une clé est générée par le serveur pour rester compatible avec le formulaire existant ;
+des appels répétés sans clé peuvent alors créer des réservations distinctes.
+
 Conventions :
 - Les prix sont en **centimes** (`7000` = 70,00 €).
 - Les dates sont au format ISO 8601 (`2026-11-14T10:00:00.000Z`).

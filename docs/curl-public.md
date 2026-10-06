@@ -295,6 +295,7 @@ Seulement pour les expériences réservables en ligne (`reservableEnLigne: true`
 
 ```bash
 curl -X POST "$BASE/api/checkout" \
+  -H "Idempotency-Key: 9e205ddd-e3a2-4a1b-81d6-8d505c126998" \
   -H "Content-Type: application/json" \
   -d '{
     "sessionId": 4,
@@ -316,6 +317,10 @@ Réponse `200` :
 ```
 
 Le front redirige vers `checkoutUrl`. Sur la page Stripe, payer avec `4242 4242 4242 4242`.
+
+Remplacer l'UUID de l'exemple pour chaque nouvelle réservation. En cas de timeout,
+réutiliser le même UUID et les mêmes données. Les places sont bloquées pendant
+Checkout et libérées sur son expiration signée ; voir [le guide](ateliers-stripe.md).
 
 Erreurs possibles :
 

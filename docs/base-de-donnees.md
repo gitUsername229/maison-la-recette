@@ -71,6 +71,8 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 | `montantCents` | Int | Total payé |
 | `statut` | String | `en_attente`, `payee` ou `annulee` |
 | `stripeSessionId` | String? | Unique, ex : `cs_test_...` |
+| `checkoutKey` | String? | UUID unique de la demande ; évite les doubles réservations |
+| `checkoutPayload` | String? | Paramètres Stripe figés pour rejouer une création après timeout, jamais exposés par l'API |
 | `createdAt` | DateTime | |
 
 ## `DemandeDevis`

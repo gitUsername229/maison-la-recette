@@ -2,12 +2,13 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 
 // Durée pendant laquelle des places restent bloquées pendant le paiement.
-// 30 minutes = durée minimale d'expiration d'une session Stripe Checkout.
-export const DUREE_BLOCAGE_MS = 30 * 60 * 1000;
+// 35 minutes laissent une marge au-dessus du minimum Stripe de 30 minutes.
+export const DUREE_BLOCAGE_MS = 35 * 60 * 1000;
 
 /**
  * Places encore disponibles sur une session :
- * places totales - places payées - places en cours de paiement (moins de 30 min).
+ * places totales - places payées - places en cours de paiement.
+ * Seule une confirmation Stripe libère un paiement expiré, jamais l'horloge locale.
  * Évite de vendre deux fois la dernière place.
  */
 export async function placesDisponibles(
@@ -22,9 +23,8 @@ export async function placesDisponibles(
     where: {
       sessionId,
       statut: 'en_attente',
-      createdAt: { gt: new Date(Date.now() - DUREE_BLOCAGE_MS) },
     },
   });
 
-  return session.placesTotal - session.placesPrises - (enCours._sum.nbPersonnes ?? 0);
+  return Math.max(0, session.placesTotal - session.placesPrises - (enCours._sum.nbPersonnes ?? 0));
 }

@@ -53,7 +53,7 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 
 Le socle comprend Next.js, React, TypeScript, Tailwind, les huit modèles Prisma,
 un seed de trois expériences avec sessions, une page d'accueil provisoire et
-`GET /api/health`. L'utilitaire de contrôle `x-admin-key` est prêt pour les futures routes admin.
+`GET /api/health`. Les routes admin utilisent le contrôle `x-admin-key`.
 
 Le paiement Stripe Checkout (sandbox) et le webhook sont implémentés :
 `POST /api/checkout`, `POST /api/webhook`, `GET /api/reservations`, les pages
@@ -64,9 +64,11 @@ Le paiement Stripe Checkout (sandbox) et le webhook sont implémentés :
 - envoyer l'e-mail de confirmation après paiement ;
 - créer la page `/experiences`, vers laquelle renvoient les pages de réservation.
 
-Les autres pages du site et routes métier décrites ci-dessous et dans `docs/` sont
-le périmètre à développer ; les formulaires de devis et l'administration ne sont
-pas encore implémentés. Le seed ne contient pas de photos ni de liens Ausha fictifs :
+Les routes ateliers, sessions, devis et annulation des réservations sont aussi
+implémentées, avec contrôle des places et reprise des paiements Stripe.
+Voir [docs/ateliers-stripe.md](docs/ateliers-stripe.md) pour les règles détaillées.
+Les autres pages et routes décrites ci-dessous restent à développer, dont
+l'interface admin et l'envoi d'e-mails de devis. Le seed ne contient pas de photos ni de liens Ausha fictifs :
 ajouter les contenus réels lors du développement.
 
 Commandes complémentaires : `npm run lint`, `npm run typecheck`, `npm run build`
@@ -76,7 +78,7 @@ Dans d'autres terminaux :
 
 ```bash
 # Confirmations de paiement Stripe
-stripe listen --forward-to localhost:3000/api/webhook
+stripe listen --events checkout.session.completed,checkout.session.expired,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to localhost:3000/api/webhook
 
 # Boîte mail locale qui reçoit les e-mails de devis : http://localhost:8025
 docker run --rm -p 8025:8025 -p 1025:1025 axllent/mailpit

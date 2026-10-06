@@ -50,6 +50,10 @@ curl "$BASE/api/reservations?statut=payee" -H "x-admin-key: $ADMIN_KEY"
 
 **Annuler une réservation**
 
+Une réservation en attente est d'abord expirée dans Stripe. Pour une réservation
+payée, effectuer le remboursement intégral dans Stripe avant ce PATCH ; sinon la
+route répond `409`. Un remboursement partiel ne suffit pas.
+
 ```bash
 curl -X PATCH "$BASE/api/reservations/7" \
   -H "x-admin-key: $ADMIN_KEY" \
