@@ -31,13 +31,28 @@ Réponse `200` :
     "titre": "Atelier cuisine anti-gaspi",
     "accroche": "Cuisiner avec ce qu'on jette d'habitude",
     "dureeMin": 150,
-    "prixCents": 4500,
-    "prixEntrepriseCents": 6500,
+    "prixCents": 7000,
+    "prixEntrepriseCents": 9000,
+    "reservableEnLigne": true,
     "capaciteMax": 12,
     "image": "/images/ateliers/cover.jpg",
     "imageAlt": "Participants autour d'un plan de travail"
   }
 ]
+```
+
+Une immersion (surtout B2B) est sur devis uniquement : `reservableEnLigne` vaut `false` et le prix est vide.
+
+```json
+{
+  "id": 3,
+  "slug": "immersion-ferme-maraichere",
+  "type": "immersion",
+  "titre": "Immersion chez une maraîchère",
+  "prixCents": null,
+  "prixEntrepriseCents": null,
+  "reservableEnLigne": false
+}
 ```
 
 **Détail d'une expérience (avec galerie et sessions à venir)**
@@ -56,7 +71,8 @@ Réponse `200` :
   "titre": "Atelier cuisine anti-gaspi",
   "description": "Un atelier pour apprendre à ...",
   "dureeMin": 150,
-  "prixCents": 4500,
+  "prixCents": 7000,
+  "reservableEnLigne": true,
   "capaciteMax": 12,
   "image": "/images/ateliers/cover.jpg",
   "images": [
@@ -74,6 +90,8 @@ Réponse `200` :
   ]
 }
 ```
+
+`images` vient de la table `Image` (page `/experiences/atelier-cuisine-anti-gaspi`). Pour une expérience sur devis, `sessions` est vide et la page affiche le formulaire de devis.
 
 Expérience inconnue : `404` avec `{ "error": "Expérience introuvable" }`.
 
@@ -97,7 +115,7 @@ Réponse `200` :
     "lieu": "La Rochelle",
     "placesTotal": 12,
     "placesRestantes": 8,
-    "prixCents": 4500,
+    "prixCents": 7000,
     "statut": "ouverte"
   }
 ]
@@ -117,19 +135,27 @@ curl "$BASE/api/episodes"
 curl "$BASE/api/episodes?limit=3"
 ```
 
+**Filtrer par saison**
+
+```bash
+curl "$BASE/api/episodes?saison=2"
+```
+
 Réponse `200` :
 
 ```json
 [
   {
     "id": 12,
-    "numero": 12,
+    "saison": 2,
+    "numero": 4,
     "titre": "Un chef contre le gaspillage",
+    "resume": "Rencontre avec un chef qui cuisine les restes ...",
     "description": "...",
     "invite": "Nom du chef",
     "datePublication": "2026-09-20T05:00:00.000Z",
     "dureeMin": 42,
-    "image": "/images/episodes/ep12.jpg",
+    "image": "https://image.ausha.co/...",
     "embedUrl": "https://player.ausha.co/...",
     "spotifyUrl": "https://open.spotify.com/episode/...",
     "deezerUrl": null,
@@ -139,10 +165,70 @@ Réponse `200` :
 ]
 ```
 
-## Références
+Le site affiche `resume` ; `description` est le texte complet importé d'Ausha.
+
+## Avis
 
 ```bash
-curl "$BASE/api/references"
+curl "$BASE/api/avis"
+```
+
+Réponse `200` (seulement les avis visibles) :
+
+```json
+[
+  {
+    "id": 1,
+    "nom": "Claire D.",
+    "citation": "Une journée qui a soudé l'équipe.",
+    "contexte": "Team building, atelier anti-gaspi",
+    "note": 5
+  },
+  {
+    "id": 2,
+    "nom": "Marc L.",
+    "citation": "On repart avec plein d'idées pour cuisiner autrement.",
+    "contexte": "Good tour du marché",
+    "note": null
+  }
+]
+```
+
+## Partenaires
+
+```bash
+curl "$BASE/api/partenaires"
+```
+
+Réponse `200` (seulement les partenaires qui ont donné leur accord) :
+
+```json
+[
+  {
+    "id": 1,
+    "nom": "Nom de la maraîchère",
+    "metier": "Maraîchère",
+    "photo": "/images/partenaires/maraichere.jpg",
+    "photoAlt": "La maraîchère dans ses serres",
+    "description": "Légumes de saison cultivés à ..."
+  }
+]
+```
+
+Tant qu'aucun partenaire n'est visible : `[]`.
+
+## Blog
+
+**Lister les articles publiés (les plus récents d'abord)**
+
+```bash
+curl "$BASE/api/articles"
+```
+
+**Limiter le nombre d'articles**
+
+```bash
+curl "$BASE/api/articles?limit=3"
 ```
 
 Réponse `200` :
@@ -150,17 +236,60 @@ Réponse `200` :
 ```json
 [
   {
-    "id": 1,
-    "nom": "Entreprise exemple",
-    "type": "client",
-    "logo": "/images/references/logo-x.png",
-    "citation": "Une journée qui a soudé l'équipe.",
-    "auteur": "Responsable RSE"
+    "id": 2,
+    "slug": "cuisiner-les-epluchures",
+    "titre": "Cuisiner les épluchures : 5 idées simples",
+    "extrait": "Chips, bouillons, pestos : les épluchures ont de la ressource.",
+    "image": "/images/blog/epluchures.jpg",
+    "imageAlt": "Épluchures de légumes sur une planche",
+    "datePublication": "2026-10-01T08:00:00.000Z"
   }
 ]
 ```
 
+**Lire un article** (page `/blog/cuisiner-les-epluchures`)
+
+```bash
+curl "$BASE/api/articles/cuisiner-les-epluchures"
+```
+
+Réponse `200` :
+
+```json
+{
+  "id": 2,
+  "slug": "cuisiner-les-epluchures",
+  "titre": "Cuisiner les épluchures : 5 idées simples",
+  "extrait": "Chips, bouillons, pestos : les épluchures ont de la ressource.",
+  "contenu": "## 1. Des chips d'épluchures\n\n...",
+  "image": "/images/blog/epluchures.jpg",
+  "imageAlt": "Épluchures de légumes sur une planche",
+  "datePublication": "2026-10-01T08:00:00.000Z"
+}
+```
+
+Article inconnu ou brouillon : `404` avec `{ "error": "Article introuvable" }`.
+
+## Galeries photos
+
+**Photos d'une page** (`page` est le chemin de la page)
+
+```bash
+curl "$BASE/api/images?page=/a-propos"
+```
+
+Réponse `200` (triée par `ordre`) :
+
+```json
+[
+  { "id": 5, "url": "/images/a-propos/cuisine.jpg", "alt": "Julie en cuisine", "page": "/a-propos", "ordre": 1 },
+  { "id": 6, "url": "/images/a-propos/marche.jpg", "alt": "Étal de légumes au marché", "page": "/a-propos", "ordre": 2 }
+]
+```
+
 ## Réserver et payer (B2C)
+
+Seulement pour les expériences réservables en ligne (`reservableEnLigne: true`).
 
 **Créer la réservation et la session de paiement Stripe**
 
@@ -181,7 +310,7 @@ Réponse `200` :
 ```json
 {
   "reservationId": 7,
-  "montantCents": 9000,
+  "montantCents": 14000,
   "checkoutUrl": "https://checkout.stripe.com/c/pay/cs_test_..."
 }
 ```
@@ -200,6 +329,11 @@ Erreurs possibles :
 ```
 (code `400`)
 
+```json
+{ "error": "Cette expérience se réserve uniquement sur devis" }
+```
+(code `400`)
+
 **Retrouver la réservation après le paiement** (page `/reservation/succes?session_id=cs_test_...`)
 
 ```bash
@@ -213,7 +347,7 @@ Réponse `200` :
   "id": 7,
   "nom": "Camille Martin",
   "nbPersonnes": 2,
-  "montantCents": 9000,
+  "montantCents": 14000,
   "statut": "payee",
   "session": {
     "dateDebut": "2026-11-14T10:00:00.000Z",
@@ -243,6 +377,8 @@ Quand l'événement `checkout.session.completed` arrive : la réservation passe 
 
 ## Demande de devis (B2B)
 
+`typeDemande` : `experience`, `sponsoring`, `studio` ou `evenement`. Le `telephone` est obligatoire : Julie rappelle d'abord.
+
 **Devis pour une expérience en entreprise**
 
 ```bash
@@ -254,14 +390,17 @@ curl -X POST "$BASE/api/devis" \
     "email": "julien@exemple.fr",
     "telephone": "0611223344",
     "typeDemande": "experience",
-    "experienceId": 1,
+    "experienceId": 3,
     "nbParticipants": 25,
     "dateSouhaitee": "2027-01-20",
+    "lieuSouhaite": "dans_les_locaux",
     "message": "Nous cherchons un team building autour de l'\''alimentation durable."
   }'
 ```
 
-**Devis pour l'offre podcast / studio**
+`lieuSouhaite` : `dans_les_locaux` (chez l'entreprise) ou `a_proximite`.
+
+**Devis pour le studio podcast**
 
 ```bash
 curl -X POST "$BASE/api/devis" \
@@ -270,16 +409,27 @@ curl -X POST "$BASE/api/devis" \
     "entreprise": "Marque Exemple",
     "contactNom": "Sophie Leroy",
     "email": "sophie@marque.fr",
-    "typeDemande": "podcast_studio",
+    "telephone": "0622334455",
+    "typeDemande": "studio",
     "message": "Nous voulons lancer un podcast de marque."
   }'
 ```
 
+Les demandes `sponsoring` (sponsoriser le podcast) et `evenement` s'envoient de la même façon.
+
 Réponse `201` :
 
 ```json
-{ "id": 3, "statut": "nouvelle" }
+{
+  "id": 3,
+  "statut": "nouvelle",
+  "message": "Merci ! Votre demande est bien reçue, nous vous répondons sous 48h."
+}
 ```
+
+Un e-mail avec le détail de la demande est envoyé à Julie (`MAIL_DEVIS_TO`). En local, il arrive dans Mailpit : http://localhost:8025.
+
+Téléphone manquant : `400` avec `{ "error": "Le téléphone est obligatoire" }`.
 
 ## Newsletter
 
