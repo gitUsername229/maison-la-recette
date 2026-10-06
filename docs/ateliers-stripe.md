@@ -72,9 +72,10 @@ retourne `409`. Une erreur réseau Stripe retourne `502` : réessayer avec le m�
 
 Le dépôt fournit désormais `/reservation/succes` et `/reservation/annule`.
 Le retour d'annulation n'envoie pas d'identifiant de réservation : les places
-restent bloquées tant que le paiement Stripe peut encore aboutir (voir ci-dessous). La page de succès lit
-`/api/reservations?session_id=...` et patienter si le statut est encore `en_attente`.
-Un retour navigateur ne confirme jamais un paiement et ne libère pas les places.
+restent bloquées tant que le paiement Stripe peut encore aboutir (voir ci-dessous). Si la réservation est encore
+`en_attente`, la page de succès interroge Stripe (clé secrète) et, s'il confirme le paiement, l'enregistre avec
+`traiterSessionStripe`, la fonction du webhook : confirmation et e-mails une seule fois, quel que soit l'ordre
+d'arrivée. Le retour navigateur seul ne confirme jamais un paiement et ne libère pas les places.
 
 ## Places, événements et annulations
 

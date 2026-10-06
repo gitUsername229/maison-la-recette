@@ -124,7 +124,8 @@ Les pages `/reservation/succes` et `/reservation/annule` renvoient vers la liste
 1. La personne, **connectée à son compte**, choisit une date et le nombre de participants. Le nom, l'e-mail et le téléphone de la réservation sont ceux du compte (lus par le serveur, jamais envoyés par le formulaire).
 2. `POST /api/checkout` vérifie les places, crée une réservation `en_attente` et une session Stripe expirant après 35 min. Les places restent bloquées tant que ce paiement peut aboutir (35 min + 2 min de marge), puis sont libérées automatiquement, même si l'événement d'expiration n'arrive jamais. Un header `Idempotency-Key` UUID est recommandé pour les reprises ; il reste optionnel pour le formulaire existant.
 3. Redirection vers la page de paiement Stripe.
-4. **Paiement réussi** : Stripe redirige vers `/reservation/succes` et envoie `checkout.session.completed` au webhook. La réservation passe à `payee`, les places sont comptées, et la session passe à `complete` si elle est pleine.
+4. **Paiement réussi** : Stripe redirige vers `/reservation/succes` et envoie `checkout.session.completed` au webhook. La réservation passe à `payee`, les places sont comptées, la session passe à `complete` si elle est pleine, et les e-mails partent.
+   La page de succès n'attend pas le webhook : elle interroge Stripe avec la clé secrète et, s'il confirme le paiement, l'enregistre avec **la même fonction que le webhook** (`traiterSessionStripe`, `src/backend/ateliers/bookings.ts`). Le premier des deux qui arrive confirme la réservation et envoie les e-mails ; le second ne fait rien. Le retour navigateur seul ne confirme jamais rien : seule la réponse de Stripe compte.
 5. **Retour sans paiement** : Stripe redirige vers `/reservation/annule` sans identifiant de réservation. Les places sont libérées à l'expiration du paiement (35 min + marge), sans attendre l'événement Stripe.
 6. **Page de paiement abandonnée** : après 35 min, Stripe envoie `checkout.session.expired` et la réservation passe à `annulee`.
 
@@ -177,12 +178,14 @@ npx prisma studio   # la réservation est "payee" et placesPrises a augmenté
 - Ouvrir `/reservation/succes?session_id=…` d'une réservation avec le compte d'un autre client : « Réservation introuvable ».
 - Revenir depuis Stripe : retour sur `/reservation/annule`, puis réservation `annulee` après expiration Stripe ou annulation admin.
 - Payer la dernière place : la session passe à `complete` et disparaît du formulaire.
-- Couper `stripe listen` puis payer : la page de succès affiche quand même « Votre place est réservée » (vérification directe auprès de Stripe), mais la base n'est pas mise à jour et l'e-mail de confirmation ne part pas. **Toujours lancer `stripe listen` pendant la démo.**
+- Couper `stripe listen` puis payer : la page de succès enregistre quand même le paiement (réservation `payee`, places comptées, e-mails envoyés) grâce à Stripe. Relancer ensuite `stripe listen` : l'événement arrivé en retard ne change rien.
+- **Toujours lancer `stripe listen` pendant la démo** : sans lui, un client qui ferme l'onglet avant d'arriver sur la page de succès n'est confirmé que par Julie (rapprochement manuel dans Stripe).
 
 ## E-mails
 
-Quand le webhook confirme un paiement, le client reçoit sa confirmation et Julie (`MAIL_ADMIN_TO`) une information,
-une seule fois même si Stripe renvoie l'événement (`src/backend/mails/notifications.ts`). En local, ils arrivent dans
+Quand un paiement est confirmé (par le webhook ou par la page de succès), le client reçoit sa confirmation et Julie
+(`MAIL_ADMIN_TO`) une information, une seule fois même si les deux arrivent ou si Stripe renvoie l'événement
+(`src/backend/mails/notifications.ts`). En local, ils arrivent dans
 Mailpit : http://localhost:8025.
 
 ## Reste à faire

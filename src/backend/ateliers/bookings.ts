@@ -3,6 +3,8 @@ import type Stripe from 'stripe';
 import { prisma } from '@/backend/db/prisma';
 import { ApiError } from '@/backend/http';
 import { getStripe } from '@/backend/payments/stripe';
+import { enArrierePlan } from '@/backend/mails/envoi';
+import { envoyerMailsReservationPayee } from '@/backend/mails/notifications';
 import { DUREE_BLOCAGE_MS, placesDisponibles } from '@/backend/places';
 import { lockSession } from './inventory';
 import type { Utilisateur } from '@/backend/auth/acces';
@@ -117,6 +119,29 @@ export async function applyStripeSession(checkout: Stripe.Checkout.Session, even
     } });
     return id;
   });
+}
+
+/**
+ * Point d'entrée commun du webhook et de la page de succès : applique la session Stripe puis,
+ * si la réservation vient d'être payée, envoie ses e-mails. Quel que soit celui des deux qui
+ * arrive en premier, la confirmation et les e-mails n'ont lieu qu'une fois.
+ */
+export async function traiterSessionStripe(checkout: Stripe.Checkout.Session, eventType: string) {
+  const payee = await applyStripeSession(checkout, eventType);
+  if (payee) enArrierePlan(envoyerMailsReservationPayee(payee));
+  return payee;
+}
+
+/**
+ * Page de succès : relit la session chez Stripe (source de vérité, interrogée avec la clé secrète)
+ * et, si elle est payée, l'enregistre exactement comme le webhook. Une place payée ne peut donc
+ * pas être libérée parce que le webhook arrive en retard (ou jamais).
+ */
+export async function confirmerPaiementDepuisStripe(stripeSessionId: string, stripe: Stripe = configuredStripe()): Promise<boolean> {
+  const checkout = await stripe.checkout.sessions.retrieve(stripeSessionId);
+  if (checkout.payment_status !== 'paid' || checkout.status !== 'complete') return false;
+  await traiterSessionStripe(checkout, 'checkout.session.completed');
+  return true;
 }
 
 export async function cancelReservation(id: number, stripe: Stripe = configuredStripe()) {

@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { confirmerPaiementDepuisStripe } from "@/backend/ateliers/bookings";
 import { exigerConnexionPage } from "@/backend/auth/acces-page";
 import { reservationApresPaiement } from "@/backend/comptes/compte";
-import { getStripe } from "@/backend/payments/stripe";
 import { formatDateHeure, formatPrix } from "@/frontend/format";
 
 type Props = { searchParams: Promise<{ session_id?: string }> };
@@ -30,15 +30,15 @@ export default async function ReservationSucces({ searchParams }: Props) {
     );
   }
 
-  // Le webhook peut arriver quelques secondes après la redirection :
-  // on vérifie alors directement auprès de Stripe.
+  // Le webhook peut arriver après la redirection (ou jamais si stripe listen est coupé) :
+  // on interroge Stripe et, s'il confirme le paiement, on l'enregistre comme le webhook.
   let paye = reservation.statut === "payee";
   if (!paye && reservation.statut === "en_attente" && session_id) {
     try {
-      const checkout = await getStripe().checkout.sessions.retrieve(session_id);
-      paye = checkout.payment_status === "paid";
-    } catch {
-      // On garde le statut de la base
+      paye = await confirmerPaiementDepuisStripe(session_id);
+    } catch (erreur) {
+      // Stripe injoignable ou paiement incohérent : on garde le statut de la base.
+      console.error("Confirmation depuis la page de succès impossible :", erreur instanceof Error ? erreur.message : erreur);
     }
   }
 
@@ -52,7 +52,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
 
       <p className="mt-4">
         {paye
-          ? `Merci ${reservation.nom}. Vous retrouvez cette réservation dans « Mon compte ».`
+          ? `Merci ${reservation.nom}. Un e-mail de confirmation vous est envoyé, et vous retrouvez cette réservation dans « Mon compte ».`
           : "Votre paiement est en cours de traitement. Rechargez cette page dans quelques instants."}
       </p>
 

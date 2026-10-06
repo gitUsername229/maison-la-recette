@@ -5,11 +5,9 @@ import { prisma } from '@/backend/db/prisma';
 import { exigerAdmin, exigerConnexion } from '@/backend/auth/acces';
 import { reservationApresPaiement } from '@/backend/comptes/compte';
 import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
-import { enArrierePlan } from '@/backend/mails/envoi';
-import { envoyerMailsReservationPayee } from '@/backend/mails/notifications';
 import { getStripe } from '@/backend/payments/stripe';
 import { checkoutSchema, cancellationSchema } from './validation';
-import { applyStripeSession, cancelReservation, createCheckout } from './bookings';
+import { cancelReservation, createCheckout, traiterSessionStripe } from './bookings';
 
 export const checkout = endpoint(async (request: Request) => {
   const client = await exigerConnexion(request);
@@ -33,9 +31,7 @@ export const webhook = endpoint(async (request: Request) => {
   catch { throw new ApiError(400, 'Signature Stripe invalide'); }
   if (event.livemode) throw new ApiError(400, 'Seuls les événements sandbox sont acceptés');
   if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.expired' || event.type === 'checkout.session.async_payment_succeeded' || event.type === 'checkout.session.async_payment_failed') {
-    const payee = await applyStripeSession(event.data.object, event.type);
-    // E-mails envoyés après la réponse à Stripe, une seule fois par réservation.
-    if (payee) enArrierePlan(envoyerMailsReservationPayee(payee));
+    await traiterSessionStripe(event.data.object, event.type);
   }
   return json({ received: true });
 });

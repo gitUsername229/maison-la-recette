@@ -14,6 +14,7 @@ let modeles: typeof import('../src/backend/mails/modeles');
 let prisma: PrismaClient;
 let handlers: typeof import('../src/backend/ateliers/payment-handlers');
 let devis: typeof import('../src/backend/ateliers/devis');
+let bookings: typeof import('../src/backend/ateliers/bookings');
 let auth: typeof import('../src/backend/auth/auth').auth;
 
 /** Transport Nodemailer en mémoire : les e-mails « envoyés » sont gardés dans `envoyes`. */
@@ -35,6 +36,7 @@ before(async () => {
   ({ prisma } = await import('../src/backend/db/prisma'));
   handlers = await import('../src/backend/ateliers/payment-handlers');
   devis = await import('../src/backend/ateliers/devis');
+  bookings = await import('../src/backend/ateliers/bookings');
   ({ auth } = await import('../src/backend/auth/auth'));
   envoi.utiliserTransport(transportMemoire());
 });
@@ -77,7 +79,7 @@ async function paiementReussi(stripeSessionId: string) {
   const corps = JSON.stringify({ id: `evt_${stripeSessionId}`, type: 'checkout.session.completed', livemode: false, data: { object: paye } });
   const signature = Stripe.webhooks.generateTestHeaderString({ payload: corps, secret: process.env.STRIPE_WEBHOOK_SECRET! });
   const envoyer = () => handlers.webhook(new Request(`${BASE}/api/webhook`, { method: 'POST', body: corps, headers: { 'stripe-signature': signature } }));
-  return { reservation, envoyer };
+  return { reservation, paye, envoyer };
 }
 
 test('un paiement confirmé envoie la confirmation au client et l’information à Julie, une seule fois', async () => {
@@ -164,4 +166,27 @@ test('l’inscription envoie un lien qui vérifie l’adresse e-mail', async () 
   const lien = new URL(lienDuMail(mail));
   await auth.handler(new Request(lien, { headers: { origin: BASE } }));
   assert.equal((await prisma.user.findUniqueOrThrow({ where: { id } })).emailVerified, true);
+});
+
+test('la page de succès enregistre le paiement confirmé par Stripe ; le webhook arrivé ensuite ne refait rien', async () => {
+  const { reservation, paye, envoyer } = await paiementReussi('cs_test_succes_avant_webhook');
+  const stripeRenvoyant = (session: object) => ({ checkout: { sessions: { retrieve: async () => session } } }) as unknown as Stripe;
+  const etat = async () => {
+    const r = await prisma.reservation.findUniqueOrThrow({ where: { id: reservation.id }, include: { session: true } });
+    return { statut: r.statut, placesPrises: r.session.placesPrises };
+  };
+
+  // Stripe n'a pas encore encaissé : rien n'est enregistré.
+  assert.equal(await bookings.confirmerPaiementDepuisStripe(paye.id, stripeRenvoyant({ ...paye, status: 'open', payment_status: 'unpaid' })), false);
+  assert.deepEqual(await etat(), { statut: 'en_attente', placesPrises: 0 });
+
+  // Arrivée sur la page de succès, Stripe confirme : même traitement que le webhook.
+  assert.equal(await bookings.confirmerPaiementDepuisStripe(paye.id, stripeRenvoyant(paye)), true);
+  assert.deepEqual(await etat(), { statut: 'payee', placesPrises: 2 });
+
+  // Le webhook arrive ensuite : ni double comptage des places, ni second e-mail.
+  assert.equal((await envoyer()).status, 200);
+  await envoi.attendreLesEnvois();
+  assert.deepEqual(await etat(), { statut: 'payee', placesPrises: 2 });
+  assert.deepEqual(envoyes.map(m => m.to).sort(), ['camille@example.com', 'julie@exemple.fr']);
 });
