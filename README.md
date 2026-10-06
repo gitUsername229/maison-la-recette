@@ -14,6 +14,8 @@ Projet de workshop M1 (Groupe 3), 100 % local.
 
 ## Lancer le projet
 
+Prérequis : Node.js 22.12 ou supérieur et npm.
+
 ```bash
 git clone https://github.com/gitUsername229/maison-la-recette.git
 cd maison-la-recette
@@ -24,7 +26,44 @@ npx prisma db seed              # données de démo
 npm run dev                     # http://localhost:3000
 ```
 
-Dans un second terminal, pour les confirmations de paiement :
+Sous PowerShell, utiliser `Copy-Item .env.example .env.local` à la place de `cp`.
+Les commandes Prisma et Next.js chargent toutes deux le fichier `.env.local`.
+Les clés Stripe peuvent être remplies lorsque le parcours de paiement sera développé.
+
+## Séparation front / back
+
+Le projet conserve **Next.js pour le front et les routes API**, avec un seul serveur
+sur le port 3000. Le code est séparé par responsabilité :
+
+```text
+src/
+  app/              Pages Next.js et points d'entrée /api
+  frontend/         Pages de présentation, composants et styles Tailwind
+  backend/          Accès Prisma, services, sécurité admin et intégration Stripe
+prisma/             Schéma SQLite, migrations et données de démonstration
+public/images/      Images locales
+```
+
+Les fichiers `src/app/page.tsx` et `src/app/api/**/route.ts` délèguent aux dossiers
+front et back. Les modules sensibles du backend sont réservés au serveur avec
+`server-only`; le frontend utilisera les routes `/api` pour accéder aux données.
+
+### État de l'initialisation
+
+Le socle comprend Next.js, React, TypeScript, Tailwind, les huit modèles Prisma,
+un seed de trois expériences avec sessions, une page d'accueil provisoire et
+`GET /api/health`. Les utilitaires Stripe sandbox et de contrôle `x-admin-key`
+sont prêts pour les futures routes.
+
+Les pages du site et les routes métier décrites ci-dessous et dans `docs/` sont
+le périmètre à développer ; les paiements, le webhook, les formulaires et
+l'administration ne sont pas encore implémentés. Le seed ne contient pas de
+photos ni de liens Ausha fictifs : ajouter les contenus réels lors du développement.
+
+Commandes complémentaires : `npm run lint`, `npm run typecheck`, `npm run build`
+et `npm start` (après compilation).
+
+Une fois le webhook implémenté, dans un second terminal pour les confirmations de paiement :
 
 ```bash
 stripe listen --forward-to localhost:3000/api/webhook
@@ -71,7 +110,7 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 ADMIN_KEY=ma-cle-secrete
 ```
 
-À ajouter au `.gitignore` :
+Exclusions déjà configurées dans `.gitignore` :
 
 ```
 .env
