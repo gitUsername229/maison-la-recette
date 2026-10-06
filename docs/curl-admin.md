@@ -83,13 +83,20 @@ curl "$BASE/api/devis" -H "x-admin-key: $ADMIN_KEY"
 curl "$BASE/api/devis?statut=nouvelle" -H "x-admin-key: $ADMIN_KEY"
 ```
 
-**Changer le statut**
+**Changer le statut et ajouter une note interne** (`statut` : `nouvelle`, `en_cours` ou `traitee` ; `noteInterne` n'est
+jamais renvoyée au client, `null` l'efface)
 
 ```bash
 curl -X PATCH "$BASE/api/devis/3" \
   -H "x-admin-key: $ADMIN_KEY" \
   -H "Content-Type: application/json" \
-  -d '{ "statut": "traitee" }'
+  -d '{ "statut": "en_cours", "noteInterne": "Rappeler jeudi pour le budget" }'
+```
+
+**Supprimer une demande**
+
+```bash
+curl -X DELETE "$BASE/api/devis/3" -H "x-admin-key: $ADMIN_KEY"
 ```
 
 ## Admin : gérer les expériences
@@ -149,10 +156,28 @@ curl -X PUT "$BASE/api/experiences/1" \
   -d '{ "prixCents": 7500, "actif": true }'
 ```
 
-**Supprimer**
+**Masquer** (elle disparaît du site, ses sessions et réservations sont gardées ; `true` pour l'afficher de nouveau)
+
+```bash
+curl -X PUT "$BASE/api/experiences/1" \
+  -H "x-admin-key: $ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "actif": false }'
+```
+
+**Supprimer** (seulement si elle n'a aucune session ; sa couverture envoyée est effacée du disque)
 
 ```bash
 curl -X DELETE "$BASE/api/experiences/1" -H "x-admin-key: $ADMIN_KEY"
+```
+
+Si elle a des sessions : `409`, avec la suggestion de la masquer.
+
+```json
+{
+  "error": "Cette expérience a déjà 1 session : elle ne peut pas être supprimée, pour garder l’historique des dates et des réservations. Masquez-la : elle n’apparaîtra plus sur le site.",
+  "suggestion": "masquer"
+}
 ```
 
 ## Admin : gérer les sessions
@@ -172,7 +197,7 @@ curl -X POST "$BASE/api/sessions" \
   }'
 ```
 
-**Modifier** (par exemple fermer la session)
+**Fermer la session** (plus personne ne peut réserver, les réservations faites sont gardées ; `"ouverte"` la rouvre)
 
 ```bash
 curl -X PUT "$BASE/api/sessions/4" \
@@ -181,7 +206,27 @@ curl -X PUT "$BASE/api/sessions/4" \
   -d '{ "statut": "complete" }'
 ```
 
-**Supprimer**
+**Modifier le nombre de places** : il ne peut pas descendre sous les places déjà réservées (payées ou en cours de paiement).
+
+```bash
+curl -X PUT "$BASE/api/sessions/4" \
+  -H "x-admin-key: $ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "placesTotal": 1 }'
+```
+
+Réponse `409`, avec le champ à corriger :
+
+```json
+{
+  "error": "2 places sont déjà réservées (payées ou en cours de paiement) : le nombre de places ne peut pas descendre sous 2.",
+  "details": [{ "champ": "placesTotal", "message": "2 places sont déjà réservées (payées ou en cours de paiement) : le nombre de places ne peut pas descendre sous 2." }]
+}
+```
+
+Tant qu'il y a des places réservées, la session ne peut pas non plus être déplacée (date, lieu) ni annulée.
+
+**Supprimer** (seulement si elle n'a aucune réservation ; sinon `409` avec `"suggestion": "fermer"`)
 
 ```bash
 curl -X DELETE "$BASE/api/sessions/4" -H "x-admin-key: $ADMIN_KEY"
@@ -390,10 +435,44 @@ curl -X PUT "$BASE/api/images/7" \
   -d '{ "alt": "Participants qui épluchent des légumes", "ordre": 1 }'
 ```
 
-**Supprimer une photo de galerie** (le fichier est effacé s'il n'est plus utilisé ailleurs sur le site)
+**Supprimer une photo de galerie** (le fichier est effacé s'il n'est plus utilisé ailleurs sur le site ; de même pour
+une couverture ou une photo de partenaire remplacée ou supprimée)
 
 ```bash
 curl -X DELETE "$BASE/api/images/2" -H "x-admin-key: $ADMIN_KEY"
+```
+
+## Admin : newsletter
+
+**Voir les inscrits** (les plus récents d'abord)
+
+```bash
+curl "$BASE/api/newsletter" -H "x-admin-key: $ADMIN_KEY"
+```
+
+**Ajouter une adresse**
+
+```bash
+curl -X POST "$BASE/api/newsletter" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "lectrice@example.com" }'
+```
+
+**Corriger une adresse**
+
+```bash
+curl -X PUT "$BASE/api/newsletter/4" \
+  -H "x-admin-key: $ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "lectrice.bis@example.com" }'
+```
+
+Adresse déjà inscrite : `409` avec, sous le champ `email`, « Déjà utilisé par un autre élément : choisissez une autre valeur. ».
+
+**Désinscrire une adresse**
+
+```bash
+curl -X DELETE "$BASE/api/newsletter/4" -H "x-admin-key: $ADMIN_KEY"
 ```
 
 ## Admin : utilisateurs

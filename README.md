@@ -38,7 +38,8 @@ Dans `.env.local`, avant le seed :
 - les e-mails : `SMTP_HOST`/`SMTP_PORT` (Mailpit en local, voir plus bas) et `MAIL_ADMIN_TO`, la boîte de Julie
   qui reçoit les devis et les réservations (**adresse fictive en démo**, ex : `julie@exemple.fr`).
 
-Après un `git pull` qui ajoute une migration : `npx prisma migrate dev`, puis `npx prisma db seed`.
+Après un `git pull` qui ajoute une migration : `npx prisma migrate dev`, puis `npx prisma db seed`, puis
+**redémarrer `npm run dev`** (sinon le serveur garde l'ancien client Prisma et répond « Un problème technique est survenu »).
 Tests automatiques : `npm test` (base SQLite jetable, n'utilise pas `dev.db`).
 
 ## Séparation front / back
@@ -65,14 +66,16 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 - Next.js, React, TypeScript, Tailwind, Prisma (SQLite) ; seed de trois expériences avec sessions et du compte admin.
 - **Comptes** ([Better Auth](https://www.better-auth.com)) : inscription, connexion, déconnexion (`/inscription`, `/connexion`),
   mots de passe hachés en argon2id, session en cookie httpOnly. Rôles `client` et `admin`.
-- **Site public sans compte** : accueil, `/experiences` et `/experiences/[slug]` (dates et places restantes),
-  et les API publiques des contenus (épisodes, articles, avis, partenaires, galeries photos).
+- **Site public sans compte**, alimenté par l'admin (un changement apparaît aussitôt) : accueil (avis, galerie,
+  newsletter), `/experiences` et `/experiences/[slug]` (couverture, galerie, dates et places restantes),
+  `/a-propos` (partenaires, avis, galerie), `/blog` et `/blog/[slug]` (articles mis en forme en Markdown), `/podcast`.
 - **Réservation et paiement Stripe Checkout (sandbox)**, réservés aux comptes connectés
   (voir [docs/stripe.md](docs/stripe.md) et [docs/ateliers-stripe.md](docs/ateliers-stripe.md)).
 - **Demande de devis** (`/contact`), réservée aux comptes connectés : nom, e-mail et téléphone repris du compte.
 - **Espace `/compte`** : les réservations et les demandes de devis du client connecté, et uniquement les siennes.
-- **Administration `/admin`** (rôle admin) : réservations, devis, expériences, sessions, photos (envoi de fichiers),
-  épisodes, articles, avis, partenaires et utilisateurs. Le dernier compte admin ne peut être ni rétrogradé ni supprimé.
+- **Administration `/admin`** (rôle admin) : Julie gère tout le site seule (voir plus bas), avec des règles qui
+  protègent l'historique : on masque une expérience, on ferme une session, on annule une réservation.
+- **Newsletter** : inscription sur l'accueil (sans compte), liste des inscrits dans `/admin/newsletter`.
 - **E-mails** (Nodemailer, Mailpit en local) : confirmation de réservation au client et information à Julie
   (une seule fois par paiement), demande de devis à Julie et accusé de réception au client, mot de passe oublié
   (`/mot-de-passe-oublie`) et vérification de l'adresse à l'inscription (non bloquante, rappel dans `/compte`).
@@ -83,10 +86,10 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 - **Places** : un paiement Stripe expiré ne bloque plus de place, même si l'événement d'expiration n'arrive jamais.
 
 **Reste à faire :**
-1. Pages publiques : à propos, blog et studio existent en maquette statique ; les brancher sur les API
-   (avis, partenaires, articles).
-2. Inscription à la newsletter (`POST /api/newsletter`).
-3. Contenus réels (photos, textes) : le seed n'en contient pas de fictifs. Les épisodes, eux, viennent d'Ausha.
+1. Contenus réels (photos, articles, avis, partenaires) : Julie les saisit dans `/admin` ; le seed n'en contient pas
+   de fictifs. Les épisodes, eux, viennent d'Ausha.
+2. Textes fixes des pages (présentation de l'accueil, mission dans « À propos », page studio) : écrits dans le code.
+   Si Julie doit les changer elle-même, ajouter une rubrique « Textes des pages » dans l'admin.
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
@@ -95,6 +98,8 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
   et restructurer les pages (`Suspense`, `"use cache"`).
 - **Renvoyer un e-mail** depuis l'admin (ex : « Renvoyer la confirmation » dans `/admin/reservations`) ;
   aujourd'hui un envoi échoué est seulement journalisé.
+- **Newsletter** : confirmation de l'inscription par e-mail (double opt-in), lien de désinscription et export
+  des adresses vers l'outil d'envoi (Brevo, Mailchimp…). Aujourd'hui, les adresses sont seulement enregistrées.
 - **ESLint 10**, dès que la config ESLint de Next.js le supportera (ses plugins `react`, `import` et `jsx-a11y`
   s'arrêtent à ESLint 9, d'où l'avertissement `npm warn deprecated eslint@9` à l'installation).
 
@@ -162,14 +167,14 @@ Tout tourne en local sur `http://localhost:3000`.
 
 | Page | Contenu | Public visé | Routes utilisées |
 |---|---|---|---|
-| Accueil | Présentation de la marque chapeau et des 3 pôles, avis clients, newsletter | Tous | `GET /api/avis`, `GET /api/episodes?limit=3`, `POST /api/newsletter` |
+| Accueil | Présentation de la marque chapeau et des 3 pôles, avis clients, galerie photos, inscription à la newsletter | Tous | `GET /api/avis`, `GET /api/images?page=/`, `POST /api/newsletter` |
 | Podcast (`/podcast`) | Épisodes par saison (résumé, lecteur Ausha), complets par défaut, filtre extraits / replays, liens de l'émission (smartlink, Apple Podcasts, Spotify, Deezer, YouTube) | Auditeurs | `GET /api/episodes?type=` |
 | Offre podcast | Studio de production pour d'autres marques, sponsoring du podcast | B2B | `POST /api/devis` |
 | Expériences | Concept général | Tous | `GET /api/experiences` |
 | Ateliers / Good tours / Immersions | 1 page par expérience, galerie photos. Ateliers et good tours : sessions réservables en ligne. Immersions (surtout B2B) : sur devis uniquement | B2C et B2B | `GET /api/experiences/[slug]`, `GET /api/sessions`, `POST /api/devis` |
 | Blog (`/blog`) | Liste des articles publiés | Tous | `GET /api/articles` |
-| Article (`/blog/[slug]`) | Un article complet | Tous | `GET /api/articles/[slug]` |
-| À propos | Mission, histoire, Julie Van Ossel, partenaires, avis | Tous | `GET /api/partenaires`, `GET /api/avis` |
+| Article (`/blog/[slug]`) | Un article complet, mis en forme en Markdown (intertitres, gras, listes, liens) | Tous | `GET /api/articles/[slug]` |
+| À propos | Mission, histoire, Julie Van Ossel, partenaires, avis, galerie photos | Tous | `GET /api/partenaires`, `GET /api/avis` |
 | Contact (`/contact`) | Demande de devis (B2B : expérience, sponsoring, studio, événement ; réponse sous 48h). Compte requis | B2B | `POST /api/devis` |
 | Réservation (succès / annulée) | Confirmation après le paiement (succès : propriétaire de la réservation uniquement) | B2C | `GET /api/reservations?session_id=` |
 | Connexion / Inscription | `/connexion` et `/inscription` ; un compte est requis pour réserver et demander un devis | Tous | `/api/auth/*` |
@@ -188,16 +193,24 @@ admin à un autre compte dans `/admin/utilisateurs`. Un client qui ouvre `/admin
 
 | Page admin | Ce que Julie peut y faire |
 |---|---|
-| `/admin/reservations` | Voir les réservations, les filtrer par statut, en annuler une |
-| `/admin/devis` | Voir les demandes de devis, changer leur statut |
-| `/admin/experiences` | Créer, modifier, masquer ou supprimer une expérience, choisir « réservable en ligne » ou « sur devis » |
-| `/admin/sessions` | Ajouter des dates, modifier les places, fermer une session |
-| `/admin/photos` | Envoyer des photos, choisir la page, le texte alternatif et l'ordre |
-| `/admin/episodes` | Importer depuis Ausha, changer le type (complet, extrait, replay), modifier le résumé, l'invité et les liens |
-| `/admin/articles` | Écrire, publier ou dépublier un article du blog |
-| `/admin/avis` | Ajouter un avis client, l'afficher ou le masquer |
-| `/admin/partenaires` | Ajouter un partenaire, l'afficher une fois son accord obtenu |
-| `/admin/utilisateurs` | Voir les comptes, modifier un nom, un téléphone ou un rôle, supprimer un compte |
+| `/admin/reservations` | Voir la liste et la fiche d'une réservation, filtrer par statut, l'annuler. Jamais de suppression (historique, comptabilité) |
+| `/admin/devis` | Voir la fiche d'une demande, changer son statut, ajouter une note interne (jamais vue par le client), la supprimer |
+| `/admin/experiences` | Créer, modifier, masquer ou afficher une expérience, choisir « réservable en ligne » ou « sur devis ». Une expérience qui a des sessions ne se supprime pas : l'admin propose de la masquer |
+| `/admin/sessions` | Ajouter des dates, les modifier, fermer ou rouvrir une session. Une session réservée ne se supprime pas (l'admin propose de la fermer) et ses places ne descendent pas sous les places réservées |
+| `/admin/photos` | Envoyer, modifier ou supprimer une photo (le fichier est effacé du disque), choisir sa page dans une liste, sa description et son ordre |
+| `/admin/episodes` | Importer depuis Ausha, changer le type (complet, extrait, replay), modifier le résumé, l'invité et les liens, supprimer (un épisode supprimé revient au prochain import) |
+| `/admin/articles` | Écrire (mise en forme Markdown), publier ou dépublier, supprimer un article du blog |
+| `/admin/avis` | Ajouter, modifier, afficher ou masquer, supprimer un avis client |
+| `/admin/partenaires` | Ajouter, modifier, supprimer un partenaire ; l'afficher une fois son accord obtenu |
+| `/admin/utilisateurs` | Voir les comptes, modifier un nom, un téléphone ou un rôle, supprimer un compte (ses réservations sont gardées). Les comptes se créent sur `/inscription` ; le dernier admin ne peut être ni rétrogradé ni supprimé |
+| `/admin/newsletter` | Voir les inscrits, ajouter, corriger ou désinscrire une adresse |
+
+Pour que Julie s'en serve sans aide :
+- chaque suppression demande une confirmation qui nomme l'élément (« Supprimer l'atelier « … » ? Cette action est définitive. ») ;
+- après chaque action, un message dit ce qui a été fait (« Expérience enregistrée ») ou quoi corriger, sous le champ
+  en cause (« Champ obligatoire. ») ; une suppression refusée explique pourquoi et propose le bon bouton (« Masquer », « Fermer la session ») ;
+- les champs obligatoires sont marqués d'un astérisque, les prix se saisissent en euros (`45` ou `45,50`) ;
+- une photo ou une couverture remplacée ou supprimée est effacée du disque, sauf si elle sert encore ailleurs.
 
 Toutes les rubriques utilisent la même page (`src/app/admin/[ressource]`), décrite dans `src/frontend/admin/ressources.ts` :
 ajouter une rubrique revient à y décrire ses colonnes et ses champs. Les formulaires appellent les mêmes routes API

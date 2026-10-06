@@ -98,6 +98,7 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 | `lieuSouhaite` | String? | `dans_les_locaux` (chez l'entreprise) ou `a_proximite` (lieu proche de l'entreprise) |
 | `message` | String | |
 | `statut` | String | `nouvelle`, `en_cours` ou `traitee` |
+| `noteInterne` | String? | Note de Julie (ex : « Rappeler jeudi »), modifiable dans `/admin/devis`. Jamais montrée au client |
 | `createdAt` | DateTime | |
 
 ## `Episode`
@@ -174,13 +175,16 @@ Pas de logos clients : seuls les avis (texte) sont affichés.
 | `page` | String | Chemin de la page qui affiche la galerie, ex : `/`, `/a-propos`, `/experiences/atelier-cuisine-anti-gaspi` (galerie de l'expérience) |
 | `ordre` | Int | Position dans la galerie |
 
+Les fichiers envoyés depuis l'admin sont dans `public/images/uploads/` (ignoré par git) : un fichier est effacé
+du disque quand plus aucune ligne n'y fait référence (`Image.url`, `Experience.image`, `Article.image`, `Partenaire.photo`).
+
 ## `Newsletter`
 
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
-| `email` | String | Unique |
-| `createdAt` | DateTime | |
+| `email` | String | Unique, enregistré en minuscules. Inscription depuis l'accueil, gestion dans `/admin/newsletter` |
+| `createdAt` | DateTime | Date d'inscription |
 
 ## `User`
 

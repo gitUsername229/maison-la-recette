@@ -382,6 +382,25 @@ Réponse `200` (triée par `ordre`) :
 ]
 ```
 
+## Newsletter
+
+**S'inscrire** (sans compte ; l'adresse est enregistrée en minuscules, sans espaces)
+
+```bash
+curl -X POST "$BASE/api/newsletter" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "lectrice@example.com" }'
+```
+
+Réponse `201`, identique si l'adresse était déjà inscrite (on ne révèle pas qui est abonné) :
+
+```json
+{ "message": "Merci ! Votre adresse est inscrite à la newsletter." }
+```
+
+Adresse invalide : `400` avec `{ "champ": "email", "message": "Adresse e-mail invalide." }` dans `details`.
+La liste des inscrits est réservée à l'admin (voir [curl-admin.md](curl-admin.md)).
+
 ## Réserver et payer (B2C)
 
 Seulement pour les expériences réservables en ligne (`reservableEnLigne: true`), avec un compte connecté.
