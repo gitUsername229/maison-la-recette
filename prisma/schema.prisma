@@ -157,6 +157,18 @@ model Newsletter {
   createdAt DateTime @default(now())
 }
 
+/// Textes fixes des pages (accueil, à propos, studio), modifiables dans /admin/textes.
+/// Emplacements et textes d'origine : src/backend/contenus/textes-par-defaut.ts.
+model TextePage {
+  id        Int      @id @default(autoincrement())
+  page      String // accueil, a-propos ou studio
+  cle       String // emplacement dans la page, ex : titre, introduction
+  texte     String
+  updatedAt DateTime @updatedAt
+
+  @@unique([page, cle])
+}
+
 // Comptes : tables imposées par Better Auth (src/backend/auth/auth.ts).
 // Les modèles Auth* ne s'appellent pas Session/Account pour ne pas entrer en
 // conflit avec Session (dates des expériences).

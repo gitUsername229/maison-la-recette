@@ -6,7 +6,7 @@ import type { Libelles } from '@/frontend/format';
 import { classeBouton, classeErreur } from '@/frontend/styles/classes';
 import { appelerApi } from './api';
 import ChampImage from './ChampImage';
-import type { ChampAdmin, RessourceAdmin } from './ressources';
+import { champsDe, type ChampAdmin, type RessourceAdmin } from './ressources';
 import Valeur from './Valeur';
 import { corpsFormulaire, valeurInitiale, type Ligne } from './valeurs';
 
@@ -56,7 +56,7 @@ function ChampFormulaire({ champ, ligne, experiences, erreur }: ProprietesChamp)
           <span className="grid gap-0.5"><span className="text-sm font-medium">{champ.libelle}</span>{champ.aide && <span className="text-xs text-stone-500">{champ.aide}</span>}</span>
         </label>
       );
-    case 'texteLong': return <ChampTexte {...commun} defaultValue={String(initiale)} />;
+    case 'texteLong': return <ChampTexte {...commun} maxLength={champ.longueurMax} defaultValue={String(initiale)} />;
     case 'image': return <ChampImage nom={champ.nom} libelle={champ.libelle} requis={champ.requis} aide={champ.aide} erreur={erreur} valeurInitiale={String(initiale)} />;
     case 'liste': return <ChampListe {...commun} options={champ.options ?? {}} vide={champ.requis ? undefined : '—'} defaultValue={String(initiale)} />;
     case 'experience': return <ChampListe key={experiences.length} {...commun} options={Object.fromEntries(experiences.map(e => [String(e.id), e.titre]))} vide="Choisir…" defaultValue={String(initiale)} />;
@@ -66,7 +66,7 @@ function ChampFormulaire({ champ, ligne, experiences, erreur }: ProprietesChamp)
     case 'prix': return <Champ {...commun} inputMode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" title="Un montant en euros, ex : 45 ou 45,50" placeholder="ex : 45,00" defaultValue={String(initiale)} />;
     case 'date': return <Champ {...commun} type="date" defaultValue={String(initiale)} />;
     case 'dateHeure': return <Champ {...commun} type="datetime-local" defaultValue={String(initiale)} />;
-    default: return <Champ {...commun} defaultValue={String(initiale)} />;
+    default: return <Champ {...commun} maxLength={champ.longueurMax} defaultValue={String(initiale)} />;
   }
 }
 
@@ -85,7 +85,7 @@ function Fiche({ ressource, ligne }: { ressource: RessourceAdmin; ligne: Ligne }
 }
 
 export default function FormulaireRessource({ ressource, ligne, onEnregistre, onAnnule }: Props) {
-  const champs = ressource.champs ?? [];
+  const champs = champsDe(ressource, ligne);
   const creation = ligne === null;
   const experiences = useExperiences(champs.some(c => c.type === 'experience' || c.type === 'pageGalerie'));
   const [erreur, setErreur] = useState<string | null>(null);
@@ -128,7 +128,7 @@ export default function FormulaireRessource({ ressource, ligne, onEnregistre, on
           <p className="text-xs text-stone-500">Les champs marqués <span className="text-red-700">*</span> sont obligatoires.</p>
           <div className="grid gap-4 md:grid-cols-2">
             {champs.map(champ => (
-              <div key={champ.nom} className={champ.type === 'texteLong' || champ.type === 'image' ? 'md:col-span-2' : undefined}>
+              <div key={champ.nom} className={champs.length === 1 || champ.type === 'texteLong' || champ.type === 'image' ? 'md:col-span-2' : undefined}>
                 <ChampFormulaire champ={champ} ligne={ligne} experiences={experiences} erreur={erreursChamps[champ.nom]} />
               </div>
             ))}

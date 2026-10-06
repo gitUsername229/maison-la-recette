@@ -49,7 +49,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
 
   function executer(action: ActionLigne, ligne: Ligne) {
     if (action.confirmation && !confirm(action.confirmation(ligne))) return;
-    appeler(ligne, action.methode, action.corps, action.message);
+    appeler(ligne, action.methode, typeof action.corps === 'function' ? action.corps(ligne) : action.corps, action.message);
   }
 
   function supprimer(ligne: Ligne) {

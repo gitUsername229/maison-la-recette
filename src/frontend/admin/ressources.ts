@@ -18,6 +18,7 @@ export type ChampAdmin = {
   defaut?: string | boolean;   // valeur proposée à la création
   nullable?: boolean;          // laissé vide → effacé (null)
   creationSeulement?: boolean; // non modifiable ensuite
+  longueurMax?: number;        // types « texte » et « texteLong »
 };
 
 export type FormatColonne = 'texte' | 'date' | 'dateHeure' | 'prix' | 'booleen' | 'image' | 'statut';
@@ -36,7 +37,7 @@ export type ActionLigne = {
   libelle: string;
   si: { chemin: string; valeurs: unknown[] };
   methode: 'PUT' | 'PATCH';
-  corps: Record<string, unknown>;
+  corps: Record<string, unknown> | ((ligne: Ligne) => Record<string, unknown>);
   confirmation?: (ligne: Ligne) => string;
   message: string;             // affiché après l'action
 };
@@ -50,7 +51,7 @@ export type RessourceAdmin = {
   description: string;
   api: string;
   colonnes: ColonneAdmin[];
-  champs?: ChampAdmin[];       // présents → création et modification
+  champs?: ChampAdmin[] | ((ligne: Ligne | null) => ChampAdmin[]); // présents → création et modification ; fonction : champs propres à chaque ligne
   creation?: boolean;          // false : modification seulement
   methodeModification?: 'PUT' | 'PATCH';
   suppression?: boolean;
@@ -60,6 +61,10 @@ export type RessourceAdmin = {
   actions?: ActionLigne[];
   actionGlobale?: { libelle: string; api: string };     // bouton de rubrique (ex : import Ausha), POST sur `api`
 };
+
+/** Champs du formulaire, pour une ligne (null : création). */
+export const champsDe = (ressource: RessourceAdmin, ligne: Ligne | null) =>
+  typeof ressource.champs === 'function' ? ressource.champs(ligne) : ressource.champs ?? [];
 
 const nommer = (article: string, chemin: string) => (ligne: Ligne) => `${article} « ${String(lire(ligne, chemin) ?? '')} »`;
 
@@ -72,6 +77,10 @@ function visibilite(champ: string, textes: { masquer: string; afficher: string; 
 }
 
 const ARTICLES_EXPERIENCE: Libelles = { atelier: 'l’atelier', good_tour: 'le good tour', immersion: 'l’immersion' };
+
+// Pages dont les textes sont modifiables (emplacements : src/backend/contenus/textes-par-defaut.ts).
+const PAGES_TEXTES: Libelles = { accueil: 'Accueil', 'a-propos': 'À propos', studio: 'Studio' };
+const designationTexte = (ligne: Ligne) => `« ${String(lire(ligne, 'libelle'))} » (${libelle(PAGES_TEXTES, String(lire(ligne, 'page')))})`;
 
 const visible = (aide: string, defaut: boolean): ChampAdmin => ({ nom: 'visible', libelle: 'Visible sur le site', type: 'booleen', aide, defaut });
 const masquerAfficher = visibilite('visible', { masquer: 'Masquer', afficher: 'Afficher', masque: 'Masqué : n’apparaît plus sur le site.', affiche: 'De nouveau visible sur le site.' });
@@ -208,6 +217,40 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { id: 'rouvrir', libelle: 'Rouvrir', si: { chemin: 'statut', valeurs: ['complete'] }, methode: 'PUT', corps: { statut: 'ouverte' }, message: 'Session rouverte aux réservations.' },
     ],
     methodeModification: 'PUT', suppression: true,
+  },
+  {
+    cle: 'textes', titre: 'Textes des pages', singulier: 'un texte', api: '/api/textes',
+    textes: { enregistre: 'Texte enregistré : il est déjà en ligne.', supprime: 'Texte supprimé' },
+    designation: designationTexte,
+    description: 'Les titres, paragraphes et boutons de l’accueil, de la page « À propos » et de la page studio. Un texte modifié change aussitôt sur le site ; « Remettre le texte d’origine » annule vos changements.',
+    colonnes: [
+      { libelle: 'Page', chemin: 'page', libelles: PAGES_TEXTES },
+      { libelle: 'Emplacement', chemin: 'libelle' },
+      { libelle: 'Texte', chemin: 'texte' },
+      { libelle: 'Modifié', chemin: 'modifie', format: 'booleen' },
+    ],
+    filtre: { parametre: 'page', options: PAGES_TEXTES },
+    // Un seul champ, adapté à l'emplacement : paragraphe ou ligne, obligatoire ou non, longueur maximale.
+    champs: ligne => {
+      const longueurMax = Number(lire(ligne, 'longueurMax')) || undefined;
+      const facultatif = lire(ligne, 'facultatif') === true;
+      const aide = [
+        facultatif && 'Laissé vide, rien n’est affiché.',
+        longueurMax && `${longueurMax} caractères maximum.`,
+        `Texte d’origine : « ${String(lire(ligne, 'texteOrigine') ?? '')} »`,
+      ];
+      return [{
+        nom: 'texte', libelle: String(lire(ligne, 'libelle') ?? 'Texte'), type: lire(ligne, 'format') === 'paragraphe' ? 'texteLong' : 'texte',
+        requis: !facultatif, longueurMax, aide: aide.filter(Boolean).join(' '),
+      }];
+    },
+    actions: [{
+      id: 'origine', libelle: 'Remettre le texte d’origine', si: { chemin: 'modifie', valeurs: [true] }, methode: 'PUT',
+      corps: ligne => ({ texte: lire(ligne, 'texteOrigine') }),
+      confirmation: ligne => `Remettre le texte d’origine pour ${designationTexte(ligne)} ? Le texte actuel sera remplacé par : « ${String(lire(ligne, 'texteOrigine'))} »`,
+      message: 'Texte d’origine remis en ligne.',
+    }],
+    creation: false, methodeModification: 'PUT', suppression: false,
   },
   {
     cle: 'photos', titre: 'Photos', singulier: 'une photo', api: '/api/images',

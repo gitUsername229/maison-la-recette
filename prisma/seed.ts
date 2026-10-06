@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { loadEnvConfig } from '@next/env';
 import { PrismaClient } from '@prisma/client';
 import { hacherMotDePasse, LONGUEUR_MIN_MOT_DE_PASSE } from '../src/backend/auth/mot-de-passe';
+import { creerTextesManquants } from '../src/backend/contenus/textes-par-defaut';
 
 loadEnvConfig(process.cwd());
 const prisma = new PrismaClient();
@@ -80,9 +81,17 @@ async function creerAdmin() {
   console.log(`Compte admin créé : ${email}`);
 }
 
+// Textes fixes de l'accueil, d'À propos et du studio : textes d'origine, modifiables ensuite dans /admin/textes.
+async function creerTextes() {
+  const crees = await creerTextesManquants(prisma);
+  const s = crees > 1 ? 's' : '';
+  console.log(crees ? `Textes des pages : ${crees} texte${s} d'origine créé${s}.` : 'Textes des pages déjà présents (non modifiés).');
+}
+
 async function main() {
   await creerExperiences();
   await creerAdmin();
+  await creerTextes();
 }
 
 main()
