@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { experiencePublique } from '@/backend/ateliers/catalogue';
+import { utilisateurCourant } from '@/backend/auth/acces-page';
 import Experience from '@/frontend/pages/experience';
 
 export const dynamic = 'force-dynamic';
@@ -31,5 +32,7 @@ export default async function Page({ params }: Props) {
       prixCents: session.prixCents ?? experience.prixCents,
     }));
 
-  return <Experience experience={{ ...experience, sessions }} />;
+  const utilisateur = await utilisateurCourant();
+  const compte = utilisateur && { nom: utilisateur.nom, email: utilisateur.email };
+  return <Experience experience={{ ...experience, sessions }} utilisateur={compte} />;
 }

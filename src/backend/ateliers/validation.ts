@@ -21,21 +21,25 @@ export const sessionSchema = z.object({
   prixCents: money.nullable().optional(),
   statut: z.enum(['ouverte', 'complete', 'annulee']).default('ouverte'),
 }).strict();
+// Nom, e-mail et téléphone viennent du compte connecté, jamais du formulaire.
 export const checkoutSchema = z.object({
-  sessionId: z.number().int().positive(), nom: text,
-  email: z.email().max(254).transform(v => v.toLowerCase()),
-  telephone: z.string().trim().max(40).optional(), nbPersonnes: positive,
+  sessionId: z.number().int().positive(), nbPersonnes: positive,
 }).strict();
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 export const experienceUpdateSchema = experienceSchema.omit({ actif: true, reservableEnLigne: true }).partial().extend({ actif: z.boolean().optional(), reservableEnLigne: z.boolean().optional() });
 export const sessionUpdateSchema = sessionSchema.omit({ experienceId: true, statut: true }).partial().extend({ statut: z.enum(['ouverte', 'complete', 'annulee']).optional() });
 export const cancellationSchema = z.object({ statut: z.literal('annulee') }).strict();
 
+// Nom et e-mail viennent du compte ; le téléphone aussi, sauf si le compte n'en a pas.
+export const TYPES_DEVIS = ['experience', 'sponsoring', 'studio', 'evenement'] as const;
+export const LIEUX_DEVIS = ['dans_les_locaux', 'a_proximite'] as const;
 export const devisSchema = z.object({
-  entreprise: text, contactNom: text, email: z.email().max(254),
-  telephone: z.string().trim().max(40).optional(),
-  typeDemande: z.enum(['experience', 'podcast_studio']),
+  entreprise: text,
+  telephone: z.string().trim().min(6).max(40).optional(),
+  typeDemande: z.enum(TYPES_DEVIS),
   experienceId: z.number().int().positive().optional(), nbParticipants: positive.optional(),
   dateSouhaitee: z.string().refine(v => /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(v) && !isNaN(Date.parse(v))).transform(v => new Date(v)).optional(),
+  lieuSouhaite: z.enum(LIEUX_DEVIS).optional(),
   message: z.string().trim().min(1).max(10_000),
 }).strict();
+export type DevisInput = z.infer<typeof devisSchema>;

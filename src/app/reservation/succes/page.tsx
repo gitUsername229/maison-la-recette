@@ -1,23 +1,21 @@
 import Link from "next/link";
-import { prisma } from "@/backend/db/prisma";
+import { exigerConnexionPage } from "@/backend/auth/acces-page";
+import { reservationApresPaiement } from "@/backend/comptes/compte";
 import { getStripe } from "@/backend/payments/stripe";
+import { formatDateHeure, formatPrix } from "@/frontend/format";
 
 export const dynamic = "force-dynamic";
 
 type Props = { searchParams: Promise<{ session_id?: string }> };
 
-const formatPrix = (cents: number) =>
-  (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-
 export default async function ReservationSucces({ searchParams }: Props) {
   const { session_id } = await searchParams;
+  const utilisateur = await exigerConnexionPage(
+    session_id ? `/reservation/succes?session_id=${encodeURIComponent(session_id)}` : "/reservation/succes"
+  );
 
-  const reservation = session_id
-    ? await prisma.reservation.findUnique({
-        where: { stripeSessionId: session_id },
-        include: { session: { include: { experience: true } } },
-      })
-    : null;
+  // Seul le propriétaire de la réservation (ou un admin) la voit.
+  const reservation = session_id ? await reservationApresPaiement(session_id, utilisateur) : null;
 
   if (!reservation) {
     return (
@@ -47,16 +45,6 @@ export default async function ReservationSucces({ searchParams }: Props) {
   }
 
   const { session } = reservation;
-  const date = session.dateDebut.toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  const heure = session.dateDebut.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 
   return (
     <main className="mx-auto max-w-xl px-6 py-16">
@@ -66,7 +54,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
 
       <p className="mt-4">
         {paye
-          ? `Merci ${reservation.nom}. Un e-mail de confirmation va vous être envoyé.`
+          ? `Merci ${reservation.nom}. Vous retrouvez cette réservation dans « Mon compte ».`
           : "Votre paiement est en cours de traitement. Rechargez cette page dans quelques instants."}
       </p>
 
@@ -74,9 +62,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
         <dt className="font-medium">Expérience</dt>
         <dd>{session.experience.titre}</dd>
         <dt className="font-medium">Date</dt>
-        <dd>
-          {date} à {heure}
-        </dd>
+        <dd>{formatDateHeure(session.dateDebut)}</dd>
         <dt className="font-medium">Lieu</dt>
         <dd>{session.lieu}</dd>
         <dt className="font-medium">Participants</dt>
@@ -85,9 +71,10 @@ export default async function ReservationSucces({ searchParams }: Props) {
         <dd>{formatPrix(reservation.montantCents)}</dd>
       </dl>
 
-      <Link href="/experiences" className="mt-10 inline-block underline">
-        Découvrir les autres expériences
-      </Link>
+      <div className="mt-10 flex flex-wrap gap-6">
+        <Link href="/compte" className="underline">Mon compte</Link>
+        <Link href="/experiences" className="underline">Découvrir les autres expériences</Link>
+      </div>
     </main>
   );
 }

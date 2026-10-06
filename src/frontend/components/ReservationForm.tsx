@@ -1,7 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { formatPrix } from "@/frontend/format";
+import { formatDateHeure, formatPrix } from "@/frontend/format";
+import { classeBouton, classeChamp, classeErreur, classeLibelle } from "@/frontend/styles/classes";
 
 export type SessionDisponible = {
   id: number;
@@ -11,25 +13,18 @@ export type SessionDisponible = {
   prixCents: number;
 };
 
-type Props = { sessions: SessionDisponible[] };
+type Props = {
+  sessions: SessionDisponible[];
+  // Nom et e-mail de la réservation : ceux du compte connecté (le serveur les relit lui-même).
+  utilisateur: { nom: string; email: string };
+};
 
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-export default function ReservationForm({ sessions }: Props) {
+export default function ReservationForm({ sessions, utilisateur }: Props) {
+  const router = useRouter();
   const ouvertes = sessions.filter((s) => s.placesRestantes > 0);
 
   const [sessionId, setSessionId] = useState<number | "">(ouvertes[0]?.id ?? "");
   const [nbPersonnes, setNbPersonnes] = useState(1);
-  const [nom, setNom] = useState("");
-  const [email, setEmail] = useState("");
-  const [telephone, setTelephone] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
@@ -49,18 +44,18 @@ export default function ReservationForm({ sessions }: Props) {
   async function reserver(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErreur(null);
-    if (!nom.trim() || !email.trim()) {
-      setErreur("Indiquez votre nom et votre adresse e-mail.");
-      return;
-    }
-
     setEnvoi(true);
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, nbPersonnes, nom, email, telephone }),
+        body: JSON.stringify({ sessionId, nbPersonnes }),
       });
+      // Session expirée entre-temps : retour à la connexion, puis à cette page.
+      if (res.status === 401) {
+        router.push(`/connexion?retour=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
       const data = await res.json();
 
       if (!res.ok || !data.checkoutUrl) {
@@ -79,10 +74,10 @@ export default function ReservationForm({ sessions }: Props) {
 
   return (
     <form onSubmit={reserver} className="grid gap-4">
-      <label className="grid min-w-0 gap-1">
+      <label className={classeLibelle}>
         <span className="text-sm font-medium">Date</span>
         <select
-          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
+          className={classeChamp}
           value={sessionId}
           onChange={(e) => {
             setSessionId(Number(e.target.value));
@@ -91,20 +86,20 @@ export default function ReservationForm({ sessions }: Props) {
         >
           {ouvertes.map((s) => (
             <option key={s.id} value={s.id}>
-              {formatDate(s.dateDebut)}, {s.lieu} ({s.placesRestantes} place
+              {formatDateHeure(s.dateDebut)}, {s.lieu} ({s.placesRestantes} place
               {s.placesRestantes > 1 ? "s" : ""})
             </option>
           ))}
         </select>
       </label>
 
-      <label className="grid min-w-0 gap-1">
+      <label className={classeLibelle}>
         <span className="text-sm font-medium">Nombre de participants</span>
         <input
           type="number"
           min={1}
           max={maxPlaces}
-          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
+          className={classeChamp}
           value={nbPersonnes}
           onChange={(e) =>
             setNbPersonnes(Math.min(maxPlaces, Math.max(1, Number(e.target.value) || 1)))
@@ -112,40 +107,9 @@ export default function ReservationForm({ sessions }: Props) {
         />
       </label>
 
-      <label className="grid min-w-0 gap-1">
-        <span className="text-sm font-medium">Nom</span>
-        <input
-          type="text"
-          autoComplete="name"
-          required
-          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
-          value={nom}
-          onChange={(e) => setNom(e.target.value)}
-        />
-      </label>
-
-      <label className="grid min-w-0 gap-1">
-        <span className="text-sm font-medium">E-mail</span>
-        <input
-          type="email"
-          autoComplete="email"
-          required
-          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </label>
-
-      <label className="grid min-w-0 gap-1">
-        <span className="text-sm font-medium">Téléphone (facultatif)</span>
-        <input
-          type="tel"
-          autoComplete="tel"
-          className="w-full min-w-0 rounded-lg border border-stone-300 bg-white px-3 py-2.5 focus:border-stone-500 focus:outline-none focus:ring-2 focus:ring-stone-200"
-          value={telephone}
-          onChange={(e) => setTelephone(e.target.value)}
-        />
-      </label>
+      <p className="text-sm text-stone-600">
+        Réservation au nom de <strong className="text-stone-800">{utilisateur.nom}</strong> ({utilisateur.email}).
+      </p>
 
       <p className="flex items-baseline justify-between border-t border-stone-200 pt-4">
         <span className="text-stone-600">Total</span>
@@ -153,16 +117,12 @@ export default function ReservationForm({ sessions }: Props) {
       </p>
 
       {erreur && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p role="alert" className={classeErreur}>
           {erreur}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={envoi}
-        className="w-full rounded-full bg-encre px-5 py-3.5 font-medium text-creme transition hover:bg-black disabled:opacity-60"
-      >
+      <button type="submit" disabled={envoi} className={`w-full ${classeBouton}`}>
         {envoi ? "Redirection vers le paiement…" : `Réserver et payer ${formatPrix(total)}`}
       </button>
     </form>

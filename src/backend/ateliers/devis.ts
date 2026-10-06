@@ -1,16 +1,22 @@
 import 'server-only';
 import { z } from 'zod';
 import { prisma } from '@/backend/db/prisma';
-import { exigerAdmin } from '@/backend/auth/acces';
+import { exigerAdmin, exigerConnexion } from '@/backend/auth/acces';
 import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
 import { devisSchema } from './validation';
 
 export const createDevis = endpoint(async (request: Request) => {
-  const data = devisSchema.parse(await request.json());
+  const utilisateur = await exigerConnexion(request);
+  const { telephone: telephoneSaisi, ...data } = devisSchema.parse(await request.json());
   if (data.dateSouhaitee && data.dateSouhaitee < new Date()) throw new ApiError(400, 'La date souhaitée doit être future');
-  if (data.typeDemande === 'podcast_studio' && data.experienceId) throw new ApiError(400, 'Une demande studio ne concerne pas une expérience');
+  if (data.typeDemande !== 'experience' && data.experienceId) throw new ApiError(400, 'Seule une demande « expérience » peut viser une expérience');
   if (data.experienceId && !await prisma.experience.findFirst({ where: { id: data.experienceId, actif: true } })) throw new ApiError(404, 'Expérience introuvable');
-  return json(await prisma.demandeDevis.create({ data, select: { id: true, statut: true } }), 201);
+  const telephone = utilisateur.telephone ?? telephoneSaisi;
+  if (!telephone) throw new ApiError(400, 'Indiquez un numéro de téléphone : Julie vous rappelle avant de répondre.');
+  // Un téléphone saisi ici complète le compte pour les prochaines demandes.
+  if (!utilisateur.telephone) await prisma.user.update({ where: { id: utilisateur.id }, data: { telephone } });
+  const contact = { contactNom: utilisateur.nom, email: utilisateur.email, telephone, userId: utilisateur.id };
+  return json(await prisma.demandeDevis.create({ data: { ...data, ...contact }, select: { id: true, statut: true } }), 201);
 });
 
 export const listDevis = endpoint(async (request: Request) => {

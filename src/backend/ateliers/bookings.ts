@@ -5,7 +5,11 @@ import { ApiError } from '@/backend/http';
 import { getStripe } from '@/backend/payments/stripe';
 import { DUREE_BLOCAGE_MS } from '@/backend/places';
 import { lockSession, pendingSeats } from './inventory';
+import type { Utilisateur } from '@/backend/auth/acces';
 import type { CheckoutInput } from './validation';
+
+/** Ce qu'une réservation reprend du compte connecté. */
+export type Client = Pick<Utilisateur, 'id' | 'nom' | 'email' | 'telephone'>;
 
 function configuredStripe() {
   try { return getStripe(); }
@@ -24,7 +28,7 @@ export async function attachCheckout(reservationId: number, stripe: Stripe) {
   return session;
 }
 
-export async function createCheckout(input: CheckoutInput, key: string, stripe: Stripe = configuredStripe()) {
+export async function createCheckout(client: Client, input: CheckoutInput, key: string, stripe: Stripe = configuredStripe()) {
   const base = process.env.NEXT_PUBLIC_BASE_URL;
   if (!base || !/^https?:\/\//.test(base)) throw new ApiError(503, 'NEXT_PUBLIC_BASE_URL doit être configurée');
   const origin = new URL(base).origin;
@@ -32,7 +36,7 @@ export async function createCheckout(input: CheckoutInput, key: string, stripe: 
     const session = await lockSession(tx, input.sessionId);
     const previous = await tx.reservation.findUnique({ where: { checkoutKey: key } });
     if (previous) {
-      if (previous.sessionId !== input.sessionId || previous.nom !== input.nom || previous.email !== input.email || previous.telephone !== (input.telephone ?? null) || previous.nbPersonnes !== input.nbPersonnes) throw new ApiError(409, 'Cette clé de réservation est déjà utilisée pour une autre demande');
+      if (previous.userId !== client.id || previous.sessionId !== input.sessionId || previous.nbPersonnes !== input.nbPersonnes) throw new ApiError(409, 'Cette clé de réservation est déjà utilisée pour une autre demande');
       if (previous.statut !== 'en_attente') throw new ApiError(409, 'Réservation déjà traitée');
       return previous;
     }
@@ -43,9 +47,9 @@ export async function createCheckout(input: CheckoutInput, key: string, stripe: 
     const unitPrice = session.prixCents ?? session.experience.prixCents;
     const total = unitPrice * input.nbPersonnes;
     if (total < 50 || total > 99_999_999) throw new ApiError(400, 'Montant incompatible avec un paiement par carte en euros');
-    const created = await tx.reservation.create({ data: { ...input, montantCents: total, checkoutKey: key } });
+    const created = await tx.reservation.create({ data: { ...input, userId: client.id, nom: client.nom, email: client.email, telephone: client.telephone, montantCents: total, checkoutKey: key } });
     const payload: Stripe.Checkout.SessionCreateParams = {
-      mode: 'payment', allowed_payment_method_types: ['card'], customer_email: input.email,
+      mode: 'payment', allowed_payment_method_types: ['card'], customer_email: client.email,
       client_reference_id: String(created.id), metadata: { reservationId: String(created.id) },
       expires_at: Math.floor((Date.now() + DUREE_BLOCAGE_MS) / 1000),
       success_url: `${origin}/reservation/succes?session_id={CHECKOUT_SESSION_ID}`,

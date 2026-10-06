@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import ReservationForm, { type SessionDisponible } from '@/frontend/components/ReservationForm';
 import { formatDuree, formatPrix, libelleType } from '@/frontend/format';
+import { classeBouton } from '@/frontend/styles/classes';
 
 export type ExperienceDetail = {
+  slug: string;
   type: string;
   titre: string;
   accroche: string;
@@ -14,7 +16,15 @@ export type ExperienceDetail = {
   sessions: SessionDisponible[];
 };
 
-export default function Experience({ experience }: { experience: ExperienceDetail }) {
+type Props = {
+  experience: ExperienceDetail;
+  // Compte connecté, ou null pour un visiteur (invité à se connecter avant de réserver).
+  utilisateur: { nom: string; email: string } | null;
+};
+
+export default function Experience({ experience, utilisateur }: Props) {
+  const retour = encodeURIComponent(`/experiences/${experience.slug}`);
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
       <Link href="/experiences" className="text-sm text-stone-500 hover:text-stone-800">← Toutes les expériences</Link>
@@ -48,8 +58,16 @@ export default function Experience({ experience }: { experience: ExperienceDetai
             <>
               <h2 className="font-serif text-2xl">Réserver</h2>
               <p className="mb-6 mt-1 text-sm text-stone-500">Paiement sécurisé par Stripe.</p>
-              <ReservationForm sessions={experience.sessions} />
-              {process.env.NODE_ENV !== 'production' && (
+              {utilisateur ? (
+                <ReservationForm sessions={experience.sessions} utilisateur={utilisateur} />
+              ) : (
+                <div className="grid gap-3">
+                  <p className="leading-relaxed text-stone-600">Un compte est nécessaire pour réserver : vous retrouverez ensuite vos réservations dans « Mon compte ».</p>
+                  <Link href={`/connexion?retour=${retour}`} className={`text-center ${classeBouton}`}>Se connecter pour réserver</Link>
+                  <Link href={`/inscription?retour=${retour}`} className="text-center text-sm underline">Créer un compte</Link>
+                </div>
+              )}
+              {utilisateur && process.env.NODE_ENV !== 'production' && (
                 <p className="mt-5 rounded-lg bg-stone-100 px-3 py-2 text-xs leading-relaxed text-stone-600">
                   Mode test : carte <strong>4242 4242 4242 4242</strong>, date d’expiration future, CVC au choix.
                 </p>
@@ -61,12 +79,9 @@ export default function Experience({ experience }: { experience: ExperienceDetai
               <p className="mt-3 leading-relaxed text-stone-600">
                 Cette expérience se prépare avec vous : date, groupe et programme sont définis ensemble.
               </p>
-              <a
-                href={`mailto:larecette@ecomail.fr?subject=${encodeURIComponent(`Demande de devis : ${experience.titre}`)}`}
-                className="mt-6 inline-flex w-full justify-center rounded-full bg-encre px-5 py-3.5 font-medium text-creme transition hover:bg-black"
-              >
+              <Link href={`/contact?experience=${experience.slug}`} className={`mt-6 flex justify-center ${classeBouton}`}>
                 Demander un devis
-              </a>
+              </Link>
             </>
           )}
         </aside>

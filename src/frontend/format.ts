@@ -1,7 +1,17 @@
-// Formats français partagés par les pages serveur et les composants client.
+// Formats et libellés français partagés par les pages serveur et les composants client.
+
+const FUSEAU = 'Europe/Paris';
 
 export const formatPrix = (cents: number) =>
   (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+
+/** « 14 novembre 2026 » */
+export const formatDate = (date: Date | string) =>
+  new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: FUSEAU });
+
+/** « samedi 14 novembre à 10:00 » */
+export const formatDateHeure = (date: Date | string) =>
+  new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: FUSEAU });
 
 /** 150 → « 2 h 30 », 180 → « 3 h », 45 → « 45 min » */
 export function formatDuree(minutes: number) {
@@ -11,6 +21,22 @@ export function formatDuree(minutes: number) {
   return reste ? `${heures} h ${String(reste).padStart(2, '0')}` : `${heures} h`;
 }
 
-const libelles: Record<string, string> = { atelier: 'Atelier', good_tour: 'Good tour', immersion: 'Immersion' };
+export type Libelles = Record<string, string>;
 
-export const libelleType = (type: string) => libelles[type] ?? type;
+export const TYPES_EXPERIENCE: Libelles = { atelier: 'Atelier', good_tour: 'Good tour', immersion: 'Immersion' };
+export const STATUTS_RESERVATION: Libelles = { en_attente: 'En attente de paiement', payee: 'Payée', annulee: 'Annulée' };
+export const STATUTS_DEVIS: Libelles = { nouvelle: 'Envoyée', en_cours: 'En cours de traitement', traitee: 'Traitée' };
+export const STATUTS_SESSION: Libelles = { ouverte: 'Ouverte', complete: 'Complète', annulee: 'Annulée' };
+export const TYPES_DEVIS: Libelles = {
+  experience: 'Une expérience pour mon équipe',
+  sponsoring: 'Sponsoriser le podcast',
+  studio: 'Le studio podcast pour ma marque',
+  evenement: 'Un événement',
+};
+export const LIEUX_DEVIS: Libelles = { dans_les_locaux: 'Dans nos locaux', a_proximite: 'Dans un lieu proche de nos locaux' };
+export const ROLES: Libelles = { client: 'Client', admin: 'Administration' };
+
+/** Libellé d'une valeur stockée en base (la valeur brute si elle est inconnue). */
+export const libelle = (libelles: Libelles, valeur: string) => libelles[valeur] ?? valeur;
+
+export const libelleType = (type: string) => libelle(TYPES_EXPERIENCE, type);
