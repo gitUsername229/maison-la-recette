@@ -109,6 +109,23 @@ test('photo remplacée : l’ancien fichier est supprimé du disque', async () =
   }
 });
 
+test('couverture : fichier effacé avec l’expérience, sauf s’il sert encore ailleurs', async () => {
+  const dossier = join(process.cwd(), 'public/images/uploads');
+  const [partagee, seule] = ['/images/uploads/test-partagee.png', '/images/uploads/test-seule.png'];
+  await Promise.all([partagee, seule].map(url => writeFile(join(process.cwd(), 'public', url), 'x')));
+  try {
+    const experience = (image: string) => prisma.experience.create({ data: { slug: `couverture-${Date.now()}-${image.length}`, type: 'atelier', titre: 'A', accroche: 'A', description: 'D', dureeMin: 60, prixCents: 4500, capaciteMax: 10, image, imageAlt: '' } });
+    const [avecSeule, avecPartagee] = [await experience(seule), await experience(partagee)];
+    await prisma.article.create({ data: { titre: 'T', slug: 'couverture-partagee', extrait: 'E', contenu: 'C', image: partagee, imageAlt: '' } });
+
+    for (const { id } of [avecSeule, avecPartagee]) assert.equal((await catalogue.deleteExperience(admin(`/api/experiences/${id}`, 'DELETE'), avecId(id))).status, 200);
+    assert.equal(existsSync(join(process.cwd(), 'public', seule)), false);
+    assert.equal(existsSync(join(process.cwd(), 'public', partagee)), true); // encore utilisée par l'article
+  } finally {
+    await Promise.all(['test-partagee.png', 'test-seule.png'].map(f => rm(join(dossier, f), { force: true })));
+  }
+});
+
 test('newsletter : inscription publique sans révéler les abonnés ; liste et suppression réservées à l’admin', async () => {
   const inscrire = () => newsletter.inscrire(requete('/api/newsletter', { methode: 'POST', corps: { email: ' Lecteur@Example.com ' } }));
   const [premiere, seconde] = [await inscrire(), await inscrire()];

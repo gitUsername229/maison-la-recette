@@ -24,9 +24,12 @@ function ascii(octets: Uint8Array, debut: number, fin: number) {
 
 const cheminDisque = (url: string) => join(process.cwd(), 'public', url);
 
-/** Supprime le fichier envoyé s'il n'est plus utilisé nulle part sur le site. */
-async function supprimerFichierOrphelin(url: string) {
-  if (!url.startsWith(DOSSIER_PUBLIC)) return;
+/**
+ * Supprime un fichier envoyé depuis l'admin s'il n'est plus utilisé nulle part sur le site
+ * (photo, couverture d'expérience ou d'article, photo de partenaire). À appeler après l'enregistrement.
+ */
+export async function supprimerFichierOrphelin(url: string | null) {
+  if (!url?.startsWith(DOSSIER_PUBLIC)) return;
   const utilisations = await Promise.all([
     prisma.image.count({ where: { url } }),
     prisma.experience.count({ where: { image: url } }),

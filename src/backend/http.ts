@@ -49,7 +49,7 @@ export function endpoint<T extends unknown[]>(handler: (...args: T) => Promise<R
         if (['P2034', 'P2028'].includes(error.code)) return json({ error: 'Quelqu’un a modifié la même chose au même moment. Réessayez.' }, 409);
       }
       console.error('Erreur API', error instanceof Error ? error.name : 'Erreur inconnue');
-      return json({ error: 'Erreur interne du serveur' }, 500);
+      return json({ error: 'Un problème technique est survenu. Réessayez dans un instant ; si cela recommence, prévenez la personne qui s’occupe du site.' }, 500);
     }
   };
 }

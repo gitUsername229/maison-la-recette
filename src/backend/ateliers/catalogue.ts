@@ -5,6 +5,7 @@ import { estAdmin, exigerAdmin } from '@/backend/auth/acces';
 import { ApiError, endpoint, json, pluriel, positiveId, type RouteContext } from '@/backend/http';
 import { experienceSchema, experienceUpdateSchema, sessionSchema, sessionUpdateSchema } from './validation';
 import { placesBloquees, reservationsBloquantes } from '@/backend/places';
+import { supprimerFichierOrphelin } from '@/backend/contenus/images';
 import { lockSession } from './inventory';
 
 // Utilisées par les routes /api et par les pages serveur du front.
@@ -43,11 +44,15 @@ export const updateExperience = endpoint(async (request: Request, context: Route
   await exigerAdmin(request);
   const id = positiveId((await context.params).id);
   const data = experienceUpdateSchema.parse(await request.json());
-  return json(await prisma.$transaction(async tx => {
+  const avant = await prisma.experience.findUniqueOrThrow({ where: { id }, select: { image: true } });
+  const experience = await prisma.$transaction(async tx => {
     await tx.experience.update({ where: { id }, data });
-    if (data.capaciteMax && await tx.session.count({ where: { experienceId: id, placesTotal: { gt: data.capaciteMax }, dateDebut: { gt: new Date() }, statut: { not: 'annulee' } } })) throw new ApiError(409, 'Des sessions dépassent cette capacité');
+    if (data.capaciteMax && await tx.session.count({ where: { experienceId: id, placesTotal: { gt: data.capaciteMax }, dateDebut: { gt: new Date() }, statut: { not: 'annulee' } } })) throw new ApiError(409, 'Des sessions à venir ont plus de places que cette capacité : réduisez d’abord leur nombre de places dans la rubrique Sessions.', { champ: 'capaciteMax' });
     return tx.experience.findUniqueOrThrow({ where: { id } });
-  }));
+  });
+  // Couverture remplacée : l'ancien fichier est effacé une fois l'enregistrement réussi.
+  if (experience.image !== avant.image) await supprimerFichierOrphelin(avant.image);
+  return json(experience);
 });
 
 export const deleteExperience = endpoint(async (request: Request, context: RouteContext) => {
@@ -55,8 +60,8 @@ export const deleteExperience = endpoint(async (request: Request, context: Route
   const id = positiveId((await context.params).id);
   // Ses sessions portent les réservations (historique, comptabilité) : on masque au lieu de supprimer.
   const sessions = await prisma.session.count({ where: { experienceId: id } });
-  if (sessions) throw new ApiError(409, `Cette expérience a ${pluriel(sessions, 'session')} (et leurs réservations) : elle ne peut pas être supprimée, pour garder l’historique. Masquez-la : elle n’apparaîtra plus sur le site.`, { suggestion: 'masquer' });
-  await prisma.experience.delete({ where: { id } });
+  if (sessions) throw new ApiError(409, `Cette expérience a déjà ${pluriel(sessions, 'session')} : elle ne peut pas être supprimée, pour garder l’historique des dates et des réservations. Masquez-la : elle n’apparaîtra plus sur le site.`, { suggestion: 'masquer' });
+  await supprimerFichierOrphelin((await prisma.experience.delete({ where: { id } })).image);
   return json({ ok: true });
 });
 
@@ -93,13 +98,14 @@ export const updateSession = endpoint(async (request: Request, context: RouteCon
     const current = await lockSession(tx, id);
     const occupied = current.placesPrises + await placesBloquees(tx, id);
     const next = { ...current, ...data };
+    const dejaReservees = occupied > 1 ? `${occupied} places sont déjà réservées` : '1 place est déjà réservée';
     // Le formulaire renvoie tous les champs : seules les vraies modifications comptent.
     const debutChange = data.dateDebut !== undefined && data.dateDebut.getTime() !== current.dateDebut.getTime();
     const deplacee = debutChange || (data.dateFin !== undefined && data.dateFin.getTime() !== current.dateFin.getTime()) || (data.lieu !== undefined && data.lieu !== current.lieu);
     if (next.dateFin <= next.dateDebut) throw new ApiError(400, 'La fin doit être après le début.', { champ: 'dateFin' });
     if (debutChange && next.dateDebut <= new Date()) throw new ApiError(400, 'La nouvelle date de début doit être dans le futur.', { champ: 'dateDebut' });
-    if (occupied && (deplacee || (data.statut === 'annulee' && current.statut !== 'annulee'))) throw new ApiError(409, `Cette session a déjà ${pluriel(occupied, 'place')} vendue(s) ou en cours de paiement : elle ne peut être ni déplacée ni annulée. Fermez-la, ou annulez d’abord les réservations.`);
-    if (next.placesTotal < occupied) throw new ApiError(409, `Déjà ${pluriel(occupied, 'place')} vendue(s) ou en cours de paiement : le nombre de places ne peut pas descendre sous ${occupied}.`, { champ: 'placesTotal' });
+    if (occupied && (deplacee || (data.statut === 'annulee' && current.statut !== 'annulee'))) throw new ApiError(409, `${dejaReservees} (payées ou en cours de paiement) : la session ne peut être ni déplacée ni annulée. Fermez-la, ou annulez d’abord les réservations.`);
+    if (next.placesTotal < occupied) throw new ApiError(409, `${dejaReservees} (payées ou en cours de paiement) : le nombre de places ne peut pas descendre sous ${occupied}.`, { champ: 'placesTotal' });
     if (next.placesTotal > current.experience.capaciteMax) throw new ApiError(409, `Le nombre de places ne peut pas dépasser la capacité de l’expérience (${current.experience.capaciteMax} participants).`, { champ: 'placesTotal' });
     return tx.session.update({ where: { id }, data });
   }));

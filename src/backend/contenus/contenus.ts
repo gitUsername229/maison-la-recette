@@ -4,6 +4,7 @@ import { prisma } from '@/backend/db/prisma';
 import { ApiError, endpoint, json, type RouteContext } from '@/backend/http';
 import { TYPES_EPISODE, type TypeEpisode } from '@/backend/podcast/emission';
 import { entierParametre, routesRessource } from './crud';
+import { supprimerFichierOrphelin } from './images';
 import { articleSchemas, avisSchemas, episodeSchemas, partenaireSchemas } from './validation';
 
 // Lectures publiques (pages du site) ; `tout` (admin) inclut brouillons et contenus masqués.
@@ -31,8 +32,13 @@ export const articles = routesRessource({
   // ?limit=3 pour l'accueil
   lister: (admin, params) => listerArticles({ tout: admin, limite: entierParametre(params, 'limit', 50) }),
   creer: data => prisma.article.create({ data }),
-  modifier: (id, data) => prisma.article.update({ where: { id }, data }),
-  supprimer: id => prisma.article.delete({ where: { id } }),
+  modifier: async (id, data) => {
+    const avant = await prisma.article.findUniqueOrThrow({ where: { id }, select: { image: true } });
+    const article = await prisma.article.update({ where: { id }, data });
+    if (article.image !== avant.image) await supprimerFichierOrphelin(avant.image);
+    return article;
+  },
+  supprimer: async id => supprimerFichierOrphelin((await prisma.article.delete({ where: { id } })).image),
 });
 
 /** GET /api/articles/[slug] : un article publié (ou un brouillon pour l'admin). */
@@ -54,8 +60,13 @@ export const partenaires = routesRessource({
   schemas: partenaireSchemas,
   lister: admin => listerPartenaires({ tout: admin }),
   creer: data => prisma.partenaire.create({ data }),
-  modifier: (id, data) => prisma.partenaire.update({ where: { id }, data }),
-  supprimer: id => prisma.partenaire.delete({ where: { id } }),
+  modifier: async (id, data) => {
+    const avant = await prisma.partenaire.findUniqueOrThrow({ where: { id }, select: { photo: true } });
+    const partenaire = await prisma.partenaire.update({ where: { id }, data });
+    if (partenaire.photo !== avant.photo) await supprimerFichierOrphelin(avant.photo);
+    return partenaire;
+  },
+  supprimer: async id => supprimerFichierOrphelin((await prisma.partenaire.delete({ where: { id } })).photo),
 });
 
 const estTypeEpisode = (valeur: string | null): valeur is TypeEpisode => TYPES_EPISODE.some(type => type === valeur);
