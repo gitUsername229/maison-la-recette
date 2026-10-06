@@ -5,17 +5,18 @@ loadEnvConfig(process.cwd());
 const prisma = new PrismaClient();
 
 async function main() {
-  // Démonstration uniquement. Les upserts ne remplacent pas les contenus existants.
+  // Démonstration uniquement. Les upserts ne remplacent pas les contenus existants,
+  // sauf reservableEnLigne (ajouté après coup) : les immersions se réservent sur devis.
   const experiences = [
-    { slug: 'atelier-cuisine-anti-gaspi', type: 'atelier', titre: 'Atelier cuisine anti-gaspi', accroche: 'Cuisiner avec ce qu’on jette d’habitude', dureeMin: 150, prixCents: 4500 },
-    { slug: 'good-tour-marche-producteurs', type: 'good_tour', titre: 'Good tour : marché et producteurs', accroche: 'À la rencontre de celles et ceux qui nous nourrissent', dureeMin: 180, prixCents: 3500 },
-    { slug: 'immersion-producteur', type: 'immersion', titre: 'Immersion chez un producteur', accroche: 'Découvrir un métier au fil d’une journée', dureeMin: 240, prixCents: 6500 },
+    { slug: 'atelier-cuisine-anti-gaspi', type: 'atelier', titre: 'Atelier cuisine anti-gaspi', accroche: 'Cuisiner avec ce qu’on jette d’habitude', dureeMin: 150, prixCents: 4500, reservableEnLigne: true },
+    { slug: 'good-tour-marche-producteurs', type: 'good_tour', titre: 'Good tour : marché et producteurs', accroche: 'À la rencontre de celles et ceux qui nous nourrissent', dureeMin: 180, prixCents: 3500, reservableEnLigne: true },
+    { slug: 'immersion-producteur', type: 'immersion', titre: 'Immersion chez un producteur', accroche: 'Découvrir un métier au fil d’une journée', dureeMin: 240, prixCents: 6500, reservableEnLigne: false },
   ];
 
   for (const data of experiences) {
     const experience = await prisma.experience.upsert({
       where: { slug: data.slug },
-      update: {},
+      update: { reservableEnLigne: data.reservableEnLigne },
       create: {
         ...data,
         description: `${data.accroche}. Contenu de démonstration à remplacer.`,

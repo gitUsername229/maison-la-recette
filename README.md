@@ -11,6 +11,7 @@ Projet de workshop M1 (Groupe 3), 100 % local.
 | [docs/api.md](docs/api.md) | Liste des routes API (GET / POST / admin) |
 | [docs/curl-public.md](docs/curl-public.md) | Exemples curl des routes publiques |
 | [docs/curl-admin.md](docs/curl-admin.md) | Exemples curl des routes admin (pour les devs) |
+| [docs/stripe.md](docs/stripe.md) | Paiement Stripe Checkout (sandbox) : installation, parcours et tests |
 
 ## Lancer le projet
 
@@ -52,18 +53,25 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 
 Le socle comprend Next.js, React, TypeScript, Tailwind, les huit modèles Prisma,
 un seed de trois expériences avec sessions, une page d'accueil provisoire et
-`GET /api/health`. Les utilitaires Stripe sandbox et de contrôle `x-admin-key`
-sont prêts pour les futures routes.
+`GET /api/health`. L'utilitaire de contrôle `x-admin-key` est prêt pour les futures routes admin.
 
-Les pages du site et les routes métier décrites ci-dessous et dans `docs/` sont
-le périmètre à développer ; les paiements, le webhook, les formulaires et
-l'administration ne sont pas encore implémentés. Le seed ne contient pas de
-photos ni de liens Ausha fictifs : ajouter les contenus réels lors du développement.
+Le paiement Stripe Checkout (sandbox) et le webhook sont implémentés :
+`POST /api/checkout`, `POST /api/webhook`, `GET /api/reservations`, les pages
+`/reservation/succes` et `/reservation/annule` et le formulaire de réservation
+(voir [docs/stripe.md](docs/stripe.md)). Reste à faire pour le paiement :
+
+- le tester de bout en bout avec de vraies clés `sk_test_` et la Stripe CLI ;
+- envoyer l'e-mail de confirmation après paiement ;
+- créer la page `/experiences`, vers laquelle renvoient les pages de réservation.
+
+Les autres pages du site et routes métier décrites ci-dessous et dans `docs/` sont
+le périmètre à développer ; les formulaires de devis et l'administration ne sont
+pas encore implémentés. Le seed ne contient pas de photos ni de liens Ausha fictifs :
+ajouter les contenus réels lors du développement.
 
 Commandes complémentaires : `npm run lint`, `npm run typecheck`, `npm run build`
 et `npm start` (après compilation).
 
-Une fois le webhook implémenté, dans un second terminal pour les confirmations de paiement :
 Dans d'autres terminaux :
 
 ```bash
