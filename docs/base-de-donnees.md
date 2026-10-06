@@ -5,20 +5,22 @@
 | Table | Rôle |
 |---|---|
 | `Experience` | Les offres : atelier, good tour, immersion |
-| `ExperienceImage` | Galerie de photos d'une expérience |
 | `Session` | Une date précise d'une expérience (lieu, places, prix) |
-| `Reservation` | Une réservation B2C sur une session |
-| `DemandeDevis` | Une demande de devis B2B |
-| `Episode` | Un épisode du podcast La recette |
-| `Reference` | Un client, partenaire ou témoignage (pour la crédibilité B2B) |
+| `Reservation` | Une réservation B2C payée en ligne sur une session |
+| `DemandeDevis` | Une demande de devis (expérience, sponsoring, studio, événement) |
+| `Episode` | Un épisode du podcast La recette, importé depuis le flux RSS Ausha |
+| `Article` | Un article du blog |
+| `Avis` | Un avis client (témoignage) |
+| `Partenaire` | Un producteur ou artisan partenaire |
+| `Image` | Une photo de galerie, rattachée à une page du site |
 | `Newsletter` | Un e-mail inscrit à la newsletter |
 
 Relations :
 
 ```
-Experience 1 ──── n ExperienceImage
 Experience 1 ──── n Session 1 ──── n Reservation
 Experience 1 ──── n DemandeDevis   (optionnel)
+Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé étrangère
 ```
 
 ## `Experience`
@@ -32,24 +34,15 @@ Experience 1 ──── n DemandeDevis   (optionnel)
 | `accroche` | String | Phrase courte pour les cartes |
 | `description` | String | Texte complet |
 | `dureeMin` | Int | Durée en minutes |
-| `prixCents` | Int | Prix par personne (B2C), en centimes |
+| `prixCents` | Int? | Prix par personne (B2C), en centimes : dès `6000` pour un good tour, dès `7000` pour un atelier. Vide si l'expérience est sur devis uniquement |
 | `prixEntrepriseCents` | Int? | Prix par personne (B2B), optionnel |
+| `reservableEnLigne` | Boolean | `true` : sessions réservables et payées en ligne (Stripe). `false` : sur devis uniquement, pas de paiement en ligne (cas des immersions, surtout B2B) |
 | `capaciteMax` | Int | Nombre maximum de participants |
 | `lieu` | String? | Lieu habituel |
 | `image` | String | **Image de couverture**, ex : `/images/ateliers/cover.jpg` |
 | `imageAlt` | String | Texte alternatif de la couverture |
 | `actif` | Boolean | Visible sur le site ou non |
 | `createdAt` | DateTime | |
-
-## `ExperienceImage`
-
-| Colonne | Type | Détail |
-|---|---|---|
-| `id` | Int | Clé primaire |
-| `experienceId` | Int | Clé étrangère vers `Experience` |
-| `url` | String | Ex : `/images/ateliers/photo-2.jpg` |
-| `alt` | String | Texte alternatif |
-| `ordre` | Int | Position dans la galerie |
 
 ## `Session`
 
@@ -88,11 +81,12 @@ Experience 1 ──── n DemandeDevis   (optionnel)
 | `entreprise` | String | |
 | `contactNom` | String | |
 | `email` | String | |
-| `telephone` | String? | |
-| `typeDemande` | String | `experience` ou `podcast_studio` |
+| `telephone` | String | Obligatoire : Julie rappelle avant de répondre |
+| `typeDemande` | String | `experience`, `sponsoring`, `studio` ou `evenement` |
 | `experienceId` | Int? | Clé étrangère vers `Experience`, optionnelle |
 | `nbParticipants` | Int? | |
 | `dateSouhaitee` | DateTime? | |
+| `lieuSouhaite` | String? | `dans_les_locaux` (chez l'entreprise) ou `a_proximite` (lieu proche de l'entreprise) |
 | `message` | String | |
 | `statut` | String | `nouvelle`, `en_cours` ou `traitee` |
 | `createdAt` | DateTime | |
@@ -102,30 +96,72 @@ Experience 1 ──── n DemandeDevis   (optionnel)
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
+| `guid` | String | Unique, identifiant de l'épisode dans le flux RSS (évite les doublons à l'import) |
+| `saison` | Int | Numéro de la saison |
 | `numero` | Int | Numéro de l'épisode |
 | `titre` | String | |
-| `description` | String | |
+| `description` | String | Description complète, importée du flux RSS |
+| `resume` | String | Texte affiché sur le site. Pré-rempli à l'import avec le début de la description, modifiable dans l'admin |
 | `invite` | String? | Chef ou producteur invité |
 | `datePublication` | DateTime | |
 | `dureeMin` | Int | |
-| `image` | String | Visuel de l'épisode, ex : `/images/episodes/ep12.jpg` |
+| `image` | String | Visuel de l'épisode (URL fournie par le flux Ausha) |
 | `embedUrl` | String | Lien du lecteur Ausha |
 | `spotifyUrl` | String? | |
 | `deezerUrl` | String? | |
 | `appleUrl` | String? | |
 | `youtubeUrl` | String? | |
 
-## `Reference`
+L'import (`POST /api/episodes/import`) crée ou met à jour les épisodes par `guid`. Il n'écrase pas les champs saisis dans l'admin (`resume`, `invite`, liens des plateformes).
+
+## `Article`
 
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
-| `nom` | String | Nom du client ou partenaire |
-| `type` | String | `client`, `partenaire` ou `temoignage` |
-| `logo` | String? | Ex : `/images/references/logo-x.png` |
-| `citation` | String? | Témoignage |
-| `auteur` | String? | Qui parle |
-| `ordre` | Int | Ordre d'affichage |
+| `slug` | String | Unique, ex : `cuisiner-les-epluchures` |
+| `titre` | String | Aussi utilisé comme `<title>` de la page |
+| `extrait` | String | Résumé court pour la liste et la meta description |
+| `contenu` | String | Texte complet (Markdown) |
+| `image` | String | Image de couverture, ex : `/images/blog/epluchures.jpg` |
+| `imageAlt` | String | Texte alternatif de la couverture |
+| `datePublication` | DateTime | |
+| `publie` | Boolean | `false` : brouillon, invisible sur le site |
+
+## `Avis`
+
+| Colonne | Type | Détail |
+|---|---|---|
+| `id` | Int | Clé primaire |
+| `nom` | String | Qui parle, ex : `Claire D.` |
+| `citation` | String | Le témoignage |
+| `contexte` | String | Ex : `Team building, atelier anti-gaspi` |
+| `note` | Int? | Note sur 5, optionnelle |
+| `visible` | Boolean | Affiché sur le site ou non |
+
+Pas de logos clients : seuls les avis (texte) sont affichés.
+
+## `Partenaire`
+
+| Colonne | Type | Détail |
+|---|---|---|
+| `id` | Int | Clé primaire |
+| `nom` | String | |
+| `metier` | String | Ex : `Maraîchère`, `Chef`, `Brasseur` |
+| `photo` | String | Ex : `/images/partenaires/maraichere.jpg` |
+| `photoAlt` | String | Texte alternatif de la photo |
+| `description` | String | |
+| `visible` | Boolean | `false` par défaut : affiché seulement après l'accord du partenaire |
+
+## `Image`
+
+| Colonne | Type | Détail |
+|---|---|---|
+| `id` | Int | Clé primaire |
+| `url` | String | Ex : `/images/ateliers/photo-2.jpg` |
+| `alt` | String | Texte alternatif (obligatoire) |
+| `page` | String | Chemin de la page qui affiche la galerie, ex : `/`, `/a-propos`, `/experiences/atelier-cuisine-anti-gaspi` |
+| `ordre` | Int | Position dans la galerie |
 
 ## `Newsletter`
 
