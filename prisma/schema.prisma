@@ -95,6 +95,7 @@ model Episode {
   titre           String
   description     String
   resume          String   @default("")
+  type            String   @default("complet")
   invite          String?
   datePublication DateTime
   dureeMin        Int
@@ -104,6 +105,8 @@ model Episode {
   deezerUrl       String?
   appleUrl        String?
   youtubeUrl      String?
+
+  @@index([type, saison])
 }
 
 model Article {

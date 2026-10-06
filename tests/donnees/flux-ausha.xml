@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:podcast="https://podcastindex.org/namespace/1.0" version="2.0">
+  <channel>
+    <title>la recette</title>
+    <itunes:author>Julie Van Ossel</itunes:author>
+    <itunes:image href="https://image.ausha.co/couverture_1400x1400.jpeg?t=1"/>
+    <item>
+      <title>Jean Marie Pédron, cueilleur d&apos;algues : celui qui donne le goût des algues</title>
+      <guid isPermaLink="false">guid-complet</guid>
+      <description><![CDATA[<p>Dulse, nori &amp; kombu… C&#39;est un aliment d&rsquo;avenir.</p><p>Voici la recette de Jean-Marie Pédron.</p><p>🎧Production, réalisation, montage : Julie Van Ossel <br>🎵Habillage sonore et mixage : Alice Krief</p><p>💚Envie de changer le monde en mangeant ?</p><p>Hébergé par Ausha. Visitez ausha.co/politique-de-confidentialite pour plus d'informations.</p>]]></description>
+      <pubDate>Mon, 28 Sep 2026 03:30:00 +0000</pubDate>
+      <enclosure url="https://audio.ausha.co/lDLw5U6GYgxw.mp3?t=1" length="1" type="audio/mpeg"/>
+      <itunes:duration>53:18</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:season>3</itunes:season>
+      <podcast:season>3</podcast:season>
+      <itunes:episode>25</itunes:episode>
+      <itunes:image href="https://image.ausha.co/pedron_1400x1400.jpeg?t=2"/>
+    </item>
+    <item>
+      <title>[EXTRAIT 1 - Jean-Marie Pédron ] - Les algues vont-elles arriver dans nos assiettes ?</title>
+      <guid isPermaLink="false">guid-extrait</guid>
+      <description><![CDATA[<p>Dans cet extrait, Jean-Marie parle des algues.</p><p>Pour soutenir ce podcast :</p><p>- n'hésitez pas à mettre ⭐⭐⭐⭐⭐</p>]]></description>
+      <pubDate>Mon, 05 Oct 2026 04:00:00 +0000</pubDate>
+      <enclosure url="https://audio.ausha.co/aBc123.mp3" length="1" type="audio/mpeg"/>
+      <itunes:duration>07:12</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:season>3</itunes:season>
+    </item>
+    <item>
+      <title>REDIFFUSION - Clément Méry, cofondateur de Willy anti-gaspi</title>
+      <guid isPermaLink="false">guid-rediffusion</guid>
+      <description><![CDATA[<p>Un épisode à réécouter.</p>]]></description>
+      <pubDate>Mon, 30 Dec 2024 05:00:00 +0000</pubDate>
+      <enclosure url="https://audio.ausha.co/Re0Diff.mp3" length="1" type="audio/mpeg"/>
+      <itunes:duration>1:02:03</itunes:duration>
+      <itunes:season>2</itunes:season>
+      <itunes:episode>42</itunes:episode>
+    </item>
+    <item>
+      <title>TEASER - Clément Méry : celui qui vend des invendus</title>
+      <guid isPermaLink="false">guid-teaser</guid>
+      <description><![CDATA[<p>Rendez-vous lundi pour l'épisode.</p>]]></description>
+      <pubDate>Mon, 03 Jun 2024 05:00:00 +0000</pubDate>
+      <enclosure url="https://audio.ausha.co/Te4ser.mp3" length="1" type="audio/mpeg"/>
+      <itunes:duration>185</itunes:duration>
+      <itunes:season>2</itunes:season>
+    </item>
+    <item>
+      <title>La recette : avant-goût</title>
+      <guid isPermaLink="false">guid-bande-annonce</guid>
+      <description><![CDATA[<p>Cette annonce est un avant-goût de la recette.</p><p>La recette est un podcast indépendant créé et produit par ©Julie Van Ossel.</p>]]></description>
+      <pubDate>Wed, 01 Feb 2023 06:00:00 +0000</pubDate>
+      <enclosure url="https://audio.ausha.co/Av4ntGout.mp3" length="1" type="audio/mpeg"/>
+      <itunes:duration>01:28</itunes:duration>
+      <itunes:episodeType>trailer</itunes:episodeType>
+      <itunes:season>1</itunes:season>
+    </item>
+    <item>
+      <title>Épisode sans fichier audio</title>
+      <guid isPermaLink="false">guid-sans-audio</guid>
+      <pubDate>Mon, 01 Jan 2024 05:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

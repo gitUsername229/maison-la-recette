@@ -64,6 +64,13 @@ export default function TableauRessource({ cle }: { cle: string }) {
     if (confirm(`Supprimer « ${nomLigne(ressource, ligne)} » ? Cette action est définitive.`)) agir(ligne, 'DELETE', undefined, 'Suppression effectuée.');
   }
 
+  async function lancerActionGlobale(action: { libelle: string; api: string }) {
+    setMessage({ erreur: false, texte: `${action.libelle}…` });
+    const resultat = await appelerApi<{ message?: string }>(action.api, { methode: 'POST', corps: {} });
+    setMessage(resultat.ok ? { erreur: false, texte: resultat.donnees.message ?? 'Terminé.' } : { erreur: true, texte: resultat.message });
+    if (resultat.ok) recharger();
+  }
+
   function annuler(ligne: Ligne) {
     if (confirm(`Annuler la réservation n° ${ligne.id} ? Les places seront libérées.`)) agir(ligne, 'PATCH', { statut: 'annulee' }, 'Réservation annulée.');
   }
@@ -84,9 +91,16 @@ export default function TableauRessource({ cle }: { cle: string }) {
           <h1 className="font-serif text-4xl">{ressource.titre}</h1>
           <p className="mt-2 text-stone-600">{ressource.description}</p>
         </div>
-        {modifiable && ressource.creation !== false && edition === null && (
-          <button type="button" onClick={() => { setMessage(null); setEdition('nouveau'); }} className={classeBouton}>Ajouter</button>
-        )}
+        <div className="flex flex-wrap gap-3">
+          {ressource.actionGlobale && (
+            <button type="button" onClick={() => lancerActionGlobale(ressource.actionGlobale!)} className="rounded-full px-5 py-3 ring-1 ring-stone-300 hover:bg-white">
+              {ressource.actionGlobale.libelle}
+            </button>
+          )}
+          {modifiable && ressource.creation !== false && edition === null && (
+            <button type="button" onClick={() => { setMessage(null); setEdition('nouveau'); }} className={classeBouton}>Ajouter</button>
+          )}
+        </div>
       </div>
 
       {message && <p role="status" className={`mt-6 ${message.erreur ? classeErreur : 'rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800'}`}>{message.texte}</p>}

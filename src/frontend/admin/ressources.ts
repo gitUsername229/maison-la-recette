@@ -1,5 +1,5 @@
 import {
-  LIEUX_DEVIS, ROLES, STATUTS_DEVIS, STATUTS_RESERVATION, STATUTS_SESSION, TYPES_DEVIS, TYPES_EXPERIENCE, type Libelles,
+  LIEUX_DEVIS, ROLES, STATUTS_DEVIS, STATUTS_RESERVATION, STATUTS_SESSION, TYPES_DEVIS, TYPES_EPISODE, TYPES_EXPERIENCE, type Libelles,
 } from '@/frontend/format';
 
 // Description des écrans d'administration : une entrée par ressource, affichée par
@@ -43,6 +43,7 @@ export type RessourceAdmin = {
   statut?: { champ: string; options: Libelles };        // statut modifiable dans la liste
   filtre?: { parametre: string; options: Libelles };    // filtre de la liste (?statut=…)
   annulation?: boolean;        // bouton « Annuler » (réservations)
+  actionGlobale?: { libelle: string; api: string };     // bouton de rubrique (ex : import Ausha), POST sur `api`
 };
 
 const visible = (aide: string, defaut: boolean): ChampAdmin => ({ nom: 'visible', libelle: 'Visible sur le site', type: 'booleen', aide, defaut });
@@ -149,22 +150,26 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
   },
   {
     cle: 'episodes', titre: 'Épisodes du podcast', singulier: 'un épisode', api: '/api/episodes',
-    description: 'Les épisodes du podcast La recette, avec leurs liens d’écoute.',
+    description: 'Les épisodes du podcast La recette. « Importer depuis Ausha » ajoute les nouveaux épisodes sans écraser le résumé, le type, l’invité ni les liens saisis ici.',
     colonnes: [
       { libelle: 'Saison', chemin: 'saison' },
       { libelle: 'N°', chemin: 'numero' },
       { libelle: 'Titre', chemin: 'titre' },
+      { libelle: 'Type', chemin: 'type', libelles: TYPES_EPISODE },
       { libelle: 'Publié le', chemin: 'datePublication', format: 'date' },
       { libelle: 'Invité', chemin: 'invite' },
     ],
+    filtre: { parametre: 'type', options: TYPES_EPISODE },
+    actionGlobale: { libelle: 'Importer depuis Ausha', api: '/api/episodes/import' },
     champs: [
+      { nom: 'type', libelle: 'Type', type: 'liste', options: TYPES_EPISODE, requis: true, defaut: 'complet', aide: 'Les épisodes complets sont affichés par défaut sur la page podcast.' },
       { nom: 'saison', libelle: 'Saison', type: 'nombre', requis: true, defaut: '1' },
       { nom: 'numero', libelle: 'Numéro', type: 'nombre', requis: true },
       { nom: 'titre', libelle: 'Titre', type: 'texte', requis: true },
       { nom: 'invite', libelle: 'Invité', type: 'texte', nullable: true },
       { nom: 'datePublication', libelle: 'Date de publication', type: 'date', requis: true },
       { nom: 'dureeMin', libelle: 'Durée (minutes)', type: 'nombre', requis: true },
-      { nom: 'resume', libelle: 'Résumé affiché sur le site', type: 'texteLong' },
+      { nom: 'resume', libelle: 'Résumé affiché sur le site', type: 'texteLong', aide: 'Rempli à l’import avec la description, sans les crédits ni les liens de fin.' },
       { nom: 'description', libelle: 'Description complète', type: 'texteLong', requis: true },
       { nom: 'image', libelle: 'Visuel (lien)', type: 'texte', requis: true, aide: 'Lien du visuel Ausha, ou /images/… pour une photo envoyée.' },
       { nom: 'embedUrl', libelle: 'Lien du lecteur Ausha', type: 'texte', requis: true },
