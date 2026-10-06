@@ -374,8 +374,8 @@ Réponse `200` :
 Le front redirige vers `checkoutUrl`. Sur la page Stripe, payer avec `4242 4242 4242 4242`.
 
 Remplacer l'UUID de l'exemple pour chaque nouvelle réservation. En cas de timeout,
-réutiliser le même UUID et les mêmes données. Les places sont bloquées pendant
-Checkout et libérées sur son expiration signée ; voir [le guide](ateliers-stripe.md).
+réutiliser le même UUID et les mêmes données. Les places sont bloquées tant que le
+paiement Checkout peut aboutir (35 min + 2 min de marge), puis libérées ; voir [le guide](ateliers-stripe.md).
 
 Erreurs possibles :
 

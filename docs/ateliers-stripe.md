@@ -72,7 +72,7 @@ retourne `409`. Une erreur réseau Stripe retourne `502` : réessayer avec le m�
 
 Le dépôt fournit désormais `/reservation/succes` et `/reservation/annule`.
 Le retour d'annulation n'envoie pas d'identifiant de réservation : les places
-restent bloquées jusqu'à confirmation Stripe. La page de succès lit
+restent bloquées tant que le paiement Stripe peut encore aboutir (voir ci-dessous). La page de succès lit
 `/api/reservations?session_id=...` et patienter si le statut est encore `en_attente`.
 Un retour navigateur ne confirme jamais un paiement et ne libère pas les places.
 
@@ -86,10 +86,12 @@ réservations. Les expériences `reservableEnLigne = false` sont refusées au pa
 - Une transaction SQLite prend un verrou d'écriture avant de compter les places.
   Les réservations `en_attente` bloquent aussi leur quantité ; `placesPrises`
   ne compte que les réservations payées.
-- Checkout expire après environ 35 minutes. Les places sont libérées à réception
-  de `checkout.session.expired`, ou lorsque l'admin expire le paiement via PATCH.
-  Si le webhook est arrêté, les places restent bloquées par sécurité : le relancer
-  et renvoyer les événements Stripe, ou annuler les réservations concernées.
+- Checkout expire 35 minutes après la création de la réservation (`DUREE_BLOCAGE_MS`).
+  Une réservation `en_attente` ne bloque ses places que pendant ce délai + 2 minutes de
+  marge d'horloge (`reservationsBloquantes`, `src/backend/places.ts`) : passé ce délai,
+  Stripe refuse le paiement, donc les places sont libérées même si
+  `checkout.session.expired` n'est jamais arrivé (webhook arrêté). La réservation reste
+  `en_attente` jusqu'à cet événement ou jusqu'à l'annulation admin (PATCH), qui la passe à `annulee`.
 - Le webhook vérifie le corps brut, la signature, le mode sandbox, le montant,
   la devise et le lien avec la réservation. Les répétitions sont sans effet.
 - Les paramètres Checkout sont enregistrés pour reprendre exactement la même

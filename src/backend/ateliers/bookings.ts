@@ -3,8 +3,8 @@ import type Stripe from 'stripe';
 import { prisma } from '@/backend/db/prisma';
 import { ApiError } from '@/backend/http';
 import { getStripe } from '@/backend/payments/stripe';
-import { DUREE_BLOCAGE_MS } from '@/backend/places';
-import { lockSession, pendingSeats } from './inventory';
+import { DUREE_BLOCAGE_MS, placesDisponibles } from '@/backend/places';
+import { lockSession } from './inventory';
 import type { Utilisateur } from '@/backend/auth/acces';
 import type { CheckoutInput } from './validation';
 
@@ -42,8 +42,8 @@ export async function createCheckout(client: Client, input: CheckoutInput, key: 
     }
     if (!session.experience.actif || session.statut !== 'ouverte' || session.dateDebut <= new Date()) throw new ApiError(409, 'Session non réservable');
     if (!session.experience.reservableEnLigne) throw new ApiError(400, 'Cette expérience se réserve sur devis');
-    const remaining = session.placesTotal - session.placesPrises - await pendingSeats(tx, session.id);
-    if (input.nbPersonnes > remaining) throw new ApiError(409, `Il ne reste que ${Math.max(0, remaining)} place(s)`);
+    const remaining = await placesDisponibles(tx, session.id);
+    if (input.nbPersonnes > remaining) throw new ApiError(409, `Il ne reste que ${remaining} place(s)`);
     const unitPrice = session.prixCents ?? session.experience.prixCents;
     const total = unitPrice * input.nbPersonnes;
     if (total < 50 || total > 99_999_999) throw new ApiError(400, 'Montant incompatible avec un paiement par carte en euros');

@@ -122,10 +122,10 @@ Les pages `/reservation/succes` et `/reservation/annule` renvoient vers la liste
 ## Parcours complet
 
 1. La personne, **connectée à son compte**, choisit une date et le nombre de participants. Le nom, l'e-mail et le téléphone de la réservation sont ceux du compte (lus par le serveur, jamais envoyés par le formulaire).
-2. `POST /api/checkout` vérifie les places, crée une réservation `en_attente` et une session Stripe expirant après 35 min. Les places restent bloquées jusqu'à confirmation d'expiration par Stripe. Un header `Idempotency-Key` UUID est recommandé pour les reprises ; il reste optionnel pour le formulaire existant.
+2. `POST /api/checkout` vérifie les places, crée une réservation `en_attente` et une session Stripe expirant après 35 min. Les places restent bloquées tant que ce paiement peut aboutir (35 min + 2 min de marge), puis sont libérées automatiquement, même si l'événement d'expiration n'arrive jamais. Un header `Idempotency-Key` UUID est recommandé pour les reprises ; il reste optionnel pour le formulaire existant.
 3. Redirection vers la page de paiement Stripe.
 4. **Paiement réussi** : Stripe redirige vers `/reservation/succes` et envoie `checkout.session.completed` au webhook. La réservation passe à `payee`, les places sont comptées, et la session passe à `complete` si elle est pleine.
-5. **Retour sans paiement** : Stripe redirige vers `/reservation/annule` sans identifiant de réservation. Les places sont libérées à réception de l'expiration Stripe ou après annulation admin vérifiée.
+5. **Retour sans paiement** : Stripe redirige vers `/reservation/annule` sans identifiant de réservation. Les places sont libérées à l'expiration du paiement (35 min + marge), sans attendre l'événement Stripe.
 6. **Page de paiement abandonnée** : après 35 min, Stripe envoie `checkout.session.expired` et la réservation passe à `annulee`.
 
 Voir [le guide du backend ateliers](ateliers-stripe.md) pour les règles de reprise,

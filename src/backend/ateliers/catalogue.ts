@@ -4,7 +4,8 @@ import { prisma } from '@/backend/db/prisma';
 import { estAdmin, exigerAdmin } from '@/backend/auth/acces';
 import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
 import { experienceSchema, experienceUpdateSchema, sessionSchema, sessionUpdateSchema } from './validation';
-import { lockSession, pendingSeats } from './inventory';
+import { placesBloquees, reservationsBloquantes } from '@/backend/places';
+import { lockSession } from './inventory';
 
 // Utilisées par les routes /api et par les pages serveur du front.
 /** Expériences actives ; `inclureMasquees` (admin) ajoute les expériences désactivées. */
@@ -13,7 +14,7 @@ export function listerExperiences(type?: string, inclureMasquees = false) {
 }
 
 export async function experiencePublique(slug: string) {
-  const result = await prisma.experience.findUnique({ where: { slug }, include: { sessions: { where: { dateDebut: { gt: new Date() }, statut: { not: 'annulee' } }, orderBy: { dateDebut: 'asc' }, include: { reservations: { where: { statut: 'en_attente' }, select: { nbPersonnes: true } } } } } });
+  const result = await prisma.experience.findUnique({ where: { slug }, include: { sessions: { where: { dateDebut: { gt: new Date() }, statut: { not: 'annulee' } }, orderBy: { dateDebut: 'asc' }, include: { reservations: { where: reservationsBloquantes(), select: { nbPersonnes: true } } } } } });
   if (!result?.actif) return null;
   // La galerie d'une expérience = les images de sa page.
   const images = await prisma.image.findMany({ where: { page: `/experiences/${slug}` }, orderBy: { ordre: 'asc' } });
@@ -64,7 +65,7 @@ export const listSessions = endpoint(async (request: Request) => {
   const admin = await estAdmin(request);
   const experience = params.get('experience') ? { slug: params.get('experience')! } : {};
   const where: Prisma.SessionWhereInput = admin ? { experience } : { dateDebut: { gt: new Date() }, statut: { not: 'annulee' }, experience: { actif: true, ...experience } };
-  const sessions = await prisma.session.findMany({ where, include: { experience: true, reservations: { where: { statut: 'en_attente' }, select: { nbPersonnes: true } } }, orderBy: { dateDebut: admin ? 'desc' : 'asc' } });
+  const sessions = await prisma.session.findMany({ where, include: { experience: true, reservations: { where: reservationsBloquantes(), select: { nbPersonnes: true } } }, orderBy: { dateDebut: admin ? 'desc' : 'asc' } });
   const results = sessions.map(({ experience, reservations, ...s }) => ({ ...s, experience: { titre: experience.titre, slug: experience.slug }, prixCents: admin ? s.prixCents : s.prixCents ?? experience.prixCents, placesRestantes: Math.max(0, s.placesTotal - s.placesPrises - reservations.reduce((n, r) => n + r.nbPersonnes, 0)) }));
   return json(available === 'true' ? results.filter(s => s.statut === 'ouverte' && s.placesRestantes > 0) : results);
 });
@@ -86,7 +87,7 @@ export const updateSession = endpoint(async (request: Request, context: RouteCon
   const data = sessionUpdateSchema.parse(await request.json());
   return json(await prisma.$transaction(async tx => {
     const current = await lockSession(tx, id);
-    const occupied = current.placesPrises + await pendingSeats(tx, id);
+    const occupied = current.placesPrises + await placesBloquees(tx, id);
     const next = { ...current, ...data };
     if (next.dateFin <= next.dateDebut || (data.dateDebut && next.dateDebut <= new Date())) throw new ApiError(400, 'Dates invalides');
     if (occupied && (data.dateDebut || data.dateFin || data.lieu || data.statut === 'annulee')) throw new ApiError(409, 'Annuler les réservations avant de déplacer ou annuler cette session');

@@ -183,3 +183,21 @@ test('un ancien paiement différé échoué libère ses places', async () => {
   await bookings.applyStripeSession(failed, 'checkout.session.async_payment_failed');
   assert.equal((await prisma.reservation.findUniqueOrThrow({ where: { id: reservation.id } })).statut, 'annulee');
 });
+
+test('un paiement Stripe expiré ne bloque plus de place, même si le webhook « expired » n’est jamais arrivé', async () => {
+  const places = await import('../src/backend/places');
+  const input = await workshop(1); const fake = gateway();
+  const ilYa = (minutes: number) => new Date(Date.now() - minutes * 60_000);
+  const enAttente = await prisma.reservation.create({ data: { ...input, userId: client.id, nom: client.nom, email: client.email, montantCents: 4500, createdAt: ilYa(20) } });
+
+  // Paiement ouvert il y a 20 min : Stripe peut encore l'accepter, la dernière place reste bloquée.
+  assert.equal(await places.placesDisponibles(prisma, input.sessionId), 0);
+  await assert.rejects(bookings.createCheckout(client, input, randomUUID(), fake.client), { status: 409 });
+
+  // Ouvert il y a 40 min : expiré chez Stripe (35 min), aucun événement reçu. La place est libérée partout.
+  await prisma.reservation.update({ where: { id: enAttente.id }, data: { createdAt: ilYa(40) } });
+  assert.equal(await places.placesDisponibles(prisma, input.sessionId), 1);
+  const { experience } = await prisma.session.findUniqueOrThrow({ where: { id: input.sessionId }, include: { experience: true } });
+  assert.equal((await catalogue.experiencePublique(experience.slug))?.sessions[0].placesRestantes, 1);
+  assert.equal((await bookings.createCheckout(client, input, randomUUID(), fake.client)).montantCents, 4500);
+});
