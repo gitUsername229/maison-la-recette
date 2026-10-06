@@ -4,8 +4,6 @@ import { reservationApresPaiement } from "@/backend/comptes/compte";
 import { getStripe } from "@/backend/payments/stripe";
 import { formatDateHeure, formatPrix } from "@/frontend/format";
 
-export const dynamic = "force-dynamic";
-
 type Props = { searchParams: Promise<{ session_id?: string }> };
 
 export default async function ReservationSucces({ searchParams }: Props) {

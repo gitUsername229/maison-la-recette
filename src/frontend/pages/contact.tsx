@@ -31,7 +31,7 @@ export default function Contact({ utilisateur, experiences, experienceId }: Prop
   const [envoi, setEnvoi] = useState(false);
   const [envoyee, setEnvoyee] = useState(false);
 
-  async function envoyer(event: React.FormEvent<HTMLFormElement>) {
+  async function envoyer(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setErreur(null);
     setEnvoi(true);

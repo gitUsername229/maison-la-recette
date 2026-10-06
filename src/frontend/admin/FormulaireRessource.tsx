@@ -58,7 +58,7 @@ export default function FormulaireRessource({ ressource, ligne, onEnregistre, on
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
-  async function enregistrer(event: React.FormEvent<HTMLFormElement>) {
+  async function enregistrer(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const formulaire = new FormData(event.currentTarget);
     // Les photos passent par un champ caché, que le navigateur ne vérifie pas.

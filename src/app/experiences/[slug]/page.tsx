@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import { cache } from 'react';
 import { experiencePublique } from '@/backend/ateliers/catalogue';
 import { utilisateurCourant } from '@/backend/auth/acces-page';
 import Experience from '@/frontend/pages/experience';
-
-export const dynamic = 'force-dynamic';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -18,6 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function Page({ params }: Props) {
+  await connection(); // places restantes lues à chaque requête
   const experience = await charger((await params).slug);
   if (!experience) notFound();
 

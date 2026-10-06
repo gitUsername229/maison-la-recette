@@ -12,7 +12,7 @@ export default function Inscription({ retour }: { retour: string }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
-  async function inscrire(event: React.FormEvent<HTMLFormElement>) {
+  async function inscrire(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     const donnees = new FormData(event.currentTarget);
     const telephone = String(donnees.get('telephone')).trim();

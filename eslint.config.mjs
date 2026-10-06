@@ -7,6 +7,13 @@ export default defineConfig([
   ...nextTypeScript,
   globalIgnores(['.next/**', 'next-env.d.ts']),
   {
+    // Bonnes pratiques : aucune API dépréciée (React, Next.js, Prisma, zod, Better Auth…).
+    // Cette règle a besoin des types : ESLint lit le tsconfig du projet.
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
+    rules: { '@typescript-eslint/no-deprecated': 'error' },
+  },
+  {
     files: ['src/frontend/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', {

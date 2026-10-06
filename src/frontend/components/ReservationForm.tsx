@@ -41,7 +41,7 @@ export default function ReservationForm({ sessions, utilisateur }: Props) {
     );
   }
 
-  async function reserver(event: React.FormEvent<HTMLFormElement>) {
+  async function reserver(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setErreur(null);
     setEnvoi(true);
