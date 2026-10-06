@@ -31,6 +31,10 @@ Conventions :
 | POST | `/api/auth/sign-in/email` | Se connecter | Public |
 | POST | `/api/auth/sign-out` | Se déconnecter | Connecté |
 | GET | `/api/auth/get-session` | Session en cours | Public |
+| POST | `/api/auth/request-password-reset` | Mot de passe oublié : envoie le lien par e-mail (même réponse qu'un compte existe ou non) | Public |
+| POST | `/api/auth/reset-password` | Nouveau mot de passe avec le jeton du lien (valable 1 h, usage unique) | Public |
+| GET | `/api/auth/verify-email?token=` | Lien de vérification de l'adresse (envoyé à l'inscription) | Public |
+| POST | `/api/auth/send-verification-email` | Renvoyer le lien de vérification | Public |
 | GET | `/api/compte` | Mon compte, mes réservations et mes demandes de devis | Connecté |
 | GET | `/api/experiences` | Liste des expériences (`?type=`) | Public |
 | GET | `/api/experiences/[slug]` | Une expérience avec galerie et sessions | Public |
@@ -77,5 +81,8 @@ Conventions :
 
 Le dernier compte admin ne peut être ni rétrogradé ni supprimé (`409`).
 
-**Prévues, pas encore implémentées** : `POST /api/episodes/import` (import du flux RSS Ausha),
-`POST /api/newsletter`, et l'envoi d'e-mails (confirmation de réservation, devis à Julie).
+**E-mails envoyés** (après la réponse, voir `src/backend/mails/`) : confirmation de réservation et information à Julie
+après le webhook de paiement, détail du devis à Julie et accusé au client après `POST /api/devis`, lien de mot de passe
+oublié, lien de vérification à l'inscription.
+
+**Prévues, pas encore implémentées** : `POST /api/episodes/import` (import du flux RSS Ausha) et `POST /api/newsletter`.

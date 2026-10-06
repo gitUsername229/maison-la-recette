@@ -37,6 +37,33 @@ curl -X POST "$BASE/api/auth/sign-in/email" \
 
 Mauvais identifiants : `401` avec `{ "code": "INVALID_EMAIL_OR_PASSWORD" }`.
 
+**Mot de passe oublié** (l'e-mail arrive dans Mailpit en local : http://localhost:8025)
+
+```bash
+curl -X POST "$BASE/api/auth/request-password-reset" \
+  -H "Content-Type: application/json" -H "Origin: $BASE" \
+  -d '{ "email": "camille@example.com", "redirectTo": "/reinitialiser-mot-de-passe" }'
+```
+
+Réponse `200` identique, que l'adresse ait un compte ou non. Le lien de l'e-mail mène à
+`/reinitialiser-mot-de-passe?token=…` (valable 1 h, usage unique), qui appelle :
+
+```bash
+curl -X POST "$BASE/api/auth/reset-password" \
+  -H "Content-Type: application/json" -H "Origin: $BASE" \
+  -d '{ "newPassword": "un-nouveau-mot-de-passe", "token": "JETON_DU_LIEN" }'
+```
+
+Les autres connexions du compte sont fermées. Lien expiré ou déjà utilisé : `400` (`INVALID_TOKEN`).
+
+**Vérification de l'adresse** : un lien est envoyé à l'inscription (valable 24 h). Pour le renvoyer :
+
+```bash
+curl -X POST "$BASE/api/auth/send-verification-email" \
+  -H "Content-Type: application/json" -H "Origin: $BASE" \
+  -d '{ "email": "camille@example.com", "callbackURL": "/compte" }'
+```
+
 **Session en cours** (`null` si personne n'est connecté)
 
 ```bash
@@ -490,8 +517,9 @@ Réponse `201` :
 { "id": 3, "statut": "nouvelle" }
 ```
 
-La demande apparaît dans `/admin/devis` et dans l'espace `/compte` du client. L'e-mail à Julie
-(`MAIL_DEVIS_TO`, Mailpit en local) n'est pas encore envoyé : voir « Reste à faire » dans le README.
+La demande apparaît dans `/admin/devis` et dans l'espace `/compte` du client. Julie (`MAIL_ADMIN_TO`) reçoit le
+détail par e-mail (« répondre à » écrit directement au client) et le client un accusé de réception. En local, les
+deux e-mails arrivent dans Mailpit : http://localhost:8025.
 
 Sans cookie : `401`. Compte sans téléphone et `telephone` absent : `400` avec
 `{ "error": "Indiquez un numéro de téléphone : Julie vous rappelle avant de répondre." }`.

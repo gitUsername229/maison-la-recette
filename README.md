@@ -34,7 +34,9 @@ Dans `.env.local`, avant le seed :
 - `BETTER_AUTH_SECRET` : une longue chaîne aléatoire (`openssl rand -base64 32`), qui signe les sessions ;
 - `ADMIN_EMAIL` et `ADMIN_PASSWORD` (8 caractères minimum) : le seed crée le compte admin avec ces identifiants.
   Ils ne sont jamais écrits dans le code ; le seed ne remplace pas le mot de passe d'un compte existant ;
-- les clés Stripe sandbox pour tester le paiement (voir [docs/stripe.md](docs/stripe.md)).
+- les clés Stripe sandbox pour tester le paiement (voir [docs/stripe.md](docs/stripe.md)) ;
+- les e-mails : `SMTP_HOST`/`SMTP_PORT` (Mailpit en local, voir plus bas) et `MAIL_ADMIN_TO`, la boîte de Julie
+  qui reçoit les devis et les réservations (**adresse fictive en démo**, ex : `julie@exemple.fr`).
 
 Après un `git pull` qui ajoute une migration : `npx prisma migrate dev`, puis `npx prisma db seed`.
 Tests automatiques : `npm test` (base SQLite jetable, n'utilise pas `dev.db`).
@@ -71,19 +73,25 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 - **Espace `/compte`** : les réservations et les demandes de devis du client connecté, et uniquement les siennes.
 - **Administration `/admin`** (rôle admin) : réservations, devis, expériences, sessions, photos (envoi de fichiers),
   épisodes, articles, avis, partenaires et utilisateurs. Le dernier compte admin ne peut être ni rétrogradé ni supprimé.
+- **E-mails** (Nodemailer, Mailpit en local) : confirmation de réservation au client et information à Julie
+  (une seule fois par paiement), demande de devis à Julie et accusé de réception au client, mot de passe oublié
+  (`/mot-de-passe-oublie`) et vérification de l'adresse à l'inscription (non bloquante, rappel dans `/compte`).
+  Envoyés après la réponse ; un échec est journalisé sans rien annuler (`src/backend/mails/`).
+- **Places** : un paiement Stripe expiré ne bloque plus de place, même si l'événement d'expiration n'arrive jamais.
 
 **Reste à faire :**
-1. **E-mails** (Nodemailer + Mailpit) : confirmation au client après paiement, demande de devis envoyée à Julie,
-   mot de passe oublié et vérification de l'adresse e-mail.
-2. Pages publiques podcast, à propos et blog (les API qu'elles utiliseront sont prêtes).
-3. Import des épisodes depuis le flux RSS Ausha (`POST /api/episodes/import`) et inscription à la newsletter.
-4. Contenus réels (photos, textes, liens Ausha) : le seed n'en contient pas de fictifs.
+1. Pages publiques : à propos, blog et studio existent en maquette statique ; les brancher sur les API
+   (avis, partenaires, articles) et créer la page podcast (épisodes).
+2. Import des épisodes depuis le flux RSS Ausha (`POST /api/episodes/import`) et inscription à la newsletter.
+3. Contenus réels (photos, textes, liens Ausha) : le seed n'en contient pas de fictifs.
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
   (« driver adapter »), nouveau générateur `prisma-client` et imports du client à adapter partout.
 - **Cache Components**, nouveau modèle de cache de Next.js 16 (optionnel) : activer `cacheComponents`
   et restructurer les pages (`Suspense`, `"use cache"`).
+- **Renvoyer un e-mail** depuis l'admin (ex : « Renvoyer la confirmation » dans `/admin/reservations`) ;
+  aujourd'hui un envoi échoué est seulement journalisé.
 - **ESLint 10**, dès que la config ESLint de Next.js le supportera (ses plugins `react`, `import` et `jsx-a11y`
   s'arrêtent à ESLint 9, d'où l'avertissement `npm warn deprecated eslint@9` à l'installation).
 
@@ -99,6 +107,9 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 - `/api/checkout` et `/api/devis` prennent le compte dans la session : un `userId` ou un e-mail envoyé par le front est refusé.
 - Un client ne voit que ses propres réservations et demandes (`404` pour celles des autres).
 - Le rôle ne se choisit pas à l'inscription ; seul un admin le modifie.
+- Mot de passe oublié : même réponse qu'un compte existe ou non (aucune adresse révélée), lien valable 1 h
+  et à usage unique, autres connexions fermées après le changement.
+- Les e-mails échappent tout texte saisi (nom, message) : impossible d'y injecter du HTML.
 - Le header `x-admin-key` (`ADMIN_KEY`) remplace la session admin **en développement uniquement**,
   pour les tests curl ([docs/curl-admin.md](docs/curl-admin.md)) ; il est refusé en production (`npm start`).
 
@@ -111,7 +122,7 @@ Dans d'autres terminaux :
 # Confirmations de paiement Stripe
 stripe listen --events checkout.session.completed,checkout.session.expired,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to localhost:3000/api/webhook
 
-# Boîte mail locale qui reçoit les e-mails de devis : http://localhost:8025
+# Boîte mail locale (Mailpit) : tous les e-mails du site arrivent sur http://localhost:8025, rien ne part réellement
 docker run --rm -p 8025:8025 -p 1025:1025 axllent/mailpit
 ```
 
@@ -137,7 +148,7 @@ Tout tourne en local sur `http://localhost:3000`.
 | Base de données | **SQLite + Prisma** | Un simple fichier, rien à installer, même structure pour toute l'équipe |
 | Images | **Dossier `public/images/`** + chemins stockés en base (table `Image` pour les galeries) | Pas d'hébergement externe, les images sont servies par Next.js |
 | Paiement | **Stripe Checkout (sandbox)** | Paiement simulé, gratuit, carte de test `4242 4242 4242 4242`. Seulement pour les expériences réservables en ligne |
-| E-mails | **Nodemailer + Mailpit** | Chaque demande de devis est envoyée par e-mail à Julie ; en local, Mailpit capture les e-mails sans rien envoyer |
+| E-mails | **Nodemailer + Mailpit** | Réservations, devis, mot de passe oublié, vérification d'adresse ; en local, Mailpit capture les e-mails sans rien envoyer. En production, il suffit de changer `SMTP_*` |
 | Podcast | **Flux RSS Ausha** importé dans la table `Episode` + lecteur intégré Ausha | Pas de double saisie : les audios restent chez Ausha, seuls les liens et métadonnées sont en base |
 | Comptes | **Better Auth** + argon2id (`@node-rs/argon2`) | Librairie reconnue : inscription, connexion, sessions en base et cookie httpOnly, sans authentification faite maison |
 | Admin | **Interface `/admin` réservée au rôle admin** + clé `x-admin-key` pour les devs (développement uniquement) | Julie gère le site seule, sans toucher au code (voir plus bas) |
@@ -205,9 +216,16 @@ BETTER_AUTH_SECRET=remplacer-par-une-longue-chaine-aleatoire
 ADMIN_EMAIL=admin@exemple.fr
 ADMIN_PASSWORD=remplacer-par-un-mot-de-passe-solide
 ADMIN_KEY=remplacer-par-une-cle-locale-aleatoire   # x-admin-key, développement uniquement
-```
 
-Prévues avec les e-mails et l'import Ausha : `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM`, `MAIL_DEVIS_TO`, `AUSHA_RSS_URL`.
+SMTP_HOST=localhost          # Mailpit en local ; sans SMTP_HOST, e-mails seulement annoncés dans le terminal
+SMTP_PORT=1025
+SMTP_USER=                   # vides avec Mailpit, identifiants d'un vrai fournisseur en production
+SMTP_PASSWORD=
+MAIL_FROM="Maison La recette <site@maison-la-recette.local>"
+MAIL_ADMIN_TO=julie@exemple.fr   # boîte de Julie (devis, réservations) : adresse fictive en démo
+
+AUSHA_RSS_URL=https://feed.ausha.co/xxxxxxxx   # prévue pour l'import des épisodes
+```
 
 Exclusions déjà configurées dans `.gitignore` :
 

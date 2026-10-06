@@ -189,7 +189,7 @@ Un compte, créé par l'inscription (`/inscription`) ou par le seed pour l'admin
 | `id` | String | Clé primaire (générée par Better Auth) |
 | `nom` | String | Champ `name` de Better Auth, stocké dans la colonne `nom` |
 | `email` | String | Unique, en minuscules |
-| `emailVerified` | Boolean | Non utilisé pour l'instant (pas d'e-mail de vérification) |
+| `emailVerified` | Boolean | `true` après un clic sur le lien envoyé à l'inscription (non bloquant pour réserver) |
 | `image` | String? | Champ de Better Auth, non utilisé |
 | `telephone` | String? | Optionnel |
 | `role` | String | `client` (par défaut) ou `admin`. Impossible à choisir à l'inscription : seul un admin peut le changer |
@@ -208,7 +208,7 @@ Le dernier compte `admin` ne peut être ni supprimé ni rétrogradé.
 |---|---|
 | `AuthSession` | Une connexion active : `token` (dans le cookie httpOnly), `expiresAt`, `ipAddress`, `userAgent`, `userId` |
 | `AuthAccount` | Une méthode de connexion d'un compte : `providerId` (`credential`), `password` (haché), jetons OAuth inutilisés |
-| `AuthVerification` | Jetons temporaires (vérification d'e-mail, réinitialisation), inutilisés pour l'instant |
+| `AuthVerification` | Jetons temporaires : réinitialisation du mot de passe (1 h, usage unique) |
 
 Elles s'appellent `Auth…` pour ne pas entrer en conflit avec `Session` (les dates des expériences).
 Ne pas les modifier à la main : elles suivent le format imposé par Better Auth.

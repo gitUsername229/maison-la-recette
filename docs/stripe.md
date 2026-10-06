@@ -177,9 +177,14 @@ npx prisma studio   # la réservation est "payee" et placesPrises a augmenté
 - Ouvrir `/reservation/succes?session_id=…` d'une réservation avec le compte d'un autre client : « Réservation introuvable ».
 - Revenir depuis Stripe : retour sur `/reservation/annule`, puis réservation `annulee` après expiration Stripe ou annulation admin.
 - Payer la dernière place : la session passe à `complete` et disparaît du formulaire.
-- Couper `stripe listen` puis payer : la page de succès affiche quand même « Votre place est réservée » (vérification directe auprès de Stripe), mais la base n'est pas mise à jour. **Toujours lancer `stripe listen` pendant la démo.**
+- Couper `stripe listen` puis payer : la page de succès affiche quand même « Votre place est réservée » (vérification directe auprès de Stripe), mais la base n'est pas mise à jour et l'e-mail de confirmation ne part pas. **Toujours lancer `stripe listen` pendant la démo.**
+
+## E-mails
+
+Quand le webhook confirme un paiement, le client reçoit sa confirmation et Julie (`MAIL_ADMIN_TO`) une information,
+une seule fois même si Stripe renvoie l'événement (`src/backend/mails/notifications.ts`). En local, ils arrivent dans
+Mailpit : http://localhost:8025.
 
 ## Reste à faire
 
-- Envoi de l'e-mail de confirmation au client et à Julie (voir le `TODO` dans `src/app/api/webhook/route.ts`, avec Nodemailer + Mailpit).
 - Style du formulaire et des pages de retour selon les maquettes de la DA.
