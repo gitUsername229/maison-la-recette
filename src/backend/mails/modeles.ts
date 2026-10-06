@@ -124,3 +124,28 @@ export function accuseDevis(d: DevisMail): Mail {
     lien: { texte: 'Suivre mes demandes', url: urlDuSite('/compte') },
   });
 }
+
+// --- Comptes (envoyés par Better Auth)
+
+export function motDePasseOublie(nom: string, email: string, url: string): Mail {
+  return composer(email, 'Choisir un nouveau mot de passe', {
+    titre: 'Nouveau mot de passe',
+    paragraphes: [
+      `Bonjour ${nom},`,
+      'Vous avez demandé à changer le mot de passe de votre compte Maison La recette. Ce lien est valable 1 heure.',
+      'Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot de passe ne change pas.',
+    ],
+    lien: { texte: 'Choisir un nouveau mot de passe', url },
+  });
+}
+
+export function verificationAdresse(nom: string, email: string, url: string): Mail {
+  return composer(email, 'Confirmez votre adresse e-mail', {
+    titre: 'Bienvenue !',
+    paragraphes: [
+      `Bonjour ${nom},`,
+      'Votre compte Maison La recette est créé. Confirmez votre adresse e-mail : c’est elle qui recevra vos confirmations de réservation. Ce lien est valable 24 heures.',
+    ],
+    lien: { texte: 'Confirmer mon adresse', url },
+  });
+}

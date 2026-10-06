@@ -39,6 +39,8 @@ export default function Connexion({retour}: { retour: string }) {
                 <Champ libelle="E-mail" name="email" type="email" autoComplete="email" required/>
                 <Champ libelle="Mot de passe" name="motDePasse" type="password" autoComplete="current-password"
                        required/>
+                <Link href="/mot-de-passe-oublie" className="-mt-2 text-sm text-stone-600 underline">Mot de passe
+                    oublié ?</Link>
                 {erreur && <p role="alert" className={classeErreur}>{erreur}</p>}
                 <button type="submit" disabled={envoi}
                         className={classeBouton}>{envoi ? 'Connexion…' : 'Se connecter'}</button>

@@ -10,6 +10,7 @@ export type Utilisateur = {
   nom: string;
   email: string;
   telephone: string | null;
+  emailVerifie: boolean;
   role: Role;
 };
 
@@ -23,8 +24,8 @@ const MESSAGES_REFUS = {
 async function lireUtilisateur(entetes: Headers): Promise<Utilisateur | null> {
   const session = await auth.api.getSession({ headers: entetes });
   if (!session) return null;
-  const { id, name, email, telephone, role } = session.user;
-  return { id, nom: name, email, telephone: telephone ?? null, role: role === 'admin' ? 'admin' : 'client' };
+  const { id, name, email, emailVerified, telephone, role } = session.user;
+  return { id, nom: name, email, telephone: telephone ?? null, emailVerifie: emailVerified, role: role === 'admin' ? 'admin' : 'client' };
 }
 
 /** Seul contrôle d'accès du site : session valide, puis rôle suffisant. */

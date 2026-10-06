@@ -14,6 +14,7 @@ let modeles: typeof import('../src/backend/mails/modeles');
 let prisma: PrismaClient;
 let handlers: typeof import('../src/backend/ateliers/payment-handlers');
 let devis: typeof import('../src/backend/ateliers/devis');
+let auth: typeof import('../src/backend/auth/auth').auth;
 
 /** Transport Nodemailer en mémoire : les e-mails « envoyés » sont gardés dans `envoyes`. */
 function transportMemoire() {
@@ -34,6 +35,7 @@ before(async () => {
   ({ prisma } = await import('../src/backend/db/prisma'));
   handlers = await import('../src/backend/ateliers/payment-handlers');
   devis = await import('../src/backend/ateliers/devis');
+  ({ auth } = await import('../src/backend/auth/auth'));
   envoi.utiliserTransport(transportMemoire());
 });
 
@@ -94,6 +96,8 @@ test('un paiement confirmé envoie la confirmation au client et l’information 
 
 test('une demande de devis envoie le détail à Julie (réponse directe au client) et un accusé, sans HTML injecté', async () => {
   const { cookie } = await inscrire('devis-mail@example.com', '0600000002');
+  await envoi.attendreLesEnvois();
+  envoyes.length = 0; // l'e-mail de vérification de l'inscription n'est pas l'objet du test
   const message = '<img src=x onerror=alert(1)> Team building';
   const reponse = await devis.createDevis(requete('/api/devis', { cookie, methode: 'POST', corps: { entreprise: 'Acme', typeDemande: 'evenement', lieuSouhaite: 'a_proximite', message } }));
   assert.equal(reponse.status, 201);
@@ -120,4 +124,44 @@ test('un serveur SMTP en panne n’empêche pas d’enregistrer le paiement', as
   } finally {
     envoi.utiliserTransport(transportMemoire());
   }
+});
+
+/** Appel d'une route Better Auth (/api/auth/…), comme le ferait le navigateur. */
+function routeAuth(chemin: string, corps?: unknown) {
+  return auth.handler(new Request(`${BASE}/api/auth${chemin}`, corps === undefined
+    ? { headers: { origin: BASE } }
+    : { method: 'POST', headers: { 'content-type': 'application/json', origin: BASE }, body: JSON.stringify(corps) }));
+}
+
+const lienDuMail = (mail: Envoye) => mail.text.match(/https?:\/\/\S+/)![0];
+
+test('mot de passe oublié : lien par e-mail, nouveau mot de passe accepté, ancien refusé, aucune fuite sur les adresses', async () => {
+  await inscrire('oubli@example.com');
+  await envoi.attendreLesEnvois();
+  envoyes.length = 0;
+
+  const demander = (email: string) => routeAuth('/request-password-reset', { email, redirectTo: '/reinitialiser-mot-de-passe' });
+  const connu = await demander('oubli@example.com');
+  const inconnu = await demander('personne@example.com');
+  assert.equal(connu.status, 200);
+  assert.deepEqual([inconnu.status, await inconnu.json()], [200, await connu.json()]);
+  await envoi.attendreLesEnvois();
+  assert.deepEqual(envoyes.map(m => m.to), ['oubli@example.com']);
+
+  const token = lienDuMail(envoyes[0]).match(/reset-password\/([^?\s]+)/)![1];
+  assert.equal((await routeAuth('/reset-password', { newPassword: 'nouveau-motdepasse', token })).status, 200);
+  assert.equal((await routeAuth('/sign-in/email', { email: 'oubli@example.com', password: 'motdepasse-de-test' })).status, 401);
+  assert.equal((await routeAuth('/sign-in/email', { email: 'oubli@example.com', password: 'nouveau-motdepasse' })).status, 200);
+  assert.equal((await routeAuth('/reset-password', { newPassword: 'encore-un-autre', token })).status, 400); // lien à usage unique
+});
+
+test('l’inscription envoie un lien qui vérifie l’adresse e-mail', async () => {
+  const { id } = await inscrire('verif@example.com');
+  await envoi.attendreLesEnvois();
+  const mail = envoyes.find(m => m.to === 'verif@example.com' && /Confirmez/.test(m.subject))!;
+  assert.equal((await prisma.user.findUniqueOrThrow({ where: { id } })).emailVerified, false);
+
+  const lien = new URL(lienDuMail(mail));
+  await auth.handler(new Request(lien, { headers: { origin: BASE } }));
+  assert.equal((await prisma.user.findUniqueOrThrow({ where: { id } })).emailVerified, true);
 });

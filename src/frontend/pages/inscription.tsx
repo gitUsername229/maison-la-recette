@@ -22,6 +22,7 @@ export default function Inscription({ retour }: { retour: string }) {
       name: String(donnees.get('nom')).trim(),
       email: String(donnees.get('email')).trim(),
       password: String(donnees.get('motDePasse')),
+      callbackURL: '/compte', // page ouverte après le clic sur le lien de vérification
       ...(telephone ? { telephone } : {}),
     });
     if (error) {

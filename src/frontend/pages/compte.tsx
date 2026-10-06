@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Pastille from '@/frontend/components/Pastille';
+import RappelVerification from '@/frontend/components/RappelVerification';
 import { formatDate, formatDateHeure, formatPrix, libelle, STATUTS_DEVIS, STATUTS_RESERVATION, TYPES_DEVIS } from '@/frontend/format';
 
 export type ReservationCompte = {
@@ -22,18 +23,20 @@ export type DevisCompte = {
 };
 
 type Props = {
-  utilisateur: { nom: string; email: string; telephone: string | null };
+  utilisateur: { nom: string; email: string; telephone: string | null; emailVerifie: boolean };
+  lienExpire: boolean; // retour d'un lien de vérification expiré
   reservations: ReservationCompte[];
   demandesDevis: DevisCompte[];
 };
 
 const classeCarte = 'rounded-xl bg-white p-4 ring-1 ring-stone-200';
 
-export default function Compte({ utilisateur, reservations, demandesDevis }: Props) {
+export default function Compte({ utilisateur, lienExpire, reservations, demandesDevis }: Props) {
   return (
     <main className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
       <h1 className="font-serif text-4xl sm:text-5xl">Mon compte</h1>
       <p className="mt-3 text-stone-600">{utilisateur.nom} · {utilisateur.email}{utilisateur.telephone && ` · ${utilisateur.telephone}`}</p>
+      {!utilisateur.emailVerifie && <RappelVerification email={utilisateur.email} lienExpire={lienExpire} />}
 
       <section className="mt-12">
         <h2 className="font-serif text-2xl">Mes réservations</h2>

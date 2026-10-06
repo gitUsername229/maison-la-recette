@@ -238,6 +238,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     colonnes: [
       { libelle: 'Nom', chemin: 'nom', complements: ['email', 'telephone'] },
       { libelle: 'Rôle', chemin: 'role', libelles: ROLES },
+      { libelle: 'E-mail vérifié', chemin: 'emailVerified', format: 'booleen' },
       { libelle: 'Réservations', chemin: '_count.reservations' },
       { libelle: 'Devis', chemin: '_count.demandesDevis' },
       { libelle: 'Inscrit le', chemin: 'createdAt', format: 'date' },

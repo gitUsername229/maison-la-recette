@@ -33,7 +33,7 @@ export const listUtilisateurs = endpoint(async (request: Request) => {
   await exigerAdmin(request);
   return json(await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
-    select: { id: true, nom: true, email: true, telephone: true, role: true, createdAt: true, _count: { select: { reservations: true, demandesDevis: true } } },
+    select: { id: true, nom: true, email: true, emailVerified: true, telephone: true, role: true, createdAt: true, _count: { select: { reservations: true, demandesDevis: true } } },
   }));
 });
 
