@@ -23,7 +23,7 @@ cd maison-la-recette
 npm install
 cp .env.example .env.local      # puis remplir les clés (voir ci-dessous)
 npx prisma migrate dev          # crée la base SQLite
-npx prisma db seed              # données de démo + compte admin
+npx prisma db seed              # données de démo, compte admin, textes des pages
 npm run dev                     # http://localhost:3000
 ```
 
@@ -63,7 +63,8 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 ### État du projet
 
 **En place :**
-- Next.js, React, TypeScript, Tailwind, Prisma (SQLite) ; seed de trois expériences avec sessions et du compte admin.
+- Next.js, React, TypeScript, Tailwind, Prisma (SQLite) ; seed de trois expériences avec sessions, du compte admin
+  et des textes des pages (textes d'origine).
 - **Comptes** ([Better Auth](https://www.better-auth.com)) : inscription, connexion, déconnexion (`/inscription`, `/connexion`),
   mots de passe hachés en argon2id, session en cookie httpOnly. Rôles `client` et `admin`.
 - **Site public sans compte**, alimenté par l'admin (un changement apparaît aussitôt) : accueil (avis, galerie,
@@ -86,10 +87,8 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 - **Places** : un paiement Stripe expiré ne bloque plus de place, même si l'événement d'expiration n'arrive jamais.
 
 **Reste à faire :**
-1. Contenus réels (photos, articles, avis, partenaires) : Julie les saisit dans `/admin` ; le seed n'en contient pas
-   de fictifs. Les épisodes, eux, viennent d'Ausha.
-2. Textes fixes des pages (présentation de l'accueil, mission dans « À propos », page studio) : écrits dans le code.
-   Si Julie doit les changer elle-même, ajouter une rubrique « Textes des pages » dans l'admin.
+1. Contenus réels (photos, articles, avis, partenaires, textes des pages) : Julie les saisit dans `/admin` ; le seed
+   ne contient pas de contenus fictifs. Les épisodes, eux, viennent d'Ausha.
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
@@ -197,6 +196,7 @@ admin à un autre compte dans `/admin/utilisateurs`. Un client qui ouvre `/admin
 | `/admin/devis` | Voir la fiche d'une demande, changer son statut, ajouter une note interne (jamais vue par le client), la supprimer |
 | `/admin/experiences` | Créer, modifier, masquer ou afficher une expérience, choisir « réservable en ligne » ou « sur devis ». Une expérience qui a des sessions ne se supprime pas : l'admin propose de la masquer |
 | `/admin/sessions` | Ajouter des dates, les modifier, fermer ou rouvrir une session. Une session réservée ne se supprime pas (l'admin propose de la fermer) et ses places ne descendent pas sous les places réservées |
+| `/admin/textes` | Modifier les titres, paragraphes et boutons de l'accueil, d'« À propos » et du studio (filtre par page), ou remettre le texte d'origine. Les liens et la mise en page restent fixes |
 | `/admin/photos` | Envoyer, modifier ou supprimer une photo (le fichier est effacé du disque), choisir sa page dans une liste, sa description et son ordre |
 | `/admin/episodes` | Importer depuis Ausha, changer le type (complet, extrait, replay), modifier le résumé, l'invité et les liens, supprimer (un épisode supprimé revient au prochain import) |
 | `/admin/articles` | Écrire (mise en forme Markdown), publier ou dépublier, supprimer un article du blog |

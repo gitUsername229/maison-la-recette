@@ -442,6 +442,33 @@ une couverture ou une photo de partenaire remplacée ou supprimée)
 curl -X DELETE "$BASE/api/images/2" -H "x-admin-key: $ADMIN_KEY"
 ```
 
+## Admin : textes des pages
+
+Les emplacements (titre, paragraphes, boutons de l'accueil, d'À propos et du studio) sont fixés dans
+`src/backend/contenus/textes-par-defaut.ts` : on modifie leur texte, on ne les crée ni ne les supprime.
+
+**Voir les textes** (avec l'accès admin, les emplacements absents de la base y sont créés avec leur texte d'origine)
+
+```bash
+curl "$BASE/api/textes?page=accueil" -H "x-admin-key: $ADMIN_KEY"
+```
+
+**Modifier un texte** (seul champ accepté : `texte`)
+
+```bash
+curl -X PUT "$BASE/api/textes/2" \
+  -H "x-admin-key: $ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "texte": "Maison La recette, à La Rochelle" }'
+```
+
+Règles : un titre ou un bouton tient sur une ligne (les retours à la ligne deviennent des espaces), un paragraphe
+garde les siens. Longueur maximale : 120 caractères pour un titre, 1000 pour un paragraphe, 40 pour un bouton.
+Texte vide : `400` avec `{ "champ": "texte", "message": "Champ obligatoire." }` dans `details`, sauf pour un texte
+facultatif (la mention en bas de l'accueil), qui n'est alors plus affiché.
+
+**Remettre le texte d'origine** : renvoyer `texteOrigine`, lu dans la liste.
+
 ## Admin : newsletter
 
 **Voir les inscrits** (les plus récents d'abord)

@@ -382,6 +382,29 @@ Réponse `200` (triée par `ordre`) :
 ]
 ```
 
+## Textes des pages
+
+**Textes d'une page** (`accueil`, `a-propos` ou `studio`), dans l'ordre de la page
+
+```bash
+curl "$BASE/api/textes?page=studio"
+```
+
+Réponse `200` (extrait) :
+
+```json
+[
+  {
+    "id": 30, "page": "studio", "cle": "titre", "libelle": "Titre principal", "format": "titre",
+    "facultatif": false, "longueurMax": 120, "texte": "Studio de production",
+    "texteOrigine": "Studio de production", "modifie": false, "updatedAt": "2026-10-06T15:20:00.000Z"
+  }
+]
+```
+
+Page inconnue : `400` avec `{ "error": "Page inconnue : accueil, a-propos ou studio." }`.
+Les pages du site lisent ces textes directement côté serveur ; un texte absent de la base affiche son texte d'origine.
+
 ## Newsletter
 
 **S'inscrire** (sans compte ; l'adresse est enregistrée en minuscules, sans espaces)
@@ -551,15 +574,3 @@ deux e-mails arrivent dans Mailpit : http://localhost:8025.
 
 Sans cookie : `401`. Compte sans téléphone et `telephone` absent : `400` avec
 `{ "error": "Indiquez un numéro de téléphone : Julie vous rappelle avant de répondre." }`.
-
-## Newsletter
-
-Prévue, pas encore implémentée.
-
-```bash
-curl -X POST "$BASE/api/newsletter" \
-  -H "Content-Type: application/json" \
-  -d '{ "email": "camille@example.com" }'
-```
-
-Réponse `201` : `{ "ok": true }`. E-mail déjà inscrit : `409`.

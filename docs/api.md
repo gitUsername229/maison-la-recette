@@ -49,6 +49,7 @@ Conventions :
 | GET | `/api/articles` | Articles publiés du blog (`?limit=`) | Public |
 | GET | `/api/articles/[slug]` | Un article du blog | Public |
 | GET | `/api/images?page=` | Galerie photos d'une page | Public |
+| GET | `/api/textes?page=` | Textes fixes d'une page (`accueil`, `a-propos`, `studio`), avec leur texte d'origine | Public |
 | POST | `/api/checkout` | Réserver et payer (expériences réservables en ligne) | Connecté |
 | GET | `/api/reservations?session_id=` | Réservation après paiement | Connecté (propriétaire) |
 | POST | `/api/webhook` | Confirmation de paiement Stripe | Stripe |
@@ -82,6 +83,7 @@ Conventions :
 | PUT | `/api/images/[id]` | Modifier le texte alternatif, la page ou l'ordre | Admin |
 | DELETE | `/api/images/[id]` | Retirer une photo de galerie (le fichier est effacé du disque) | Admin |
 | POST | `/api/newsletter` | S'inscrire à la newsletter (même réponse si l'adresse était déjà inscrite) | Public |
+| PUT | `/api/textes/[id]` | Modifier un texte des pages (`{ "texte": "…" }` ; longueur et caractère obligatoire selon l'emplacement) | Admin |
 | GET | `/api/newsletter` | Lister les inscrits | Admin |
 | PUT | `/api/newsletter/[id]` | Corriger une adresse | Admin |
 | DELETE | `/api/newsletter/[id]` | Désinscrire une adresse | Admin |

@@ -14,6 +14,7 @@
 | `Partenaire` | Un producteur ou artisan partenaire |
 | `Image` | Une photo de galerie, rattachée à une page du site |
 | `Newsletter` | Un e-mail inscrit à la newsletter |
+| `TextePage` | Un texte fixe de l'accueil, d'À propos ou du studio (titre, paragraphe, bouton), modifiable par Julie |
 | `User` | Un compte (client ou admin) |
 | `AuthSession`, `AuthAccount`, `AuthVerification` | Tables techniques de Better Auth : sessions de connexion, mot de passe haché, jetons |
 
@@ -185,6 +186,20 @@ du disque quand plus aucune ligne n'y fait référence (`Image.url`, `Experience
 | `id` | Int | Clé primaire |
 | `email` | String | Unique, enregistré en minuscules. Inscription depuis l'accueil, gestion dans `/admin/newsletter` |
 | `createdAt` | DateTime | Date d'inscription |
+
+## `TextePage`
+
+| Colonne | Type | Détail |
+|---|---|---|
+| `id` | Int | Clé primaire |
+| `page` | String | `accueil`, `a-propos` ou `studio` |
+| `cle` | String | Emplacement dans la page, ex : `titre`, `introduction`, `bouton`. Unique avec `page` |
+| `texte` | String | Texte affiché, modifiable dans `/admin/textes` |
+| `updatedAt` | DateTime | Dernière modification |
+
+Les emplacements, leur libellé, leur forme (titre, paragraphe, bouton) et leur texte d'origine sont définis dans
+`src/backend/contenus/textes-par-defaut.ts`. Le seed crée les textes absents sans jamais remplacer un texte modifié ;
+une page affiche le texte d'origine d'un emplacement qui n'est pas encore en base.
 
 ## `User`
 
