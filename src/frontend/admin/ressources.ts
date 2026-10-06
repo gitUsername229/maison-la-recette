@@ -348,6 +348,18 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     ],
     creation: false, methodeModification: 'PATCH', suppression: true,
   },
+  {
+    cle: 'newsletter', titre: 'Newsletter', singulier: 'une adresse', api: '/api/newsletter',
+    textes: { enregistre: 'Adresse enregistrée', supprime: 'Adresse désinscrite' },
+    designation: ligne => `l’adresse ${String(ligne.email)} de la newsletter`,
+    description: 'Les adresses inscrites depuis l’accueil du site. Ajoutez-en une à la main, ou supprimez celle d’une personne qui demande à être désinscrite.',
+    colonnes: [
+      { libelle: 'E-mail', chemin: 'email' },
+      { libelle: 'Inscrite le', chemin: 'createdAt', format: 'date' },
+    ],
+    champs: [{ nom: 'email', libelle: 'Adresse e-mail', type: 'texte', requis: true }],
+    methodeModification: 'PUT', suppression: true,
+  },
 ];
 
 export const ressourceAdmin = (cle: string) => RESSOURCES_ADMIN.find(r => r.cle === cle);

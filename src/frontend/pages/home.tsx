@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Galerie, { type PhotoGalerie } from '@/frontend/components/Galerie';
+import InscriptionNewsletter from '@/frontend/components/InscriptionNewsletter';
 import ListeAvis, { type AvisAffiche } from '@/frontend/components/ListeAvis';
 
 const univers = [
@@ -28,6 +29,7 @@ export default function Home({ avis, photos }: { avis: AvisAffiche[]; photos: Ph
       </div>
       <ListeAvis avis={avis} />
       <Galerie photos={photos} />
+      <InscriptionNewsletter />
       <p className="mt-16 text-sm text-stone-500">Le site est en préparation.</p>
     </main>
   );

@@ -13,6 +13,7 @@ let devis: typeof import('../src/backend/ateliers/devis');
 let contenus: typeof import('../src/backend/contenus/contenus');
 let images: typeof import('../src/backend/contenus/images');
 let compte: typeof import('../src/backend/comptes/compte');
+let newsletter: typeof import('../src/backend/contenus/newsletter');
 
 before(async () => {
   nettoyer = await preparerBaseDeTest();
@@ -22,6 +23,7 @@ before(async () => {
   contenus = await import('../src/backend/contenus/contenus');
   images = await import('../src/backend/contenus/images');
   compte = await import('../src/backend/comptes/compte');
+  newsletter = await import('../src/backend/contenus/newsletter');
 });
 
 after(async () => {
@@ -105,4 +107,17 @@ test('photo remplacée : l’ancien fichier est supprimé du disque', async () =
   } finally {
     await Promise.all(['test-ancienne.png', 'test-nouvelle.png'].map(f => rm(join(dossier, f), { force: true })));
   }
+});
+
+test('newsletter : inscription publique sans révéler les abonnés ; liste et suppression réservées à l’admin', async () => {
+  const inscrire = () => newsletter.inscrire(requete('/api/newsletter', { methode: 'POST', corps: { email: ' Lecteur@Example.com ' } }));
+  const [premiere, seconde] = [await inscrire(), await inscrire()];
+  assert.deepEqual([premiere.status, seconde.status], [201, 201]);
+  assert.deepEqual(await premiere.json(), await seconde.json()); // même réponse : on ne sait pas si l'adresse était déjà inscrite
+  assert.equal(await prisma.newsletter.count({ where: { email: 'lecteur@example.com' } }), 1);
+
+  assert.equal((await newsletter.lister(requete('/api/newsletter'))).status, 401);
+  const { id } = await prisma.newsletter.findUniqueOrThrow({ where: { email: 'lecteur@example.com' } });
+  assert.equal((await newsletter.supprimer(admin(`/api/newsletter/${id}`, 'DELETE'), avecId(id))).status, 200);
+  assert.equal(await prisma.newsletter.count(), 0);
 });
