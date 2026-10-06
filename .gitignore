@@ -77,6 +77,8 @@ web_modules/
 # Next.js build output
 .next
 out
+# Régénéré par next dev / next build (chemins différents selon la commande)
+next-env.d.ts
 
 # Nuxt.js build / generate output
 .nuxt
