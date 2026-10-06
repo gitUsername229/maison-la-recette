@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import '@/frontend/styles/globals.css';
+import EnTete from '@/frontend/components/EnTete';
 
 export const metadata: Metadata = {
   title: 'Maison La recette',
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="fr"><body>{children}</body></html>;
+  return <html lang="fr"><body><EnTete />{children}</body></html>;
 }

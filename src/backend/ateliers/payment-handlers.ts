@@ -2,7 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { prisma } from '@/backend/db/prisma';
-import { requireAdmin } from '@/backend/auth/admin';
+import { exigerAdmin } from '@/backend/auth/acces';
 import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
 import { getStripe } from '@/backend/payments/stripe';
 import { checkoutSchema, cancellationSchema } from './validation';
@@ -43,14 +43,14 @@ export const listReservations = endpoint(async (request: Request) => {
     if (!reservation) throw new ApiError(404, 'Réservation introuvable');
     return json({ ...reservation, session: { ...reservation.session, experience: reservation.session.experience.titre } });
   }
-  const denied = requireAdmin(request); if (denied) return denied;
+  await exigerAdmin(request);
   const statut = params.get('statut');
   if (statut && !['en_attente', 'payee', 'annulee'].includes(statut)) throw new ApiError(400, 'Statut invalide');
   return json(await prisma.reservation.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' }, select: { id: true, sessionId: true, nom: true, email: true, telephone: true, nbPersonnes: true, montantCents: true, statut: true, stripeSessionId: true, createdAt: true } }));
 });
 
 export const cancel = endpoint(async (request: Request, context: RouteContext) => {
-  const denied = requireAdmin(request); if (denied) return denied;
+  await exigerAdmin(request);
   cancellationSchema.parse(await request.json());
   return json(await cancelReservation(positiveId((await context.params).id)));
 });

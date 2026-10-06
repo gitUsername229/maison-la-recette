@@ -1,6 +1,6 @@
 import 'server-only';
 import { prisma } from '@/backend/db/prisma';
-import { requireAdmin } from '@/backend/auth/admin';
+import { exigerAdmin } from '@/backend/auth/acces';
 import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
 import { experienceSchema, experienceUpdateSchema, sessionSchema, sessionUpdateSchema } from './validation';
 import { lockSession, pendingSeats } from './inventory';
@@ -32,12 +32,12 @@ export const getExperience = endpoint(async (_request: Request, context: RouteCo
 });
 
 export const createExperience = endpoint(async (request: Request) => {
-  const denied = requireAdmin(request); if (denied) return denied;
+  await exigerAdmin(request);
   return json(await prisma.experience.create({ data: experienceSchema.parse(await request.json()) }), 201);
 });
 
 export const updateExperience = endpoint(async (request: Request, context: RouteContext) => {
-  const denied = requireAdmin(request); if (denied) return denied;
+  await exigerAdmin(request);
   const id = positiveId((await context.params).id);
   const data = experienceUpdateSchema.parse(await request.json());
   return json(await prisma.$transaction(async tx => {
@@ -48,7 +48,7 @@ export const updateExperience = endpoint(async (request: Request, context: Route
 });
 
 export const deleteExperience = endpoint(async (request: Request, context: RouteContext) => {
-  const denied = requireAdmin(request); if (denied) return denied;
+  await exigerAdmin(request);
   await prisma.experience.delete({ where: { id: positiveId((await context.params).id) } });
   return json({ ok: true });
 });
@@ -63,7 +63,7 @@ export const listSessions = endpoint(async (request: Request) => {
 });
 
 export const createSession = endpoint(async (request: Request) => {
-  const denied = requireAdmin(request); if (denied) return denied;
+  await exigerAdmin(request);
   const data = sessionSchema.parse(await request.json());
   if (data.dateDebut <= new Date() || data.dateFin <= data.dateDebut) throw new ApiError(400, 'Dates de session invalides');
   return json(await prisma.$transaction(async tx => {
@@ -74,7 +74,7 @@ export const createSession = endpoint(async (request: Request) => {
 });
 
 export const updateSession = endpoint(async (request: Request, context: RouteContext) => {
-  const denied = requireAdmin(request); if (denied) return denied;
+  await exigerAdmin(request);
   const id = positiveId((await context.params).id);
   const data = sessionUpdateSchema.parse(await request.json());
   return json(await prisma.$transaction(async tx => {
@@ -89,7 +89,7 @@ export const updateSession = endpoint(async (request: Request, context: RouteCon
 });
 
 export const deleteSession = endpoint(async (request: Request, context: RouteContext) => {
-  const denied = requireAdmin(request); if (denied) return denied;
+  await exigerAdmin(request);
   await prisma.session.delete({ where: { id: positiveId((await context.params).id) } });
   return json({ ok: true });
 });
