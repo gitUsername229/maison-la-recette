@@ -77,13 +77,16 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
   (une seule fois par paiement), demande de devis à Julie et accusé de réception au client, mot de passe oublié
   (`/mot-de-passe-oublie`) et vérification de l'adresse à l'inscription (non bloquante, rappel dans `/compte`).
   Envoyés après la réponse ; un échec est journalisé sans rien annuler (`src/backend/mails/`).
+- **Podcast** (`/podcast`) : les 101 épisodes de « la recette » importés depuis le flux Ausha (bouton dans
+  `/admin/episodes`), classés en épisodes complets (affichés par défaut), extraits et replays, groupés par saison,
+  avec lecteur Ausha et liens d'écoute de l'émission (`src/backend/podcast/emission.ts`).
 - **Places** : un paiement Stripe expiré ne bloque plus de place, même si l'événement d'expiration n'arrive jamais.
 
 **Reste à faire :**
 1. Pages publiques : à propos, blog et studio existent en maquette statique ; les brancher sur les API
-   (avis, partenaires, articles) et créer la page podcast (épisodes).
-2. Import des épisodes depuis le flux RSS Ausha (`POST /api/episodes/import`) et inscription à la newsletter.
-3. Contenus réels (photos, textes, liens Ausha) : le seed n'en contient pas de fictifs.
+   (avis, partenaires, articles).
+2. Inscription à la newsletter (`POST /api/newsletter`).
+3. Contenus réels (photos, textes) : le seed n'en contient pas de fictifs. Les épisodes, eux, viennent d'Ausha.
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
@@ -126,7 +129,9 @@ stripe listen --events checkout.session.completed,checkout.session.expired,check
 docker run --rm -p 8025:8025 -p 1025:1025 axllent/mailpit
 ```
 
-Les épisodes du podcast se saisissent pour l'instant dans `/admin/episodes` ; l'import depuis le flux Ausha est prévu (voir « Reste à faire »).
+Pour récupérer les épisodes du podcast : bouton « Importer depuis Ausha » dans `/admin/episodes` (ou `POST /api/episodes/import`,
+voir [docs/curl-admin.md](docs/curl-admin.md)). L'import est rejouable : il ajoute les nouveaux épisodes et met à jour les autres
+sans écraser le type, le résumé, l'invité ni les liens modifiés dans l'admin.
 
 ## Principes du site
 
@@ -158,7 +163,7 @@ Tout tourne en local sur `http://localhost:3000`.
 | Page | Contenu | Public visé | Routes utilisées |
 |---|---|---|---|
 | Accueil | Présentation de la marque chapeau et des 3 pôles, avis clients, newsletter | Tous | `GET /api/avis`, `GET /api/episodes?limit=3`, `POST /api/newsletter` |
-| Podcast | Épisodes par saison (résumé, lecteur Ausha), liens Spotify / Deezer / Apple / YouTube | Auditeurs | `GET /api/episodes` |
+| Podcast (`/podcast`) | Épisodes par saison (résumé, lecteur Ausha), complets par défaut, filtre extraits / replays, liens de l'émission (smartlink, Apple Podcasts, Spotify, Deezer, YouTube) | Auditeurs | `GET /api/episodes?type=` |
 | Offre podcast | Studio de production pour d'autres marques, sponsoring du podcast | B2B | `POST /api/devis` |
 | Expériences | Concept général | Tous | `GET /api/experiences` |
 | Ateliers / Good tours / Immersions | 1 page par expérience, galerie photos. Ateliers et good tours : sessions réservables en ligne. Immersions (surtout B2B) : sur devis uniquement | B2C et B2B | `GET /api/experiences/[slug]`, `GET /api/sessions`, `POST /api/devis` |
@@ -188,7 +193,7 @@ admin à un autre compte dans `/admin/utilisateurs`. Un client qui ouvre `/admin
 | `/admin/experiences` | Créer, modifier, masquer ou supprimer une expérience, choisir « réservable en ligne » ou « sur devis » |
 | `/admin/sessions` | Ajouter des dates, modifier les places, fermer une session |
 | `/admin/photos` | Envoyer des photos, choisir la page, le texte alternatif et l'ordre |
-| `/admin/episodes` | Ajouter ou modifier un épisode : résumé, invité, liens (import Ausha à venir) |
+| `/admin/episodes` | Importer depuis Ausha, changer le type (complet, extrait, replay), modifier le résumé, l'invité et les liens |
 | `/admin/articles` | Écrire, publier ou dépublier un article du blog |
 | `/admin/avis` | Ajouter un avis client, l'afficher ou le masquer |
 | `/admin/partenaires` | Ajouter un partenaire, l'afficher une fois son accord obtenu |
@@ -224,7 +229,7 @@ SMTP_PASSWORD=
 MAIL_FROM="Maison La recette <site@maison-la-recette.local>"
 MAIL_ADMIN_TO=julie@exemple.fr   # boîte de Julie (devis, réservations) : adresse fictive en démo
 
-AUSHA_RSS_URL=https://feed.ausha.co/xxxxxxxx   # prévue pour l'import des épisodes
+AUSHA_RSS_URL=https://feed.ausha.co/Zg75JI109Rlm   # flux du podcast « la recette » (import des épisodes)
 ```
 
 Exclusions déjà configurées dans `.gitignore` :

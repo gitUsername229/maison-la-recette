@@ -39,7 +39,7 @@ Conventions :
 | GET | `/api/experiences` | Liste des expériences (`?type=`) | Public |
 | GET | `/api/experiences/[slug]` | Une expérience avec galerie et sessions | Public |
 | GET | `/api/sessions` | Sessions disponibles (`?experience=`, `?disponible=true`) | Public |
-| GET | `/api/episodes` | Liste des épisodes (`?saison=`, `?limit=`) | Public |
+| GET | `/api/episodes` | Liste des épisodes, les plus récents d'abord (`?type=complet\|extrait\|replay`, `?saison=`, `?limit=`) | Public |
 | GET | `/api/avis` | Avis clients visibles | Public |
 | GET | `/api/partenaires` | Partenaires visibles | Public |
 | GET | `/api/articles` | Articles publiés du blog (`?limit=`) | Public |
@@ -59,8 +59,9 @@ Conventions :
 | POST | `/api/sessions` | Créer une session | Admin |
 | PUT | `/api/sessions/[id]` | Modifier une session | Admin |
 | DELETE | `/api/sessions/[id]` | Supprimer une session | Admin |
+| POST | `/api/episodes/import` | Importer ou mettre à jour les épisodes depuis le flux Ausha (`AUSHA_RSS_URL`) | Admin |
 | POST | `/api/episodes` | Ajouter un épisode | Admin |
-| PUT | `/api/episodes/[id]` | Modifier un épisode (résumé, invité, liens) | Admin |
+| PUT | `/api/episodes/[id]` | Modifier un épisode (type, résumé, invité, liens) | Admin |
 | DELETE | `/api/episodes/[id]` | Supprimer un épisode | Admin |
 | POST | `/api/articles` | Créer un article | Admin |
 | PUT | `/api/articles/[id]` | Modifier ou (dé)publier un article | Admin |
@@ -85,4 +86,4 @@ Le dernier compte admin ne peut être ni rétrogradé ni supprimé (`409`).
 après le webhook de paiement, détail du devis à Julie et accusé au client après `POST /api/devis`, lien de mot de passe
 oublié, lien de vérification à l'inscription.
 
-**Prévues, pas encore implémentées** : `POST /api/episodes/import` (import du flux RSS Ausha) et `POST /api/newsletter`.
+**Prévue, pas encore implémentée** : `POST /api/newsletter`.

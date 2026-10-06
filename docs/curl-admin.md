@@ -207,10 +207,25 @@ curl -X POST "$BASE/api/episodes" \
   }'
 ```
 
-**Importer depuis le flux RSS Ausha** : prévu, pas encore implémenté (`POST /api/episodes/import`).
-Les épisodes seront retrouvés par leur `guid` sans écraser les champs saisis dans l'admin.
+**Importer depuis le flux RSS Ausha** (bouton « Importer depuis Ausha » de `/admin/episodes`)
 
-**Modifier un épisode** (texte affiché sur le site, invité, liens)
+```bash
+curl -X POST "$BASE/api/episodes/import" -H "x-admin-key: $ADMIN_KEY"
+```
+
+Réponse `200` :
+
+```json
+{ "crees": 0, "misAJour": 101, "message": "Import terminé : 0 épisode(s) ajouté(s), 101 mis à jour." }
+```
+
+Le flux lu est `AUSHA_RSS_URL`. Les épisodes sont retrouvés par leur `guid` : relancer l'import ne crée pas de
+doublon et n'écrase pas le `type`, le `resume`, l'`invite` ni les liens saisis dans l'admin. À la création, le
+type est déduit du titre (`REPLAY`/`REDIFFUSION` → `replay`, `EXTRAIT`/`TEASER` et bande-annonce → `extrait`,
+sinon `complet`) et le résumé s'arrête avant le texte commun de fin (crédits, soutien, réseaux).
+Flux non configuré : `503` ; flux injoignable : `502`.
+
+**Modifier un épisode** (type `complet` / `extrait` / `replay`, texte affiché sur le site, invité, liens)
 
 ```bash
 curl -X PUT "$BASE/api/episodes/12" \

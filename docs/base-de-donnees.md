@@ -107,21 +107,23 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 | `id` | Int | Clé primaire |
 | `guid` | String? | Unique, identifiant de l'épisode dans le flux RSS (évite les doublons à l'import). Vide pour un épisode saisi à la main |
 | `saison` | Int | Numéro de la saison (`1` par défaut) |
-| `numero` | Int | Numéro de l'épisode |
+| `numero` | Int | Numéro de l'épisode (`0` quand le flux n'en donne pas) |
 | `titre` | String | |
 | `description` | String | Description complète, importée du flux RSS |
-| `resume` | String | Texte affiché sur le site. Pré-rempli à l'import avec le début de la description, modifiable dans l'admin |
+| `resume` | String | Texte affiché sur le site. Pré-rempli à l'import avec la description arrêtée avant le texte commun de fin (crédits, soutien, réseaux), modifiable dans l'admin |
+| `type` | String | `complet` (par défaut), `extrait` ou `replay`. Déduit du titre à l'import (`REPLAY`/`REDIFFUSION`, `EXTRAIT`/`TEASER`), modifiable dans l'admin |
 | `invite` | String? | Chef ou producteur invité |
 | `datePublication` | DateTime | |
 | `dureeMin` | Int | |
 | `image` | String | Visuel de l'épisode (URL fournie par le flux Ausha) |
-| `embedUrl` | String | Lien du lecteur Ausha |
+| `embedUrl` | String | Lien du lecteur Ausha (`player.ausha.co/?podcastId=…`, déduit du fichier audio du flux) |
 | `spotifyUrl` | String? | |
 | `deezerUrl` | String? | |
 | `appleUrl` | String? | |
 | `youtubeUrl` | String? | |
 
-L'import (`POST /api/episodes/import`) crée ou met à jour les épisodes par `guid`. Il n'écrase pas les champs saisis dans l'admin (`resume`, `invite`, liens des plateformes).
+L'import (`POST /api/episodes/import`) crée ou met à jour les épisodes par `guid`. Il n'écrase pas les champs saisis dans l'admin (`resume`, `type`, `invite`, liens des plateformes).
+Les règles de type et de coupure du résumé sont dans `src/backend/podcast/emission.ts`.
 
 ## `Article`
 

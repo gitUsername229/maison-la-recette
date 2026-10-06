@@ -227,6 +227,14 @@ curl "$BASE/api/episodes?limit=3"
 curl "$BASE/api/episodes?saison=2"
 ```
 
+**Filtrer par type** (`complet`, `extrait` ou `replay` ; la page `/podcast` affiche les complets par défaut)
+
+```bash
+curl "$BASE/api/episodes?type=complet"
+```
+
+Type inconnu : `400`.
+
 Réponse `200` :
 
 ```json
@@ -237,6 +245,7 @@ Réponse `200` :
     "numero": 4,
     "titre": "Un chef contre le gaspillage",
     "resume": "Rencontre avec un chef qui cuisine les restes ...",
+    "type": "complet",
     "description": "...",
     "invite": "Nom du chef",
     "datePublication": "2026-09-20T05:00:00.000Z",
