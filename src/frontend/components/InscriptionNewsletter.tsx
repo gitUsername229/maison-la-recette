@@ -35,8 +35,8 @@ export default function InscriptionNewsletter({ titre, texte, bouton }: { titre:
         </label>
         <button type="submit" disabled={envoi} className={classeBouton}>{envoi ? 'Inscription…' : bouton}</button>
       </form>
-      {/* Sur le fond citron, le message reste couleur texte (contraste AA) ; le symbole distingue erreur et succès. */}
-      {etat && <p role="status" className="mt-3 text-sm font-medium">{etat.erreur ? '⚠ ' : '✓ '}{etat.texte}</p>}
+      {/* Sur le fond coloré, le message reste couleur texte (contraste AA) ; son texte dit s'il s'agit d'une erreur. */}
+      {etat && <p role="status" className="mt-3 text-sm font-bold">{etat.texte}</p>}
     </section>
   );
 }

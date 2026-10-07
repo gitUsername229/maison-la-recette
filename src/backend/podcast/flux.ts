@@ -52,17 +52,26 @@ const fluxSchema = z.object({
   rss: z.object({ channel: z.object({ item: z.array(z.unknown()).default([]), 'itunes:image': image }) }),
 });
 
-/** HTML d'une description → texte brut, paragraphes conservés (affiché ensuite comme du texte, jamais comme du HTML). */
+// Émojis (affichés en image par défaut, ou demandés par le sélecteur U+FE0F), avec leurs suites (teinte, ZWJ),
+// drapeaux et touches numérotées. Les symboles typographiques (©, ™, ★, →) ne sont pas touchés.
+const EMOJI = /(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}\uFE0F)(?:[\u{1F3FB}-\u{1F3FF}]|\uFE0F)*(?:\u200D(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}\uFE0F?)(?:[\u{1F3FB}-\u{1F3FF}]|\uFE0F)*)*|[\u{1F1E6}-\u{1F1FF}]{2}|[#*0-9]\uFE0F?\u20E3/gu;
+
+/** Retire les émojis d'un texte venu d'Ausha (le site n'en affiche pas) et les espaces qu'ils laissent. */
+export function sansEmojis(texte: string) {
+  return texte.replace(EMOJI, '').replace(/[\uFE0F\u200D]/g, '').replace(/^[ \t]+/gm, '').replace(/[ \t]{2,}/g, ' ').trim();
+}
+
+/** HTML d'une description → texte brut sans émojis, paragraphes conservés (affiché ensuite comme du texte, jamais comme du HTML). */
 export function texteDepuisHtml(html: string) {
   const texteBrut = html.replace(/<br\s*\/?>|<\/(p|li|h\d)>/gi, '\n').replace(/<[^>]+>/g, '');
-  return decodeHTML(texteBrut).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  return sansEmojis(decodeHTML(texteBrut)).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /** Extrait affiché : la description sans le texte commun de fin (crédits, soutien, réseaux, mention Ausha). */
 export function resumeDepuisDescription(description: string) {
   let position = 0;
   for (const ligne of description.split('\n')) {
-    const debut = ligne.replace(/^[^\p{L}\p{N}]+/u, ''); // ignore les émojis en début de ligne
+    const debut = ligne.replace(/^[^\p{L}\p{N}]+/u, ''); // ignore les symboles en début de ligne
     if (DEBUTS_TEXTE_COMMUN.some(rx => rx.exec(debut)?.index === 0)) return description.slice(0, position).trim();
     position += ligne.length + 1;
   }
@@ -87,7 +96,7 @@ function episodeDepuisItem(item: Item, imageParDefaut: string): EpisodeDuFlux | 
   const idAudio = /audio\.ausha\.co\/([A-Za-z0-9]+)\.mp3/.exec(item.enclosure.url)?.[1];
   const datePublication = new Date(item.pubDate);
   if (!idAudio || Number.isNaN(datePublication.getTime())) return null;
-  const titre = item.title.trim();
+  const titre = sansEmojis(item.title);
   const description = texteDepuisHtml(item.description);
   return {
     guid: item.guid.trim(),

@@ -68,6 +68,16 @@ test('l’import ne crée pas de doublon et n’écrase jamais ce que l’admin 
   assert.deepEqual({ resume: episode.resume, type: episode.type, invite: episode.invite, spotifyUrl: episode.spotifyUrl }, saisieAdmin);
 });
 
+test('émojis retirés des textes venus d’Ausha, symboles typographiques gardés', () => {
+  const cas: [string, string][] = [
+    ['🎧 Écoutez l’épisode', 'Écoutez l’épisode'], ['Dulse, nori 🌊 kombu', 'Dulse, nori kombu'], ['👩‍💻 Développeuse', 'Développeuse'],
+    ['Bravo 🇫🇷 !', 'Bravo !'], ['⚠️ Attention', 'Attention'], ['1️⃣ premier', 'premier'], ['🎙️ Micro', 'Micro'], ['Ligne\n🙏 Merci', 'Ligne\nMerci'],
+    ['© 2026 Maison', '© 2026 Maison'], ['★★★★☆', '★★★★☆'], ['Prix → 45 €', 'Prix → 45 €'], ['⚠ sans sélecteur', '⚠ sans sélecteur'],
+  ];
+  for (const [avant, apres] of cas) assert.equal(flux.sansEmojis(avant), apres, avant);
+  assert.ok(lire(xml).every(e => !/\p{Emoji_Presentation}/u.test(e.titre + e.description + e.resume)));
+});
+
 test('saisons proposées dans la liste déroulante : celles qui ont des épisodes du type choisi, la plus récente d’abord', async () => {
   const toutes = await contenus.saisonsDisponibles();
   assert.deepEqual(toutes, [...toutes].sort((a, b) => b - a));

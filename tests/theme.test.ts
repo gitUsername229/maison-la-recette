@@ -110,3 +110,8 @@ test('icônes de la maquette : chaque nom a son fichier SVG', () => {
   const manquantes = noms.filter(nom => !statSync(`public/images/icones/${nom}.svg`, { throwIfNoEntry: false }));
   assert.deepEqual(manquantes, []);
 });
+
+test('aucun émoji dans l’interface du site', () => {
+  const avecEmoji = fichiers('src').filter(f => /\p{Emoji_Presentation}|\uFE0F/u.test(readFileSync(f, 'utf8')));
+  assert.deepEqual(avecEmoji, []);
+});

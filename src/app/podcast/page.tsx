@@ -1,6 +1,7 @@
 import { connection } from 'next/server';
 import { compterEpisodesParType, listerEpisodes, saisonsDisponibles } from '@/backend/contenus/contenus';
 import { LECTEUR_PODCAST, LIENS_EMISSION, TYPES_EPISODE, type TypeEpisode } from '@/backend/podcast/emission';
+import { sansEmojis } from '@/backend/podcast/flux';
 import { metadonnees } from '@/backend/seo';
 import Podcast, { type FiltreEpisodes } from '@/frontend/pages/podcast';
 
@@ -30,7 +31,8 @@ export default async function Page({ searchParams }: Props) {
   return (
     <Podcast
       episodes={episodes.map(({ id, titre, invite, resume, datePublication, dureeMin, image, embedUrl, audioUrl }) => (
-        { id, titre, invite, resume, datePublication: datePublication.toISOString(), dureeMin, image, embedUrl, audioUrl }
+        // Les résumés déjà en base (jamais réécrits par l'import) peuvent encore contenir des émojis : retirés à l'affichage.
+        { id, titre: sansEmojis(titre), invite, resume: sansEmojis(resume), datePublication: datePublication.toISOString(), dureeMin, image, embedUrl, audioUrl }
       ))}
       saisons={saisons} saison={saison} filtre={filtre} compteurs={compteurs} liens={LIENS_EMISSION} lecteur={LECTEUR_PODCAST}
     />
