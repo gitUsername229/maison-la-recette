@@ -33,7 +33,7 @@ export default function APropos({ textes, partenaires, avis, photos }: Props) {
           <p className="mt-2 whitespace-pre-line text-texte-doux">
             {textes.experiencesTexte}
           </p>
-          <Link href="/experiences" className="mt-4 inline-block text-sm font-semibold text-primaire hover:underline">
+          <Link href="/experiences" className="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
             {textes.experiencesBouton} →
           </Link>
         </div>

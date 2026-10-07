@@ -1,6 +1,6 @@
 const TONS = {
   succes: 'bg-succes-fond text-succes ring-pastel',
-  attente: 'bg-pastel-chaud text-primaire ring-pastel-chaud',
+  attente: 'bg-pastel-chaud text-accent ring-pastel-chaud',
   annule: 'bg-fond text-texte-doux ring-bordure',
   neutre: 'bg-surface text-texte-doux ring-bordure',
 } as const;

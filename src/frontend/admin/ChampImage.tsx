@@ -38,8 +38,8 @@ export default function ChampImage({ nom, libelle, requis, aide, erreur, valeurI
         {url && !requis && <button type="button" onClick={() => setUrl('')} className="text-sm underline">Retirer</button>}
       </div>
       {erreur && !etat
-        ? <span className="text-xs font-medium text-erreur">{erreur}</span>
-        : <span className="text-xs text-texte-doux">{etat ?? aide ?? 'JPG, PNG ou WebP, 5 Mo maximum.'}</span>}
+        ? <span className="text-sm font-medium text-erreur">{erreur}</span>
+        : <span className="text-sm text-texte-doux">{etat ?? aide ?? 'JPG, PNG ou WebP, 5 Mo maximum.'}</span>}
     </div>
   );
 }

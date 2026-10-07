@@ -113,7 +113,7 @@ export default function FormulaireRessource({ ressource, ligne, onEnregistre, on
       {!creation && ressource.fiche && <Fiche ressource={ressource} ligne={ligne} />}
       {champs.length > 0 ? (
         <form onSubmit={enregistrer} className="grid gap-4">
-          <p className="text-xs text-texte-doux">Les champs marqués <span className="text-erreur">*</span> sont obligatoires.</p>
+          <p className="text-sm text-texte-doux">Les champs marqués <span className="text-erreur">*</span> sont obligatoires.</p>
           <div className="grid gap-4 md:grid-cols-2">
             {champs.map(champ => (
               <div key={champ.nom} className={champs.length === 1 || ['texteLong', 'image', 'listeMultiple'].includes(champ.type) ? 'md:col-span-2' : undefined}>

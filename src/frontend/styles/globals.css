@@ -1,22 +1,23 @@
 @import "tailwindcss";
 
 /*
- * THÈME DU SITE — PROVISOIRE, en attendant la direction artistique.
+ * THÈME DU SITE — d'après la maquette Figma de Romain (fichier « Workshop 1 », page Maquettes).
  *
- * C'est le seul fichier où sont définies les couleurs et les polices. Les composants n'emploient que les
- * rôles de la partie 2 (bg-fond, text-texte, bg-primaire…), jamais une couleur : pour changer de DA, on
- * modifie la palette (partie 1), et au besoin l'attribution des rôles (partie 2).
- * Les contrastes (WCAG AA) sont vérifiés par tests/theme.test.ts.
+ * C'est le seul fichier où sont définies les couleurs, les polices et l'échelle des tailles de texte.
+ * Les composants n'emploient que les rôles de la partie 2 (bg-fond, text-texte, bg-primaire…), jamais une couleur.
+ * Les contrastes (WCAG AA) et la taille minimale du texte courant sont vérifiés par tests/theme.test.ts.
  */
 
-/* 1. Palette : 6 couleurs nommées, autour du vert du logo du podcast. */
+/* 1. Palette : les variables Figma (collection « Temp ») et le vert de l'en-tête. */
 :root {
-  --creme: #f6f5e9;   /* fond clair, légèrement teinté de vert */
-  --foret: #1d3324;   /* vert très foncé : texte et pied de page (pas de noir) */
-  --salade: #2f6e3b;  /* vert principal : boutons, liens, focus */
-  --pousse: #d5e8c4;  /* vert pastel : aplats, étiquettes */
-  --tomate: #b9412a;  /* accent chaud : catégories, appels à l'action, erreurs */
-  --citron: #f3c94b;  /* accent pastel : surlignage, encarts */
+  --blanc: #ffffff;        /* fonds de page */
+  --fond-clair: #e9edd7;   /* Figma « BG » : cartes, encarts */
+  --vert-fonce: #123f1b;   /* Figma « 1 » : texte (remplace le noir de la maquette) */
+  --vert-tendre: #bdd3a7;  /* Figma « 2 » : aplats, étiquettes */
+  --vert-olive: #90ae2d;   /* Figma « 3 » : décor uniquement (contraste insuffisant pour du texte) */
+  --orange: #f57f03;       /* Figma « Accent 1 » : décor uniquement */
+  --corail: #c94e3e;       /* Figma « Accent 2 » #e75a47, assombri de 13 % pour le contraste AA du texte blanc */
+  --vert-entete: #146048;  /* en-tête et menu de la maquette */
 }
 
 /* 2. Rôles. Les couleurs par défaut de Tailwind sont retirées : une classe hors thème (ex : text-stone-600) ne produit rien. */
@@ -25,30 +26,54 @@
 }
 
 @theme inline {
-  --color-fond: var(--creme);
-  --color-surface: color-mix(in srgb, var(--creme) 35%, #ffffff);
-  --color-texte: var(--foret);
-  --color-texte-doux: color-mix(in srgb, var(--foret) 78%, var(--creme));
-  --color-bordure: color-mix(in srgb, var(--foret) 15%, var(--creme));
-  --color-bordure-forte: color-mix(in srgb, var(--foret) 58%, var(--creme)); /* contour des champs : 3:1 minimum */
-  --color-primaire: var(--salade);
-  --color-primaire-fort: color-mix(in srgb, var(--salade) 70%, var(--foret));
-  --color-sur-primaire: var(--creme);
-  --color-pastel: var(--pousse);
-  --color-pastel-chaud: var(--citron);
-  --color-accent: var(--tomate);
-  --color-sur-accent: var(--creme);
-  --color-fond-sombre: var(--foret);
-  --color-sur-fond-sombre: var(--creme);
-  --color-lien-sur-sombre: var(--pousse);
-  --color-erreur: var(--tomate);
-  --color-erreur-fond: color-mix(in srgb, var(--tomate) 10%, #ffffff);
-  --color-succes: var(--salade);
-  --color-succes-fond: var(--pousse);
+  --color-fond: var(--blanc);
+  --color-fond-doux: var(--fond-clair);
+  --color-surface: color-mix(in srgb, var(--fond-clair) 35%, #ffffff);
+  --color-texte: var(--vert-fonce);
+  --color-texte-doux: color-mix(in srgb, var(--vert-fonce) 78%, #ffffff);
+  --color-bordure: color-mix(in srgb, var(--vert-fonce) 15%, #ffffff);
+  --color-bordure-forte: color-mix(in srgb, var(--vert-fonce) 58%, #ffffff); /* contour des champs : 3:1 minimum */
+  --color-primaire: var(--corail);            /* boutons (texte blanc dessus) */
+  --color-primaire-fort: color-mix(in srgb, var(--corail) 80%, var(--vert-fonce));
+  --color-sur-primaire: var(--blanc);
+  --color-pastel: var(--vert-tendre);
+  --color-pastel-chaud: color-mix(in srgb, var(--corail) 40%, #ffffff); /* rose des onglets */
+  /* Corail en couleur de texte (liens, catégories, erreurs) : à peine plus foncé, pour rester AA sur les fonds teintés. */
+  --color-accent: color-mix(in srgb, var(--corail) 85%, var(--vert-fonce));
+  --color-sur-accent: var(--blanc);
+  --color-decor: var(--orange);
+  --color-decor-vert: var(--vert-olive);
+  --color-fond-sombre: var(--vert-entete);
+  --color-sur-fond-sombre: var(--blanc);
+  --color-lien-sur-sombre: var(--vert-tendre);
+  --color-voile: var(--vert-fonce); /* voile sur les photos sous un texte blanc */
+  --color-erreur: color-mix(in srgb, var(--corail) 85%, var(--vert-fonce));
+  --color-erreur-fond: color-mix(in srgb, var(--corail) 10%, #ffffff);
+  --color-succes: var(--vert-fonce);
+  --color-succes-fond: color-mix(in srgb, var(--vert-tendre) 50%, #ffffff);
 
-  /* Polices chargées par next/font (src/app/layout.tsx), avec leurs polices de secours. */
-  --font-serif: var(--police-titres);
-  --font-sans: var(--police-texte);
+  /* Police de la maquette (Inria Serif), chargée par next/font dans src/app/layout.tsx, avec ses polices de secours. */
+  --font-serif: var(--police-site);
+  --font-sans: var(--police-site);
+}
+
+/*
+ * 3. Échelle des tailles de texte, tirée de la maquette (12, 14, 16, 20, 24, 32, 40, 58 px).
+ * Le texte courant ne descend jamais sous 16 px (text-sm, text-base) ; 14 px (text-xs) est réservé
+ * aux étiquettes, dates et mentions. Les 12 px de la maquette passent à 14 px.
+ */
+@theme {
+  --text-xs: 0.875rem;  --text-xs--line-height: 1.4;    /* 14 px : étiquettes, dates, mentions */
+  --text-sm: 1rem;      --text-sm--line-height: 1.5;    /* 16 px : texte secondaire */
+  --text-base: 1rem;    --text-base--line-height: 1.6;  /* 16 px : texte courant */
+  --text-lg: 1.25rem;   --text-lg--line-height: 1.45;   /* 20 px : chapô, boutons */
+  --text-xl: 1.5rem;    --text-xl--line-height: 1.3;    /* 24 px : titres de carte */
+  --text-2xl: 1.75rem;  --text-2xl--line-height: 1.25;  /* 28 px : titres de section (ordinateur) */
+  --text-3xl: 2rem;     --text-3xl--line-height: 1.2;   /* 32 px : titres de page */
+  --text-4xl: 2.5rem;   --text-4xl--line-height: 1.15;  /* 40 px : grand titre de l'accueil */
+  --text-5xl: 3rem;     --text-5xl--line-height: 1.1;   /* 48 px */
+  --text-6xl: 3.625rem; --text-6xl--line-height: 1.1;   /* 58 px : liens du menu */
+  --text-7xl: 4.5rem;   --text-7xl--line-height: 1.05;  /* 72 px : grand titre de l'accueil (ordinateur) */
 }
 
 @layer base {
@@ -68,14 +93,18 @@
   }
 
   ::selection {
-    background: var(--color-pastel-chaud);
+    background: var(--color-pastel);
     color: var(--color-texte);
   }
 
-  /* Focus clavier visible partout, y compris dans les champs. */
+  /* Focus clavier visible partout, y compris dans les champs (blanc dans les zones vert foncé : classe .zone-sombre). */
   :focus-visible {
-    outline: 3px solid var(--color-primaire);
+    outline: 3px solid var(--color-texte);
     outline-offset: 2px;
+  }
+
+  .zone-sombre :focus-visible {
+    outline-color: var(--color-sur-fond-sombre);
   }
 }
 

@@ -26,7 +26,7 @@ const STYLES = {
   p: 'mt-4 leading-relaxed text-texte-doux',
   ul: 'mt-4 list-disc space-y-1 pl-6 text-texte-doux',
   ol: 'mt-4 list-decimal space-y-1 pl-6 text-texte-doux',
-  a: 'text-primaire underline',
+  a: 'text-accent underline',
   blockquote: 'mt-6 border-l-4 border-bordure-forte pl-4 italic text-texte-doux',
 };
 
@@ -35,7 +35,7 @@ export default function Article({ article, textes }: { article: ArticleComplet; 
     <main className="mx-auto max-w-3xl px-6 py-16">
       <Link href="/blog" className="text-sm text-texte-doux hover:text-texte">← {textes.tousLesArticles}</Link>
       <p className="mt-8 text-sm text-texte-doux">
-        <Link href={`/blog/categorie/${article.categorie}`} className="font-medium text-primaire hover:underline">{article.categorieLibelle}</Link>
+        <Link href={`/blog/categorie/${article.categorie}`} className="font-medium text-accent hover:underline">{article.categorieLibelle}</Link>
         {' · '}{formatDate(article.datePublication)}
       </p>
       <h1 className="mt-2 font-serif text-4xl sm:text-5xl text-texte">{article.titre}</h1>

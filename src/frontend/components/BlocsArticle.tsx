@@ -10,7 +10,7 @@ export type EpisodeLie = { titre: string; datePublication: Date; image: string; 
 export type ExperienceLiee = { id: number; slug: string; titre: string; accroche: string; reservableEnLigne: boolean; prochainesDates: DateOuverte[] };
 
 const classeBloc = 'mt-12 rounded-2xl bg-surface p-6 ring-1 ring-bordure sm:p-8';
-const classeLien = 'text-sm font-semibold text-primaire hover:underline';
+const classeLien = 'text-sm font-semibold text-accent hover:underline';
 
 type TextesEpisode = { titre: string; bouton: string; lien: string };
 

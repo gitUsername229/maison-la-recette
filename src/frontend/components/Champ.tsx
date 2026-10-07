@@ -15,7 +15,7 @@ function Libelle({ libelle, aide, erreur, requis, children }: Habillage & { requ
         {requis && <span className="text-erreur" title="Obligatoire"> *</span>}
       </span>
       {children}
-      {erreur ? <span className="text-xs font-medium text-erreur">{erreur}</span> : aide && <span className="text-xs text-texte-doux">{aide}</span>}
+      {erreur ? <span className="text-sm font-medium text-erreur">{erreur}</span> : aide && <span className="text-sm text-texte-doux">{aide}</span>}
     </label>
   );
 }
@@ -64,7 +64,7 @@ export function ChampCases({ libelle, aide, erreur, name, options, valeurs }: Ha
           </label>
         ))}
       </div>
-      {erreur ? <span className="text-xs font-medium text-erreur">{erreur}</span> : aide && <span className="text-xs text-texte-doux">{aide}</span>}
+      {erreur ? <span className="text-sm font-medium text-erreur">{erreur}</span> : aide && <span className="text-sm text-texte-doux">{aide}</span>}
     </fieldset>
   );
 }

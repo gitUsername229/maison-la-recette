@@ -77,7 +77,7 @@ export default function Experience({ experience, utilisateur }: Props) {
                 </div>
               )}
               {utilisateur && process.env.NODE_ENV !== 'production' && (
-                <p className="mt-5 rounded-lg bg-fond px-3 py-2 text-xs leading-relaxed text-texte-doux">
+                <p className="mt-5 rounded-lg bg-fond px-3 py-2 text-sm leading-relaxed text-texte-doux">
                   Mode test : carte <strong>4242 4242 4242 4242</strong>, date d’expiration future, CVC au choix.
                 </p>
               )}

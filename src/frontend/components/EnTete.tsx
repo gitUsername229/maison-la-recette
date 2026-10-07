@@ -39,7 +39,7 @@ export default function EnTete() {
         {/* Logo / Titre du site */}
         <Link
           href="/"
-          className="flex items-center gap-2 font-serif text-2xl font-semibold lowercase tracking-tight text-primaire"
+          className="flex items-center gap-2 font-serif text-2xl font-semibold lowercase tracking-tight text-accent"
           onClick={() => setMenuOuvert(false)}
         >
           <Feuille className="h-7 w-7" />
@@ -145,7 +145,7 @@ export default function EnTete() {
                   aria-current={actif ? 'page' : undefined}
                   className={`py-1 ${
                     actif
-                      ? 'font-bold text-primaire border-l-4 border-accent pl-3 -ml-4'
+                      ? 'font-bold text-accent border-l-4 border-accent pl-3 -ml-4'
                       : 'text-texte-doux hover:text-texte'
                   }`}
                 >
@@ -162,7 +162,7 @@ export default function EnTete() {
                     <Link
                       href="/admin"
                       onClick={() => setMenuOuvert(false)}
-                      className="text-primaire font-semibold"
+                      className="text-accent font-semibold"
                     >
                       Interface Administration
                     </Link>

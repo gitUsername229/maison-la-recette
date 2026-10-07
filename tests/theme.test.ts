@@ -33,22 +33,29 @@ const contraste = (a: Rvb, b: Rvb) => {
   return (claire + 0.05) / (sombre + 0.05);
 };
 
-test('palette : 6 couleurs nommées, sans noir pur', () => {
-  assert.deepEqual(Object.keys(palette), ['creme', 'foret', 'salade', 'pousse', 'tomate', 'citron']);
+test('palette : les variables de la maquette Figma, le vert de l’en-tête, et pas de noir pur', () => {
+  assert.deepEqual(
+    { fond: palette['fond-clair'], texte: palette['vert-fonce'], vert: palette['vert-tendre'], olive: palette['vert-olive'], orange: palette.orange, entete: palette['vert-entete'] },
+    { fond: '#e9edd7', texte: '#123f1b', vert: '#bdd3a7', olive: '#90ae2d', orange: '#f57f03', entete: '#146048' },
+  );
+  // Corail de la maquette (#e75a47) assombri sans changer de teinte : mêmes proportions rouge / vert / bleu.
+  const [r, v, b] = rvb(palette.corail);
+  assert.ok(r < 0xe7 && Math.abs(v / r - 0x5a / 0xe7) < 0.01 && Math.abs(b / r - 0x47 / 0xe7) < 0.01);
   assert.ok(!Object.values(palette).includes('#000000'));
 });
 
 test('contrastes WCAG AA des couleurs employées ensemble', () => {
   // [texte ou élément, fond, minimum] : 4,5 pour le texte, 3 pour les contours de champs et le focus.
   const couples: [string, string, number][] = [
-    ['texte', 'fond', 4.5], ['texte', 'surface', 4.5], ['texte', 'pastel', 4.5], ['texte', 'pastel-chaud', 4.5],
-    ['texte-doux', 'fond', 4.5], ['texte-doux', 'surface', 4.5], ['texte-doux', 'pastel', 4.5],
-    ['primaire', 'fond', 4.5], ['primaire', 'surface', 4.5],
+    ['texte', 'fond', 4.5], ['texte', 'fond-doux', 4.5], ['texte', 'surface', 4.5], ['texte', 'pastel', 4.5], ['texte', 'pastel-chaud', 4.5],
+    ['texte-doux', 'fond', 4.5], ['texte-doux', 'fond-doux', 4.5], ['texte-doux', 'surface', 4.5],
+    ['primaire', 'fond', 4.5], ['accent', 'fond-doux', 4.5], ['erreur', 'surface', 4.5],
     ['sur-primaire', 'primaire', 4.5], ['sur-primaire', 'primaire-fort', 4.5],
     ['accent', 'fond', 4.5], ['accent', 'surface', 4.5], ['sur-accent', 'accent', 4.5],
-    ['erreur', 'erreur-fond', 4.5], ['erreur', 'surface', 4.5], ['succes', 'succes-fond', 4.5],
-    ['sur-fond-sombre', 'fond-sombre', 4.5], ['lien-sur-sombre', 'fond-sombre', 4.5],
-    ['bordure-forte', 'surface', 3], ['bordure-forte', 'fond', 3], ['primaire', 'fond', 3],
+    ['erreur', 'erreur-fond', 4.5], ['erreur', 'fond', 4.5], ['succes', 'succes-fond', 4.5],
+    ['sur-fond-sombre', 'fond-sombre', 4.5], ['lien-sur-sombre', 'fond-sombre', 4.5], ['sur-fond-sombre', 'voile', 4.5],
+    ['bordure-forte', 'fond', 3], ['bordure-forte', 'surface', 3],
+    ['texte', 'fond', 3], ['sur-fond-sombre', 'fond-sombre', 3], // contour de focus (sombre sur clair, blanc sur vert foncé)
   ];
   const echecs = couples
     .map(([avant, fond, minimum]) => ({ couple: `${avant} sur ${fond}`, ratio: contraste(role(avant), role(fond)), minimum }))
@@ -76,11 +83,22 @@ test('aucune couleur en dur hors du fichier de thème', () => {
   assert.deepEqual(trouvees, []);
 });
 
-test('polices : serif pour les titres, sans-serif pour le texte, avec polices de secours', () => {
+test('orange et vert olive : décor uniquement, jamais en couleur de texte', () => {
+  const texteDecor = fichiers('src').filter(f => /\btext-decor(-vert)?\b/.test(readFileSync(f, 'utf8')));
+  assert.deepEqual(texteDecor, []);
+});
+
+test('police Inria Serif partout, avec polices de secours', () => {
   const layout = readFileSync('src/app/layout.tsx', 'utf8');
-  assert.match(layout, /Fraunces\(\{[^}]*variable: '--police-titres'[^}]*fallback: \[[^\]]*'serif'\]/);
-  assert.match(layout, /DM_Sans\(\{[^}]*variable: '--police-texte'[^}]*fallback: \[[^\]]*'sans-serif'\]/);
-  assert.equal(roles['font-serif'], undefined); // les polices ne sont pas des couleurs
-  assert.match(CSS, /--font-serif: var\(--police-titres\)/);
-  assert.match(CSS, /--font-sans: var\(--police-texte\)/);
+  assert.match(layout, /Inria_Serif\(\{[^}]*variable: '--police-site'[^}]*fallback: \[[^\]]*'serif'\]/);
+  assert.match(CSS, /--font-serif: var\(--police-site\)/);
+  assert.match(CSS, /--font-sans: var\(--police-site\)/);
+});
+
+test('échelle typographique : texte courant à 16 px minimum, étiquettes à 14 px minimum', () => {
+  const taille = (nom: string) => Number((new RegExp(`--text-${nom}: ([\\d.]+)rem;`).exec(CSS) ?? assert.fail(`--text-${nom} absent`))[1]) * 16;
+  assert.ok(taille('sm') >= 16 && taille('base') >= 16, 'texte courant sous 16 px');
+  assert.ok(taille('xs') >= 14, 'étiquettes sous 14 px');
+  const echelle = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl'].map(taille);
+  assert.deepEqual(echelle, [...echelle].sort((a, b) => a - b)); // croissante
 });

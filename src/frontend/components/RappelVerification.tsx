@@ -16,7 +16,7 @@ export default function RappelVerification({ email, lienExpire }: Props) {
   }
 
   return (
-    <div role="status" className="mt-6 rounded-xl bg-pastel-chaud p-4 text-sm leading-relaxed text-primaire ring-1 ring-pastel-chaud">
+    <div role="status" className="mt-6 rounded-xl bg-pastel-chaud p-4 text-sm leading-relaxed text-accent ring-1 ring-pastel-chaud">
       <p>
         {lienExpire ? 'Ce lien de vérification n’est plus valable.' : 'Votre adresse e-mail n’est pas encore vérifiée.'}{' '}
         Confirmez-la pour être sûr de recevoir vos confirmations de réservation.
