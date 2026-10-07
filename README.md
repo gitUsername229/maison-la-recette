@@ -274,7 +274,7 @@ Tout tourne en local sur `http://localhost:3000`.
 | Page | Contenu | Public visé | Routes utilisées |
 |---|---|---|---|
 | Accueil | Présentation de la marque chapeau et des 3 pôles, avis clients, galerie photos, inscription à la newsletter | Tous | `GET /api/avis`, `GET /api/images?page=/`, `POST /api/newsletter` |
-| Podcast (`/podcast`) | Lecteur sur mesure (épisode en cours, précédent / suivant, progression), liste de la saison choisie (`?saison=`), complets par défaut, filtre extraits / replays, liens de l'émission (smartlink, Apple Podcasts, Spotify, Deezer, YouTube) | Auditeurs | `GET /api/episodes?type=` |
+| Podcast (`/podcast`) | Lecteur sur mesure (épisode en cours, précédent / suivant, progression), liste de la saison choisie (`?saison=`), complets par défaut, filtre extraits / replays, liens de l'émission (Apple Podcasts, Spotify, Deezer, YouTube) | Auditeurs | `GET /api/episodes?type=` |
 | Offre podcast | Studio de production pour d'autres marques, sponsoring du podcast | B2B | `POST /api/devis` |
 | Expériences (`/experiences`) | Onglet Particuliers : une carte par expérience (prochaine date, places restantes, autres dates, ou « Sur devis ») | B2C | `GET /api/experiences` |
 | Expériences entreprises (`/experiences/entreprises`) | Onglet Entreprises : sur-mesure, formats en photos, déroulé, avis, « Obtenir un devis » | B2B | `POST /api/devis` |

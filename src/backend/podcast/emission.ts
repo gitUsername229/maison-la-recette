@@ -8,7 +8,6 @@ export type TypeEpisode = (typeof TYPES_EPISODE)[number];
 
 /** Liens de l'émission, vérifiés sur le smartlink officiel (smartlink.ausha.co/la-recette) le 6 octobre 2026. */
 export const LIENS_EMISSION = [
-  { plateforme: 'Toutes les plateformes', url: 'https://smartlink.ausha.co/la-recette' },
   { plateforme: 'Apple Podcasts', url: 'https://podcasts.apple.com/us/podcast/la-recette/id1673916177' },
   { plateforme: 'Spotify', url: 'https://open.spotify.com/show/78p9jKRzpoGWQ2sTCfBOof' },
   { plateforme: 'Deezer', url: 'https://www.deezer.com/show/5771417' },
