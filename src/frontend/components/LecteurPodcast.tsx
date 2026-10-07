@@ -116,10 +116,10 @@ export default function LecteurPodcast({ episodes, lecteur }: Props) {
 
       <ul className="grid gap-5">
         {episodes.map((e, i) => (
-          <li key={e.id} aria-current={i === index ? 'true' : undefined} className={`flex items-center gap-4 rounded-xl p-4 ${i === index ? 'bg-pastel' : 'bg-fond-doux'}`}>
-            <Image src={e.image} alt="" width={102} height={102} className="h-[102px] w-[102px] shrink-0 rounded-md object-cover" />
+          <li key={e.id} aria-current={i === index ? 'true' : undefined} className={`flex items-center gap-3 rounded-xl p-3 sm:gap-4 sm:p-4 ${i === index ? 'bg-pastel' : 'bg-fond-doux'}`}>
+            <Image src={e.image} alt="" width={102} height={102} className="h-20 w-20 shrink-0 rounded-md object-cover sm:h-[102px] sm:w-[102px]" />
             <div className="min-w-0 flex-1">
-              <h3 className="font-bold leading-snug">{e.titre}</h3>
+              <h3 className="line-clamp-3 font-bold leading-snug" title={e.titre}>{e.titre}</h3>
               {e.invite && <p className="text-xs font-bold">avec {e.invite}</p>}
               <p className="mt-1 text-xs text-texte-doux">{formatDate(e.datePublication)} · {e.dureeMin} min</p>
             </div>
@@ -127,7 +127,7 @@ export default function LecteurPodcast({ episodes, lecteur }: Props) {
               type="button"
               onClick={() => { if (i === index) audio.current?.play().catch(() => setEnLecture(false)); else choisir(i, true); defiler(carte.current); }}
               aria-label={`Écouter : ${e.titre}`}
-              className="flex h-[65px] w-[65px] shrink-0 items-center justify-center rounded-full bg-surface text-texte ring-1 ring-bordure hover:bg-pastel"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface text-texte ring-1 ring-bordure hover:bg-pastel sm:h-[65px] sm:w-[65px]"
             >
               <Icone nom="lecture-petit" taille={16} />
             </button>

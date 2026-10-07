@@ -52,26 +52,26 @@ export default function EnTete() {
 
   return (
     <header className="zone-sombre sticky top-0 z-50 bg-fond-sombre text-sur-fond-sombre">
-      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 lg:px-6">
-        <Link href="/" onClick={fermer} className="flex items-center gap-2 text-2xl lowercase">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-6 px-5 lg:px-6">
+        <Link href="/" onClick={fermer} className="flex shrink-0 items-center gap-2 whitespace-nowrap text-2xl lowercase lg:text-xl xl:text-2xl">
           <Feuille className="h-7 w-7" />
           Maison La recette
         </Link>
 
-        <nav aria-label="Navigation principale" className="hidden items-center gap-x-7 text-lg lg:flex">
+        <nav aria-label="Navigation principale" className="hidden items-center gap-x-5 lg:flex xl:gap-x-7 xl:text-lg">
           {NAVIGATION_ORDINATEUR.map(lien => (
             <Link
               key={lien.href}
               href={lien.href}
               aria-current={courant(lien.href)}
-              className={`border-b-2 pb-0.5 ${estActif(lien.href) ? 'border-decor' : 'border-transparent hover:border-lien-sur-sombre'}`}
+              className={`whitespace-nowrap border-b-2 pb-0.5 ${estActif(lien.href) ? 'border-decor' : 'border-transparent hover:border-lien-sur-sombre'}`}
             >
               {lien.label}
             </Link>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-x-5 lg:flex">
+        <div className="hidden shrink-0 items-center gap-x-4 whitespace-nowrap lg:flex">
           {!isPending && (session ? (
             <>
               {session.user.role === 'admin' && (
@@ -101,8 +101,8 @@ export default function EnTete() {
       </div>
 
       {menuOuvert && (
-        <nav id="menu-mobile" aria-label="Menu" className="fixed inset-x-0 bottom-0 top-20 overflow-y-auto bg-fond-sombre px-8 pb-12 pt-10 lg:hidden">
-          <ul className="grid gap-1">
+        <nav id="menu-mobile" aria-label="Menu" className="fixed inset-x-0 bottom-0 top-20 overflow-y-auto bg-fond-sombre px-8 pb-12 pt-[min(6.5rem,12vh)] lg:hidden">
+          <ul className="grid gap-3">
             {PRINCIPAUX.map(lien => (
               <li key={lien.href}>
                 <Link href={lien.href} onClick={fermer} aria-current={courant(lien.href)} className={`text-5xl min-[380px]:text-6xl ${estActif(lien.href) ? 'underline decoration-decor decoration-2 underline-offset-8' : ''}`}>

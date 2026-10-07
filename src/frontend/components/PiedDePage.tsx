@@ -19,7 +19,7 @@ export default function PiedDePage({ liensEcoute }: { liensEcoute: readonly Lien
     <footer className="zone-sombre mt-20 bg-fond-sombre text-sur-fond-sombre">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div className="grid content-start gap-3">
-          <p className="flex items-center gap-2 text-2xl lowercase">
+          <p className="flex items-center gap-2 whitespace-nowrap text-2xl lowercase">
             <Feuille className="h-7 w-7 text-lien-sur-sombre" />
             Maison La recette
           </p>

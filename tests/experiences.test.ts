@@ -35,7 +35,7 @@ test('cartes : prochaine date ouverte avec des places, autres dates comptÃ©es, Â
   await session(atelier.id, 5, { placesPrises: 3 });     // prochaine : 5 places restantes
   await session(atelier.id, 9);
   await session(atelier.id, 12);
-  const sansDate = await experience('carte-sans-date');
+  await experience('carte-sans-date');
   const surDevis = await experience('carte-sur-devis', { type: 'immersion', reservableEnLigne: false });
   await session(surDevis.id, 4);
   await experience('carte-masquee', { actif: false });

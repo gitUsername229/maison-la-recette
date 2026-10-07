@@ -37,13 +37,13 @@ export default function CarteExperience({ experience }: { experience: CarteExper
         </p>
         {autresDates > 0 && <p className="mt-1 text-xs">+ {pluriel(autresDates, 'autre date')}</p>}
       </div>
-      <div className="flex items-center justify-between gap-3 bg-voile/35 px-6 py-4 backdrop-blur-[4px]">
-        <Link href={`/experiences/${slug}`} className="text-sm font-bold underline underline-offset-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-3 bg-voile/35 px-6 py-4 backdrop-blur-[4px]">
+        <Link href={`/experiences/${slug}`} className="whitespace-nowrap text-sm font-bold underline underline-offset-4">
           En savoir plus<span className="sr-only"> : {titre}</span>
         </Link>
         <Link
           href={prochaineDate ? `/experiences/${slug}#reserver` : `/contact?experience=${id}`}
-          className="flex min-h-[51px] items-center gap-2.5 rounded-full bg-primaire px-5 text-lg font-bold text-sur-primaire hover:bg-primaire-fort"
+          className="flex min-h-[51px] items-center gap-2.5 whitespace-nowrap rounded-full bg-primaire px-5 text-lg font-bold text-sur-primaire hover:bg-primaire-fort"
         >
           {prochaineDate ? 'Inscriptions' : 'Demander un devis'}
           <span className="sr-only"> : {titre}</span>
