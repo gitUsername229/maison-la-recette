@@ -106,7 +106,7 @@ test('un paiement confirmé envoie la confirmation au client et l’information 
 
 test('une demande de devis envoie le détail à Julie (réponse directe au client) et un accusé, sans HTML injecté', async () => {
   const message = '<img src=x onerror=alert(1)> Team building';
-  const corps = { nom: 'Sophie', entreprise: 'Acme', email: 'devis-mail@example.com', telephone: '0600000002', typeDemande: 'evenement', lieuSouhaite: 'a_proximite', message };
+  const corps = { nom: 'Sophie', entreprise: 'Acme', email: 'devis-mail@example.com', telephone: '0600000002', typeDemande: 'evenement', lieuSouhaite: 'a_proximite', message, consentement: true };
   const reponse = await devis.createDevis(requete('/api/devis', { methode: 'POST', corps }));
   assert.equal(reponse.status, 201);
   await envoi.attendreLesEnvois();

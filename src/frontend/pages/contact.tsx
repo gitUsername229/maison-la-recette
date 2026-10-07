@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { appelerApi } from '@/frontend/admin/api';
-import Champ, { ChampListe, ChampTexte } from '@/frontend/components/Champ';
+import Champ, { CaseConsentement, ChampListe, ChampPiege, ChampTexte } from '@/frontend/components/Champ';
 import { LIEUX_DEVIS, TYPES_DEVIS } from '@/frontend/format';
 import { classeBouton, classeErreur } from '@/frontend/styles/classes';
 
@@ -12,20 +12,21 @@ type Props = {
   experienceId?: number;
 };
 
-type Donnees = Record<string, string | number>;
+type Donnees = Record<string, string | number | boolean>;
 
 // Noms des champs dans les messages d'erreur renvoyés par /api/devis.
 const LIBELLES = {
   nom: 'Nom et prénom', entreprise: 'Entreprise ou organisation', email: 'E-mail', telephone: 'Téléphone', typeDemande: 'Votre demande',
   experienceId: 'Expérience', nbParticipants: 'Nombre de participants', dateSouhaitee: 'Date souhaitée', lieuSouhaite: 'Lieu souhaité', message: 'Votre projet',
+  consentement: 'Politique de confidentialité',
 };
 
-/** Champs du formulaire → corps de POST /api/devis (champs vides retirés, nombres convertis). */
+/** Champs du formulaire → corps de POST /api/devis (champs vides retirés, nombres convertis, case cochée → true). */
 function corpsDevis(formulaire: FormData): Donnees {
-  const corps: Donnees = {};
+  const corps: Donnees = { consentement: formulaire.get('consentement') === 'on' };
   for (const [cle, valeur] of formulaire.entries()) {
     const texte = String(valeur).trim();
-    if (!texte) continue;
+    if (!texte || cle === 'consentement') continue;
     corps[cle] = cle === 'experienceId' || cle === 'nbParticipants' ? Number(texte) : texte;
   }
   return corps;
@@ -73,7 +74,8 @@ export default function Contact({ experiences, experienceId }: Props) {
       <h2 className="mt-6 text-lg font-bold">Demande de devis</h2>
       <p className="mt-2 leading-relaxed text-texte-doux">Une expérience pour votre équipe, le studio podcast, un sponsoring ou un événement : décrivez votre projet, Julie vous rappelle sous 48 h.</p>
 
-      <form onSubmit={envoyer} className="mt-8 grid gap-4">
+      <form onSubmit={envoyer} className="relative mt-8 grid gap-4">
+        <ChampPiege />
         <div className="grid gap-4 sm:grid-cols-2">
           <Champ libelle="Nom et prénom" name="nom" autoComplete="name" required maxLength={120} erreur={erreursChamps.nom} />
           <Champ libelle="Entreprise ou organisation" name="entreprise" autoComplete="organization" required maxLength={500} erreur={erreursChamps.entreprise} />
@@ -90,6 +92,7 @@ export default function Contact({ experiences, experienceId }: Props) {
         </div>
         {avecLieu && <ChampListe libelle="Lieu souhaité" name="lieuSouhaite" options={LIEUX_DEVIS} vide="Indifférent" erreur={erreursChamps.lieuSouhaite} />}
         <ChampTexte libelle="Votre projet" name="message" required maxLength={10000} erreur={erreursChamps.message} />
+        <CaseConsentement usage="pour qu’on me rappelle au sujet de ma demande" erreur={erreursChamps.consentement} />
         {erreur && <p role="alert" className={classeErreur}>{erreur}</p>}
         <button type="submit" disabled={envoi} className={classeBouton}>{envoi ? 'Envoi…' : 'Envoyer la demande'}</button>
       </form>

@@ -141,6 +141,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { libelle: 'Personnes', chemin: 'nbPersonnes' },
       { libelle: 'Montant', chemin: 'montantCents', format: 'prix' },
       { libelle: 'Réservée le', chemin: 'createdAt', format: 'dateHeure' },
+      { libelle: 'Confidentialité acceptée le', chemin: 'consentementLe', format: 'dateHeure' },
       { libelle: 'Paiement Stripe', chemin: 'stripeSessionId' },
     ],
     actions: [{
@@ -176,6 +177,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { libelle: 'Date souhaitée', chemin: 'dateSouhaitee', format: 'date' },
       { libelle: 'Lieu', chemin: 'lieuSouhaite', libelles: LIEUX_DEVIS },
       { libelle: 'Message', chemin: 'message' },
+      { libelle: 'Confidentialité acceptée le', chemin: 'consentementLe', format: 'dateHeure' },
     ],
     champs: [
       { nom: 'statut', libelle: 'Statut', type: 'liste', options: STATUTS_DEVIS, requis: true },
@@ -429,10 +431,11 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     cle: 'newsletter', titre: 'Newsletter', singulier: 'une adresse', api: '/api/newsletter',
     textes: { enregistre: 'Adresse enregistrée', supprime: 'Adresse désinscrite' },
     designation: ligne => `l’adresse ${String(ligne.email)} de la newsletter`,
-    description: 'Les adresses inscrites depuis l’accueil du site. Ajoutez-en une à la main, ou supprimez celle d’une personne qui demande à être désinscrite.',
+    description: 'Les adresses inscrites depuis l’accueil du site (case de confidentialité cochée). Ajoutez-en une à la main, ou supprimez celle d’une personne qui demande à être désinscrite.',
     colonnes: [
       { libelle: 'E-mail', chemin: 'email' },
       { libelle: 'Inscrite le', chemin: 'createdAt', format: 'date' },
+      { libelle: 'Confidentialité acceptée le', chemin: 'consentementLe', format: 'date' },
     ],
     champs: [{ nom: 'email', libelle: 'Adresse e-mail', type: 'texte', requis: true }],
     methodeModification: 'PUT', suppression: true,

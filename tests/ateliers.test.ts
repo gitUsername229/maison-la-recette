@@ -7,8 +7,8 @@ import { preparerBaseDeTest } from './outils';
 
 let nettoyer: () => Promise<void>;
 let prisma: PrismaClient;
-// Coordonnées saisies par une visiteuse (pas de compte).
-const client = { nom: 'Camille', email: 'camille@example.com' };
+// Coordonnées saisies par une visiteuse (pas de compte), case de consentement cochée.
+const client = { nom: 'Camille', email: 'camille@example.com', consentement: new Date() };
 let bookings: typeof import('../src/backend/ateliers/bookings');
 let handlers: typeof import('../src/backend/ateliers/payment-handlers');
 let catalogue: typeof import('../src/backend/ateliers/catalogue');
@@ -64,7 +64,7 @@ test('le montant vient de la base et une même clé ne crée pas deux réservati
   assert.equal(fake.sessions.size, 1);
   await assert.rejects(reserver({ ...input, nbPersonnes: 2 }, key, fake.client));
   // La même clé avec une autre adresse e-mail n'ouvre pas le paiement de Camille.
-  await assert.rejects(bookings.createCheckout({ ...input, nom: 'Camille', email: 'autre@example.com' }, key, fake.client), { status: 409 });
+  await assert.rejects(bookings.createCheckout({ ...input, ...client, email: 'autre@example.com' }, key, fake.client), { status: 409 });
 });
 
 test('deux demandes concurrentes ne peuvent pas prendre la dernière place', async () => {

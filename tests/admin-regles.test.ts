@@ -125,7 +125,7 @@ test('couverture : fichier effacé avec l’expérience, sauf s’il sert encore
 });
 
 test('newsletter : inscription publique sans révéler les abonnés ; liste et suppression réservées à l’admin', async () => {
-  const inscrire = () => newsletter.inscrire(requete('/api/newsletter', { methode: 'POST', corps: { email: ' Lecteur@Example.com ' } }));
+  const inscrire = () => newsletter.inscrire(requete('/api/newsletter', { methode: 'POST', corps: { email: ' Lecteur@Example.com ', consentement: true } }));
   const [premiere, seconde] = [await inscrire(), await inscrire()];
   assert.deepEqual([premiere.status, seconde.status], [201, 201]);
   assert.deepEqual(await premiere.json(), await seconde.json()); // même réponse : on ne sait pas si l'adresse était déjà inscrite

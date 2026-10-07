@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { consentement } from '@/backend/anti-spam';
 import { cheminImage } from '@/backend/contenus/validation';
 
 const text = z.string().trim().min(1).max(500);
@@ -30,7 +31,7 @@ const telephone = z.string().trim().min(6).max(40);
 
 export const checkoutSchema = z.object({
   sessionId: z.number().int().positive(), nbPersonnes: positive,
-  nom, email, telephone: telephone.optional(),
+  nom, email, telephone: telephone.optional(), consentement,
 }).strict();
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 export const experienceUpdateSchema = experienceSchema.omit({ actif: true, reservableEnLigne: true }).partial().extend({ actif: z.boolean().optional(), reservableEnLigne: z.boolean().optional() });
@@ -47,5 +48,6 @@ export const devisSchema = z.object({
   dateSouhaitee: z.string().refine(v => /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(v) && !isNaN(Date.parse(v))).transform(v => new Date(v)).optional(),
   lieuSouhaite: z.enum(LIEUX_DEVIS).optional(),
   message: z.string().trim().min(1).max(10_000),
+  consentement,
 }).strict();
 export type DevisInput = z.infer<typeof devisSchema>;

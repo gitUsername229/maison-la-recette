@@ -46,19 +46,21 @@ model Session {
 }
 
 model Reservation {
-  id              Int      @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   sessionId       Int
   nom             String
   email           String
   telephone       String?
   nbPersonnes     Int
   montantCents    Int
-  statut          String   @default("en_attente")
-  stripeSessionId String?  @unique
-  checkoutKey     String?  @unique
+  statut          String    @default("en_attente")
+  stripeSessionId String?   @unique
+  checkoutKey     String?   @unique
   checkoutPayload String?
-  createdAt       DateTime @default(now())
-  session         Session  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  /// Case « politique de confidentialité » cochée (null : réservation antérieure à la case)
+  consentementLe  DateTime?
+  createdAt       DateTime  @default(now())
+  session         Session   @relation(fields: [sessionId], references: [id], onDelete: Restrict)
 
   @@index([sessionId])
 }
@@ -77,6 +79,8 @@ model DemandeDevis {
   message        String
   statut         String      @default("nouvelle")
   noteInterne    String?
+  /// Case « politique de confidentialité » cochée (null : demande antérieure à la case)
+  consentementLe DateTime?
   createdAt      DateTime    @default(now())
   experience     Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
 
@@ -155,9 +159,11 @@ model Image {
 }
 
 model Newsletter {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  /// Case « politique de confidentialité » cochée sur le site (null : adresse ajoutée dans l'admin, ou avant la case)
+  consentementLe DateTime?
+  createdAt      DateTime  @default(now())
 }
 
 /// Textes fixes des pages (accueil, à propos, studio), modifiables dans /admin/textes.

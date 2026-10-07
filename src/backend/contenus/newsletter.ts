@@ -1,20 +1,35 @@
 import 'server-only';
 import { z } from 'zod';
-import { exigerAdmin } from '@/backend/auth/acces';
+import { consentement, limiterDebit, lirePiege } from '@/backend/anti-spam';
+import { estAdmin, exigerAdmin } from '@/backend/auth/acces';
 import { prisma } from '@/backend/db/prisma';
 import { endpoint, json, positiveId, type RouteContext } from '@/backend/http';
 
 // Adresse nettoyée (espaces, majuscules) avant d'être validée.
-const abonnementSchema = z.object({ email: z.string().trim().toLowerCase().pipe(z.email().max(254)) }).strict();
+const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
+const abonnementSchema = z.object({ email }).strict();
+const inscriptionPubliqueSchema = z.object({ email, consentement }).strict();
+
+const MERCI = 'Merci ! Votre adresse est inscrite à la newsletter.';
 
 /**
  * POST /api/newsletter (public, et bouton « Ajouter » de l'admin). Même réponse que l'adresse soit
- * déjà inscrite ou non : on ne révèle pas qui est abonné.
+ * déjà inscrite ou non : on ne révèle pas qui est abonné. Sur le site : champ piège, limite d'envois
+ * par IP et consentement obligatoire (sa date est enregistrée).
  */
 export const inscrire = endpoint(async (request: Request) => {
-  const { email } = abonnementSchema.parse(await request.json());
-  await prisma.newsletter.upsert({ where: { email }, update: {}, create: { email } });
-  return json({ message: 'Merci ! Votre adresse est inscrite à la newsletter.' }, 201);
+  if (await estAdmin(request)) {
+    const { email } = abonnementSchema.parse(await request.json());
+    await prisma.newsletter.upsert({ where: { email }, update: {}, create: { email } });
+    return json({ message: MERCI }, 201);
+  }
+  limiterDebit(request, 'newsletter');
+  const { robot, donnees } = lirePiege(await request.json());
+  // Robot : même réponse, rien n'est enregistré.
+  if (robot) return json({ message: MERCI }, 201);
+  const { email, consentement: consentementLe } = inscriptionPubliqueSchema.parse(donnees);
+  await prisma.newsletter.upsert({ where: { email }, update: { consentementLe }, create: { email, consentementLe } });
+  return json({ message: MERCI }, 201);
 });
 
 /** GET /api/newsletter (admin) : adresses inscrites, données personnelles réservées à l'admin. */

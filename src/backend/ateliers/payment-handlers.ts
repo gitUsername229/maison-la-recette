@@ -2,6 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { prisma } from '@/backend/db/prisma';
+import { limiterDebit, lirePiege } from '@/backend/anti-spam';
 import { exigerAdmin } from '@/backend/auth/acces';
 import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
 import { getStripe } from '@/backend/payments/stripe';
@@ -10,9 +11,13 @@ import { cancelReservation, createCheckout, reservationApresPaiement, traiterSes
 
 /** POST /api/checkout (public, sans compte) : bloque les places et ouvre le paiement Stripe. */
 export const checkout = endpoint(async (request: Request) => {
+  limiterDebit(request, 'checkout');
+  const { robot, donnees } = lirePiege(await request.json());
+  // Robot : refusé (impossible de simuler un paiement), sans bloquer de place.
+  if (robot) throw new ApiError(400, 'Demande refusée.');
   // Compatibilité avec le formulaire existant du dépôt, qui n'envoie pas encore de clé.
   const key = z.uuid().parse(request.headers.get('Idempotency-Key') ?? randomUUID());
-  const response = json(await createCheckout(checkoutSchema.parse(await request.json()), key));
+  const response = json(await createCheckout(checkoutSchema.parse(donnees), key));
   response.headers.set('Idempotency-Key', key);
   return response;
 });
@@ -52,7 +57,7 @@ export const listReservations = endpoint(async (request: Request) => {
   await exigerAdmin(request);
   const statut = params.get('statut');
   if (statut && !['en_attente', 'payee', 'annulee'].includes(statut)) throw new ApiError(400, 'Statut invalide');
-  return json(await prisma.reservation.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' }, select: { id: true, sessionId: true, nom: true, email: true, telephone: true, nbPersonnes: true, montantCents: true, statut: true, stripeSessionId: true, createdAt: true, session: { select: { dateDebut: true, experience: { select: { titre: true } } } } } }));
+  return json(await prisma.reservation.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' }, select: { id: true, sessionId: true, nom: true, email: true, telephone: true, nbPersonnes: true, montantCents: true, statut: true, stripeSessionId: true, consentementLe: true, createdAt: true, session: { select: { dateDebut: true, experience: { select: { titre: true } } } } } }));
 });
 
 export const cancel = endpoint(async (request: Request, context: RouteContext) => {

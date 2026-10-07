@@ -39,7 +39,7 @@ after(async () => {
 const avecId = (id: string | number) => ({ params: Promise.resolve({ id: String(id) }) });
 const CLE_ADMIN = () => ({ 'x-admin-key': process.env.ADMIN_KEY! });
 
-const DEVIS = { nom: 'Sophie Martin', entreprise: 'Acme', email: 'sophie@example.com', telephone: '0600000001', typeDemande: 'studio', message: 'Un podcast pour notre marque' };
+const DEVIS = { nom: 'Sophie Martin', entreprise: 'Acme', email: 'sophie@example.com', telephone: '0600000001', typeDemande: 'studio', message: 'Un podcast pour notre marque', consentement: true };
 
 /** Champs signalés par une réponse 400 de validation. */
 const champsRefuses = async (reponse: Response) => ((await reponse.json()) as { details?: { champ: string }[] }).details?.map(d => d.champ).sort();
@@ -70,8 +70,8 @@ test('réserver se fait sans compte : nom et e-mail demandés, téléphone facul
   // Sans coordonnées : refus de validation (et non 401 « connectez-vous »), avant tout appel à Stripe.
   const reponse = await handlers.checkout(requete('/api/checkout', { methode: 'POST', corps: { sessionId: 1, nbPersonnes: 1 } }));
   assert.equal(reponse.status, 400);
-  assert.deepEqual(await champsRefuses(reponse), ['email', 'nom']);
-  const telephoneInvalide = await handlers.checkout(requete('/api/checkout', { methode: 'POST', corps: { sessionId: 1, nbPersonnes: 1, nom: 'Camille', email: 'camille@example.com', telephone: '12' } }));
+  assert.deepEqual(await champsRefuses(reponse), ['consentement', 'email', 'nom']);
+  const telephoneInvalide = await handlers.checkout(requete('/api/checkout', { methode: 'POST', corps: { sessionId: 1, nbPersonnes: 1, nom: 'Camille', email: 'camille@example.com', telephone: '12', consentement: true } }));
   assert.deepEqual(await champsRefuses(telephoneInvalide), ['telephone']);
 });
 

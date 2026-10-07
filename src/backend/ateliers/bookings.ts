@@ -49,8 +49,8 @@ export async function createCheckout(input: CheckoutInput, key: string, stripe: 
     const unitPrice = session.prixCents ?? session.experience.prixCents;
     const total = unitPrice * input.nbPersonnes;
     if (total < 50 || total > 99_999_999) throw new ApiError(400, 'Montant incompatible avec un paiement par carte en euros');
-    const { sessionId, nbPersonnes, nom, email, telephone } = input;
-    const created = await tx.reservation.create({ data: { sessionId, nbPersonnes, nom, email, telephone: telephone ?? null, montantCents: total, checkoutKey: key } });
+    const { sessionId, nbPersonnes, nom, email, telephone, consentement } = input;
+    const created = await tx.reservation.create({ data: { sessionId, nbPersonnes, nom, email, telephone: telephone ?? null, consentementLe: consentement, montantCents: total, checkoutKey: key } });
     const payload: Stripe.Checkout.SessionCreateParams = {
       mode: 'payment', allowed_payment_method_types: ['card'], customer_email: email,
       client_reference_id: String(created.id), metadata: { reservationId: String(created.id) },

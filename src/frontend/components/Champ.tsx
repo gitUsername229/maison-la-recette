@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { Libelles } from '@/frontend/format';
 import { classeChamp, classeChampErreur, classeLibelle } from '@/frontend/styles/classes';
@@ -66,5 +67,37 @@ export function ChampCases({ libelle, aide, erreur, name, options, valeurs }: Ha
       </div>
       {erreur ? <span className="text-sm font-medium text-erreur">{erreur}</span> : aide && <span className="text-sm text-texte-doux">{aide}</span>}
     </fieldset>
+  );
+}
+
+/**
+ * Case de consentement des formulaires publics (obligatoire, vérifiée aussi par le serveur), avec le lien vers
+ * la politique de confidentialité, ouvert dans un nouvel onglet pour ne pas perdre la saisie.
+ */
+export function CaseConsentement({ usage, erreur }: { usage: string; erreur?: string }) {
+  return (
+    <div className="grid gap-1">
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="consentement" required aria-invalid={erreur ? true : undefined} className="mt-0.5 h-4 w-4 shrink-0 accent-primaire" />
+        <span>
+          J’accepte que mes coordonnées soient utilisées {usage}, comme expliqué dans la{' '}
+          <Link href="/confidentialite" target="_blank" className="underline">politique de confidentialité<span className="sr-only"> (nouvel onglet)</span></Link>
+          <span className="text-erreur" title="Obligatoire"> *</span>
+        </span>
+      </label>
+      {erreur && <span className="text-sm font-medium text-erreur">{erreur}</span>}
+    </div>
+  );
+}
+
+/** Champ piège anti-robots : hors de l'écran, ignoré au clavier et par les lecteurs d'écran ; un robot le remplit. */
+export function ChampPiege() {
+  return (
+    <div aria-hidden="true" className="absolute -left-[10000px] h-px w-px overflow-hidden">
+      <label>
+        Site web (laisser vide)
+        <input type="text" name="siteWeb" tabIndex={-1} autoComplete="off" />
+      </label>
+    </div>
   );
 }
