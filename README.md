@@ -12,6 +12,7 @@ Projet de workshop M1 (Groupe 3), 100 % local.
 | [docs/curl-public.md](docs/curl-public.md) | Exemples curl des routes publiques |
 | [docs/curl-admin.md](docs/curl-admin.md) | Exemples curl des routes admin (pour les devs) |
 | [docs/stripe.md](docs/stripe.md) | Paiement Stripe Checkout (sandbox) : installation, parcours et tests |
+| [public/images/demo/CREDITS.md](public/images/demo/CREDITS.md) | Photos de démonstration : auteurs, liens et licence Unsplash |
 
 ## Lancer le projet
 
@@ -23,7 +24,7 @@ cd maison-la-recette
 npm install
 cp .env.example .env.local      # puis remplir les clés (voir ci-dessous)
 npx prisma migrate dev          # crée la base SQLite
-npx prisma db seed              # données de démo, compte admin, textes des pages, articles de démo
+npx prisma db seed              # données de démo, compte admin, textes des pages, articles et photos de démo
 npm run dev                     # http://localhost:3000
 ```
 
@@ -94,10 +95,13 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 
 **Reste à faire :**
 1. Contenus réels (photos, articles, avis, partenaires, textes des pages) : Julie les saisit dans `/admin`. Le seed
-   ne contient que trois articles de démonstration, marqués « Contenu de démonstration à remplacer » : à réécrire
-   ou supprimer. Les épisodes, eux, viennent d'Ausha.
+   ne contient que trois articles de démonstration, marqués « Contenu de démonstration à remplacer », et des photos
+   provisoires (voir « Thème et images provisoires ») : à remplacer. Les épisodes, eux, viennent d'Ausha.
 2. En production : `NEXT_PUBLIC_BASE_URL` = la vraie adresse du site (sitemap, adresses canoniques, aperçus de partage),
    puis déclarer `/sitemap.xml` dans Google Search Console.
+3. **Direction artistique** : le thème vert actuel est provisoire. La vraie DA se reporte dans un seul fichier,
+   `src/frontend/styles/globals.css` (et les polices dans `src/app/layout.tsx`) ; les e-mails gardent pour l'instant
+   leurs propres couleurs (`src/backend/mails/modeles.ts`).
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
@@ -156,6 +160,45 @@ sans écraser le type, le résumé, l'invité ni les liens modifiés dans l'admi
   - `/sitemap.xml` liste les pages publiques, et `/robots.txt` écarte les pages privées (admin, compte, connexion, API) ;
   - toutes les images ont un texte alternatif (`alt`), obligatoire en base (`imageAlt`, `photoAlt`, `alt`) ;
   - des URLs lisibles grâce aux slugs (`/experiences/atelier-cuisine-anti-gaspi`, `/blog/cuisiner-les-epluchures`).
+
+## Thème et images provisoires
+
+En attendant la direction artistique, le site a une identité verte provisoire, tirée du brief : univers food, coloré,
+un peu rétro, simple et chaleureux ; vert du logo du podcast (feuille de salade, serif en minuscules) ; jamais de noir.
+
+**Toutes les couleurs sont dans un seul fichier : [`src/frontend/styles/globals.css`](src/frontend/styles/globals.css).**
+- La **palette** (6 couleurs nommées) est dans `:root` :
+
+  | Nom | Valeur | Usage |
+  |---|---|---|
+  | `creme` | #f6f5e9 | Fond, légèrement teinté de vert |
+  | `foret` | #1d3324 | Texte et pied de page (vert très foncé, à la place du noir) |
+  | `salade` | #2f6e3b | Vert principal : boutons, liens, focus clavier |
+  | `pousse` | #d5e8c4 | Vert pastel : aplats, étiquettes |
+  | `tomate` | #b9412a | Accent chaud : catégories du blog, étoiles des avis, erreurs |
+  | `citron` | #f3c94b | Accent pastel : newsletter, encarts, surlignage |
+
+- Les **rôles** (`@theme inline`) sont les seules classes de couleur employées par les composants : `bg-fond`,
+  `bg-surface`, `text-texte`, `text-texte-doux`, `border-bordure`, `bg-primaire`, `text-sur-primaire`, `bg-pastel`,
+  `bg-pastel-chaud`, `text-accent`, `bg-fond-sombre`, `text-erreur`… Les couleurs par défaut de Tailwind sont retirées :
+  une classe comme `text-stone-600` ne produit rien.
+- **Polices** : Fraunces (titres, `font-serif`) et DM Sans (texte, `font-sans`), chargées par `next/font` dans
+  `src/app/layout.tsx`, avec des polices de secours (Georgia, system-ui, Arial).
+- `tests/theme.test.ts` vérifie les contrastes WCAG AA de chaque couple de couleurs utilisé, et échoue si une couleur
+  en dur ou une couleur Tailwind par défaut réapparaît dans un composant.
+- Accessibilité : focus clavier visible partout (contour vert épais) ; un seul effet animé, le léger zoom des photos
+  au survol des cartes (expériences, blog), désactivé avec `prefers-reduced-motion`.
+- Changer de DA : modifier la palette dans `globals.css` (et au besoin l'attribution des rôles), lancer `npm test`
+  pour vérifier les contrastes. Aucun composant à toucher.
+
+**Images de démonstration** : 12 photos [Unsplash](https://unsplash.com/license) (licence libre, usage commercial
+autorisé, sans Unsplash+), dans `public/images/demo/` et commitées pour que la démo fonctionne sans internet ; auteurs
+et liens dans [`CREDITS.md`](public/images/demo/CREDITS.md). Thèmes : ateliers de cuisine, marchés, producteurs,
+légumes de saison, mains qui cuisinent, tablées ; pas de logo de marque ni de visage mis en avant.
+Le seed (`prisma/images-demo.ts`) les pose seulement sur les couvertures vides (expériences, articles de démo) et les
+pages sans galerie (accueil, à propos, expériences) : une photo choisie dans l'admin n'est jamais remplacée. La première
+photo de la galerie de l'accueil sert d'image principale. Pour les remplacer : `/admin/photos`, et la couverture dans
+`/admin/experiences` ou `/admin/articles`.
 
 ## Technologies utilisées
 
