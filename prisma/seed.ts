@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { hacherMotDePasse, LONGUEUR_MIN_MOT_DE_PASSE } from '../src/backend/auth/mot-de-passe';
 import { creerTextesManquants } from '../src/backend/contenus/textes-par-defaut';
 import { creerArticlesDemo } from './articles-demo';
+import { poserPhotosDemo } from './images-demo';
 
 loadEnvConfig(process.cwd());
 const prisma = new PrismaClient();
@@ -96,11 +97,21 @@ async function creerArticles() {
   if (crees && sansEpisode) console.warn('Aucun épisode importé : l’article « coulisses » n’est lié à aucun épisode. Importez-les depuis /admin/episodes, puis liez-le.');
 }
 
+// Photos de démonstration (Unsplash, provisoires) : couvertures vides et pages sans galerie seulement.
+async function poserPhotos() {
+  const { couvertures, galeries } = await poserPhotosDemo(prisma);
+  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
+  console.log(couvertures || galeries
+    ? `Photos de démonstration : ${pluriel(couvertures, 'couverture')}, ${pluriel(galeries, 'galerie')}.`
+    : 'Photos déjà en place (non modifiées).');
+}
+
 async function main() {
   await creerExperiences();
   await creerAdmin();
   await creerTextes();
   await creerArticles();
+  await poserPhotos();
 }
 
 main()
