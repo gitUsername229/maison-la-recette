@@ -25,17 +25,18 @@ export default function InscriptionNewsletter({ titre, texte, bouton }: { titre:
   }
 
   return (
-    <section className="mt-14 rounded-2xl bg-white p-6 ring-1 ring-stone-200">
-      <h2 className="font-serif text-2xl">{titre}</h2>
-      <p className="mt-2 whitespace-pre-line text-stone-600">{texte}</p>
-      <form onSubmit={inscrire} className="mt-4 flex flex-wrap gap-3">
+    <section className="mt-14 rounded-3xl bg-pastel-chaud p-7 sm:p-10">
+      <h2 className="font-serif text-3xl">{titre}</h2>
+      <p className="mt-2 whitespace-pre-line">{texte}</p>
+      <form onSubmit={inscrire} className="mt-5 flex flex-col gap-3 sm:flex-row">
         <label className="min-w-0 flex-1">
           <span className="sr-only">Adresse e-mail</span>
           <input name="email" type="email" required autoComplete="email" placeholder="Votre adresse e-mail" className={classeChamp} />
         </label>
         <button type="submit" disabled={envoi} className={classeBouton}>{envoi ? 'Inscription…' : bouton}</button>
       </form>
-      {etat && <p role="status" className={`mt-3 text-sm ${etat.erreur ? 'text-red-700' : 'text-emerald-800'}`}>{etat.texte}</p>}
+      {/* Sur le fond citron, le message reste couleur texte (contraste AA) ; le symbole distingue erreur et succès. */}
+      {etat && <p role="status" className="mt-3 text-sm font-medium">{etat.erreur ? '⚠ ' : '✓ '}{etat.texte}</p>}
     </section>
   );
 }

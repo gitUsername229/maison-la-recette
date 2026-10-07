@@ -6,7 +6,7 @@ import { lire, type Ligne } from './valeurs';
 
 function Principale({ colonne, ligne }: { colonne: ColonneAdmin; ligne: Ligne }) {
   const valeur = lire(ligne, colonne.chemin);
-  if (valeur === null || valeur === undefined || valeur === '') return <span className="text-stone-400">—</span>;
+  if (valeur === null || valeur === undefined || valeur === '') return <span className="text-texte-doux">—</span>;
   const texte = String(valeur);
   switch (colonne.format) {
     case 'date': return <>{formatDate(texte)}</>;
@@ -26,7 +26,7 @@ export default function Valeur({ colonne, ligne }: { colonne: ColonneAdmin; lign
       <Principale colonne={colonne} ligne={ligne} />
       {colonne.complements?.map(chemin => {
         const complement = lire(ligne, chemin);
-        return complement ? <span key={chemin} className="block text-xs text-stone-500">{String(complement)}</span> : null;
+        return complement ? <span key={chemin} className="block text-xs text-texte-doux">{String(complement)}</span> : null;
       })}
     </>
   );

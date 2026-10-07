@@ -58,7 +58,7 @@ export default function Contact({ utilisateur, experiences, experienceId }: Prop
     return (
       <main className="mx-auto max-w-xl px-6 py-12 sm:py-16">
         <h1 className="font-serif text-4xl">Demande envoyée</h1>
-        <p className="mt-4 leading-relaxed text-stone-600">Merci ! Julie vous rappelle sous 48 h pour en parler.</p>
+        <p className="mt-4 leading-relaxed text-texte-doux">Merci ! Julie vous rappelle sous 48 h pour en parler.</p>
         <Link href="/compte" className="mt-8 inline-block underline">Suivre mes demandes</Link>
       </main>
     );
@@ -70,11 +70,11 @@ export default function Contact({ utilisateur, experiences, experienceId }: Prop
   return (
     <main className="mx-auto max-w-xl px-6 py-12 sm:py-16">
       <h1 className="font-serif text-4xl">Demande de devis</h1>
-      <p className="mt-3 leading-relaxed text-stone-600">Une expérience pour votre équipe, le studio podcast, un sponsoring ou un événement : décrivez votre projet, Julie vous rappelle sous 48 h.</p>
+      <p className="mt-3 leading-relaxed text-texte-doux">Une expérience pour votre équipe, le studio podcast, un sponsoring ou un événement : décrivez votre projet, Julie vous rappelle sous 48 h.</p>
 
-      <div className="mt-8 rounded-xl bg-white p-4 text-sm ring-1 ring-stone-200">
+      <div className="mt-8 rounded-xl bg-surface p-4 text-sm ring-1 ring-bordure">
         <p className="font-medium">Vos coordonnées</p>
-        <p className="mt-1 text-stone-600">{utilisateur.nom} · {utilisateur.email}{utilisateur.telephone && ` · ${utilisateur.telephone}`}</p>
+        <p className="mt-1 text-texte-doux">{utilisateur.nom} · {utilisateur.email}{utilisateur.telephone && ` · ${utilisateur.telephone}`}</p>
       </div>
 
       <form onSubmit={envoyer} className="mt-6 grid gap-4">

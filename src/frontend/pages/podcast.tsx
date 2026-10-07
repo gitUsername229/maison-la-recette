@@ -45,16 +45,16 @@ function parSaison(episodes: EpisodeAffiche[]) {
 function Episode({ episode, afficherType }: { episode: EpisodeAffiche; afficherType: boolean }) {
   const repere = [episode.numero > 0 && `Épisode ${episode.numero}`, formatDate(episode.datePublication), `${episode.dureeMin} min`].filter(Boolean).join(' · ');
   return (
-    <li className="grid gap-4 border-t border-stone-300 py-6 sm:grid-cols-[112px_1fr]">
+    <li className="grid gap-4 border-t border-bordure-forte py-6 sm:grid-cols-[112px_1fr]">
       <Image src={episode.image} alt="" width={112} height={112} className="h-28 w-28 rounded-xl object-cover" />
       <div className="grid min-w-0 gap-3">
         <div>
-          <p className="flex flex-wrap items-center gap-2 text-sm text-stone-500">
+          <p className="flex flex-wrap items-center gap-2 text-sm text-texte-doux">
             {repere}
             {afficherType && episode.type !== 'complet' && <Pastille statut="neutre" texte={libelle(TYPES_EPISODE, episode.type)} />}
           </p>
           <h3 className="mt-1 font-serif text-xl leading-snug">{episode.titre}</h3>
-          {episode.invite && <p className="text-sm text-stone-600">Avec {episode.invite}</p>}
+          {episode.invite && <p className="text-sm text-texte-doux">Avec {episode.invite}</p>}
         </div>
         {episode.resume && <TexteRepliable texte={episode.resume} />}
         <LecteurAusha url={episode.embedUrl} titre={episode.titre} />
@@ -69,7 +69,7 @@ export default function Podcast({ episodes, filtre, compteurs, liens }: Props) {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
-      <p className="text-sm uppercase tracking-widest text-stone-500">Le podcast</p>
+      <p className="text-sm uppercase tracking-widest text-texte-doux">Le podcast</p>
       <h1 className="mt-3 font-serif text-5xl sm:text-6xl">la recette</h1>
       <p className="mt-5 max-w-2xl text-lg leading-relaxed">
         Julie Van Ossel part à la rencontre de celles et ceux qui façonnent l’alimentation de demain : chefs, productrices,
@@ -79,7 +79,7 @@ export default function Podcast({ episodes, filtre, compteurs, liens }: Props) {
       <ul className="mt-6 flex flex-wrap gap-2" aria-label="Écouter sur">
         {liens.map(lien => (
           <li key={lien.url}>
-            <a href={lien.url} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-full px-4 py-2 text-sm ring-1 ring-stone-300 hover:bg-white">
+            <a href={lien.url} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-full px-4 py-2 text-sm ring-1 ring-bordure-forte hover:bg-surface">
               {lien.plateforme}
             </a>
           </li>
@@ -92,7 +92,7 @@ export default function Podcast({ episodes, filtre, compteurs, liens }: Props) {
             key={onglet.filtre}
             href={onglet.href}
             aria-current={filtre === onglet.filtre ? 'page' : undefined}
-            className={`rounded-full px-4 py-2 text-sm ${filtre === onglet.filtre ? 'bg-encre text-creme' : 'text-stone-600 ring-1 ring-stone-200 hover:bg-white'}`}
+            className={`rounded-full px-4 py-2 text-sm ${filtre === onglet.filtre ? 'bg-primaire text-sur-primaire' : 'text-texte-doux ring-1 ring-bordure hover:bg-surface'}`}
           >
             {onglet.texte} <span className="opacity-70">({nombre(onglet.filtre)})</span>
           </Link>
@@ -100,7 +100,7 @@ export default function Podcast({ episodes, filtre, compteurs, liens }: Props) {
       </nav>
 
       {episodes.length === 0 ? (
-        <p className="mt-10 text-stone-600">Aucun épisode pour l’instant.</p>
+        <p className="mt-10 text-texte-doux">Aucun épisode pour l’instant.</p>
       ) : (
         parSaison(episodes).map(([saison, liste]) => (
           <section key={saison} className="mt-10">

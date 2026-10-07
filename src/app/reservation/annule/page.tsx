@@ -5,7 +5,7 @@ import Link from "next/link";
 export default function ReservationAnnulee() {
   return (
     <main className="mx-auto max-w-xl px-6 py-16">
-      <h1 className="text-3xl font-semibold">Paiement annulé</h1>
+      <h1 className="font-serif text-4xl">Paiement annulé</h1>
       <p className="mt-4">
         Aucun montant n’a été débité et votre réservation n’a pas été enregistrée. Vous pouvez
         choisir une autre date ou réessayer.

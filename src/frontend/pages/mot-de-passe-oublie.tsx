@@ -29,12 +29,12 @@ export default function MotDePasseOublie() {
     <main className="mx-auto max-w-md px-6 py-12 sm:py-16">
       <h1 className="font-serif text-4xl">Mot de passe oublié</h1>
       {envoye ? (
-        <p className="mt-4 leading-relaxed text-stone-600">
+        <p className="mt-4 leading-relaxed text-texte-doux">
           Si un compte existe pour cette adresse, un e-mail vient de partir avec un lien pour choisir un nouveau mot de passe. Il est valable 1 heure.
         </p>
       ) : (
         <>
-          <p className="mt-3 leading-relaxed text-stone-600">Indiquez l’adresse de votre compte : nous vous envoyons un lien pour choisir un nouveau mot de passe.</p>
+          <p className="mt-3 leading-relaxed text-texte-doux">Indiquez l’adresse de votre compte : nous vous envoyons un lien pour choisir un nouveau mot de passe.</p>
           <form onSubmit={demander} className="mt-8 grid gap-4">
             <Champ libelle="E-mail" name="email" type="email" autoComplete="email" required />
             {erreur && <p role="alert" className={classeErreur}>{erreur}</p>}

@@ -7,7 +7,7 @@ export default function LecteurAusha({ url, titre, libelle = 'Écouter l’épis
   const [ouvert, setOuvert] = useState(false);
   if (!ouvert) {
     return (
-      <button type="button" onClick={() => setOuvert(true)} className="inline-flex items-center gap-2 justify-self-start rounded-full bg-encre px-4 py-2 text-sm font-medium text-creme hover:bg-black">
+      <button type="button" onClick={() => setOuvert(true)} className="inline-flex items-center gap-2 justify-self-start rounded-full bg-primaire px-4 py-2 text-sm font-medium text-sur-primaire hover:bg-primaire-fort">
         <span aria-hidden="true">▶</span> {libelle}
       </button>
     );

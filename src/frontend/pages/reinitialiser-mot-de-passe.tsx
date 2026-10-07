@@ -31,7 +31,7 @@ export default function ReinitialiserMotDePasse({ token }: { token: string | nul
       <h1 className="font-serif text-4xl">Nouveau mot de passe</h1>
       {termine ? (
         <>
-          <p className="mt-4 leading-relaxed text-stone-600">Votre mot de passe est changé. Par sécurité, vos autres connexions ont été fermées.</p>
+          <p className="mt-4 leading-relaxed text-texte-doux">Votre mot de passe est changé. Par sécurité, vos autres connexions ont été fermées.</p>
           <Link href="/connexion" className={`mt-8 inline-block ${classeBouton}`}>Se connecter</Link>
         </>
       ) : (

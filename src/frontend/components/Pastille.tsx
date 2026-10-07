@@ -1,8 +1,8 @@
 const TONS = {
-  succes: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
-  attente: 'bg-amber-50 text-amber-800 ring-amber-200',
-  annule: 'bg-stone-100 text-stone-500 ring-stone-200',
-  neutre: 'bg-white text-stone-700 ring-stone-200',
+  succes: 'bg-succes-fond text-succes ring-pastel',
+  attente: 'bg-pastel-chaud text-primaire ring-pastel-chaud',
+  annule: 'bg-fond text-texte-doux ring-bordure',
+  neutre: 'bg-surface text-texte-doux ring-bordure',
 } as const;
 
 // Statut stocké en base → couleur de la pastille.

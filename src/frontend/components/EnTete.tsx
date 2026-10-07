@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { authClient } from '@/frontend/auth-client';
+import Feuille from '@/frontend/components/Feuille';
 
 const liensNavigation = [
   { href: '/podcast', label: 'Podcast' },
@@ -33,14 +34,15 @@ export default function EnTete() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-stone-200/80 bg-creme/95 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-bordure bg-fond/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         {/* Logo / Titre du site */}
         <Link
           href="/"
-          className="font-serif text-xl font-bold tracking-tight text-encre hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 font-serif text-2xl font-semibold lowercase tracking-tight text-primaire"
           onClick={() => setMenuOuvert(false)}
         >
+          <Feuille className="h-7 w-7" />
           Maison La recette
         </Link>
 
@@ -52,10 +54,9 @@ export default function EnTete() {
               <Link
                 key={lien.href}
                 href={lien.href}
-                className={`transition-colors hover:text-stone-900 ${
-                  actif
-                    ? 'font-semibold text-stone-900 border-b-2 border-amber-800 pb-0.5'
-                    : 'text-stone-600'
+                aria-current={actif ? 'page' : undefined}
+                className={`border-b-2 pb-0.5 hover:text-texte ${
+                  actif ? 'border-accent font-semibold text-texte' : 'border-transparent text-texte-doux'
                 }`}
               >
                 {lien.label}
@@ -71,15 +72,15 @@ export default function EnTete() {
               {session.user.role === 'admin' && (
                 <Link
                   href="/admin"
-                  className="rounded-lg bg-stone-200/70 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-stone-800 hover:bg-stone-300 transition-colors"
+                  className="rounded-full bg-pastel-chaud px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-texte"
                 >
                   Admin
                 </Link>
               )}
               <Link
                 href="/compte"
-                className={`text-stone-600 hover:text-stone-900 transition-colors ${
-                  estActif('/compte') ? 'font-semibold text-stone-900' : ''
+                className={`text-texte-doux hover:text-texte ${
+                  estActif('/compte') ? 'font-semibold text-texte' : ''
                 }`}
               >
                 Mon compte
@@ -87,7 +88,7 @@ export default function EnTete() {
               <button
                 type="button"
                 onClick={deconnecter}
-                className="text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
+                className="text-texte-doux hover:text-texte cursor-pointer"
               >
                 Déconnexion
               </button>
@@ -96,13 +97,13 @@ export default function EnTete() {
             <div className="flex items-center gap-x-3">
               <Link
                 href="/connexion"
-                className="text-stone-600 hover:text-stone-900 font-medium transition-colors"
+                className="text-texte-doux hover:text-texte font-medium"
               >
                 Connexion
               </Link>
               <Link
                 href="/inscription"
-                className="rounded-full bg-encre px-4 py-2 text-xs font-semibold tracking-wide text-creme hover:bg-black transition-colors"
+                className="rounded-full bg-primaire px-4 py-2 text-xs font-semibold tracking-wide text-sur-primaire hover:bg-primaire-fort"
               >
                 Créer un compte
               </Link>
@@ -114,7 +115,7 @@ export default function EnTete() {
         <button
           type="button"
           onClick={() => setMenuOuvert(!menuOuvert)}
-          className="lg:hidden flex h-10 w-10 items-center justify-center rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-100 transition-colors"
+          className="lg:hidden flex h-10 w-10 items-center justify-center rounded-lg border border-bordure-forte text-texte-doux hover:bg-fond"
           aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'}
           aria-expanded={menuOuvert}
         >
@@ -132,7 +133,7 @@ export default function EnTete() {
 
       {/* Menu Déroulant Mobile */}
       {menuOuvert && (
-        <div className="lg:hidden border-t border-stone-200 bg-creme px-6 py-6 shadow-xl">
+        <div className="lg:hidden border-t border-bordure bg-fond px-6 py-6 shadow-xl">
           <nav className="flex flex-col gap-y-4 text-base font-medium">
             {liensNavigation.map((lien) => {
               const actif = estActif(lien.href);
@@ -141,10 +142,11 @@ export default function EnTete() {
                   key={lien.href}
                   href={lien.href}
                   onClick={() => setMenuOuvert(false)}
-                  className={`py-1 transition-colors ${
+                  aria-current={actif ? 'page' : undefined}
+                  className={`py-1 ${
                     actif
-                      ? 'font-bold text-amber-900 border-l-4 border-amber-800 pl-3 -ml-4'
-                      : 'text-stone-700 hover:text-stone-950'
+                      ? 'font-bold text-primaire border-l-4 border-accent pl-3 -ml-4'
+                      : 'text-texte-doux hover:text-texte'
                   }`}
                 >
                   {lien.label}
@@ -153,14 +155,14 @@ export default function EnTete() {
             })}
 
             {/* Auth Mobile */}
-            <div className="mt-4 border-t border-stone-300 pt-4 flex flex-col gap-y-3 text-sm">
+            <div className="mt-4 border-t border-bordure-forte pt-4 flex flex-col gap-y-3 text-sm">
               {!isPending && (session ? (
                 <>
                   {session.user.role === 'admin' && (
                     <Link
                       href="/admin"
                       onClick={() => setMenuOuvert(false)}
-                      className="text-amber-800 font-semibold"
+                      className="text-primaire font-semibold"
                     >
                       Interface Administration
                     </Link>
@@ -168,14 +170,14 @@ export default function EnTete() {
                   <Link
                     href="/compte"
                     onClick={() => setMenuOuvert(false)}
-                    className="text-stone-700 hover:text-stone-950 font-medium"
+                    className="text-texte-doux hover:text-texte font-medium"
                   >
                     Mon compte ({session.user.name || session.user.email})
                   </Link>
                   <button
                     type="button"
                     onClick={deconnecter}
-                    className="text-left text-red-700 font-medium"
+                    className="text-left text-erreur font-medium"
                   >
                     Déconnexion
                   </button>
@@ -185,14 +187,14 @@ export default function EnTete() {
                   <Link
                     href="/connexion"
                     onClick={() => setMenuOuvert(false)}
-                    className="text-stone-700 hover:text-stone-950 font-medium py-1"
+                    className="text-texte-doux hover:text-texte font-medium py-1"
                   >
                     Connexion
                   </Link>
                   <Link
                     href="/inscription"
                     onClick={() => setMenuOuvert(false)}
-                    className="rounded-xl bg-encre py-2.5 text-center font-semibold text-creme hover:bg-black transition-colors"
+                    className="rounded-xl bg-primaire py-2.5 text-center font-semibold text-sur-primaire hover:bg-primaire-fort"
                   >
                     Créer un compte
                   </Link>

@@ -27,19 +27,19 @@ export default function ChampImage({ nom, libelle, requis, aide, erreur, valeurI
 
   return (
     <div className={classeLibelle}>
-      <span className="text-sm font-medium">{libelle}{requis && <span className="text-red-700" title="Obligatoire"> *</span>}</span>
+      <span className="text-sm font-medium">{libelle}{requis && <span className="text-erreur" title="Obligatoire"> *</span>}</span>
       <input type="hidden" name={nom} value={url} />
       <div className="flex flex-wrap items-center gap-3">
-        {url && <Image src={url} alt="" width={64} height={64} unoptimized className="h-16 w-16 rounded-lg object-cover ring-1 ring-stone-200" />}
-        <label className="cursor-pointer rounded-full px-4 py-2 text-sm ring-1 ring-stone-300 hover:bg-stone-100">
+        {url && <Image src={url} alt="" width={64} height={64} unoptimized className="h-16 w-16 rounded-lg object-cover ring-1 ring-bordure" />}
+        <label className="cursor-pointer rounded-full px-4 py-2 text-sm ring-1 ring-bordure-forte hover:bg-fond">
           {url ? 'Changer la photo' : 'Choisir une photo'}
           <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={envoyer} />
         </label>
         {url && !requis && <button type="button" onClick={() => setUrl('')} className="text-sm underline">Retirer</button>}
       </div>
       {erreur && !etat
-        ? <span className="text-xs font-medium text-red-700">{erreur}</span>
-        : <span className="text-xs text-stone-500">{etat ?? aide ?? 'JPG, PNG ou WebP, 5 Mo maximum.'}</span>}
+        ? <span className="text-xs font-medium text-erreur">{erreur}</span>
+        : <span className="text-xs text-texte-doux">{etat ?? aide ?? 'JPG, PNG ou WebP, 5 Mo maximum.'}</span>}
     </div>
   );
 }

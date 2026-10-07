@@ -9,7 +9,7 @@ import { ressourceAdmin, type ActionLigne, type RessourceAdmin } from './ressour
 import Valeur from './Valeur';
 import { lire, type Ligne } from './valeurs';
 
-const classeAction = 'text-sm underline decoration-stone-300 underline-offset-4 hover:decoration-stone-800';
+const classeAction = 'text-sm underline decoration-bordure-forte underline-offset-4 hover:decoration-texte';
 
 type Message = { erreur: boolean; texte: string; proposition?: { action: ActionLigne; ligne: Ligne } };
 
@@ -71,7 +71,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
   function ouvrir(ligne: Ligne | 'nouveau') {
     setMessage(null);
     setEdition(ligne);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }
 
   function enregistre(texte: string) {
@@ -88,11 +88,11 @@ export default function TableauRessource({ cle }: { cle: string }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
           <h1 className="font-serif text-4xl">{ressource.titre}</h1>
-          <p className="mt-2 text-stone-600">{ressource.description}</p>
+          <p className="mt-2 text-texte-doux">{ressource.description}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           {ressource.actionGlobale && (
-            <button type="button" onClick={() => lancerActionGlobale(ressource.actionGlobale!)} className="rounded-full px-5 py-3 ring-1 ring-stone-300 hover:bg-white">
+            <button type="button" onClick={() => lancerActionGlobale(ressource.actionGlobale!)} className="rounded-full px-5 py-3 ring-1 ring-bordure-forte hover:bg-surface">
               {ressource.actionGlobale.libelle}
             </button>
           )}
@@ -103,10 +103,10 @@ export default function TableauRessource({ cle }: { cle: string }) {
       </div>
 
       {message && (
-        <div role="status" className={`mt-6 ${message.erreur ? classeErreur : 'rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800'}`}>
+        <div role="status" className={`mt-6 ${message.erreur ? classeErreur : 'rounded-lg bg-succes-fond px-3 py-2 text-sm text-succes'}`}>
           {message.texte}
           {message.proposition && (
-            <button type="button" onClick={() => executer(message.proposition!.action, message.proposition!.ligne)} className="ml-3 rounded-full bg-white px-3 py-1 font-medium text-stone-800 ring-1 ring-stone-300 hover:bg-stone-50">
+            <button type="button" onClick={() => executer(message.proposition!.action, message.proposition!.ligne)} className="ml-3 rounded-full bg-surface px-3 py-1 font-medium text-texte ring-1 ring-bordure-forte hover:bg-fond">
               {message.proposition.action.libelle}
             </button>
           )}
@@ -129,21 +129,21 @@ export default function TableauRessource({ cle }: { cle: string }) {
         </label>
       )}
 
-      <div className="mt-6 overflow-x-auto rounded-2xl bg-white ring-1 ring-stone-200">
+      <div className="mt-6 overflow-x-auto rounded-2xl bg-surface ring-1 ring-bordure">
         {lignes === null ? (
-          <p className="p-6 text-stone-500">Chargement…</p>
+          <p className="p-6 text-texte-doux">Chargement…</p>
         ) : lignes.length === 0 ? (
-          <p className="p-6 text-stone-500">Rien pour l’instant.</p>
+          <p className="p-6 text-texte-doux">Rien pour l’instant.</p>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="border-b border-stone-200 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
+            <thead className="border-b border-bordure bg-fond text-xs uppercase tracking-wide text-texte-doux">
               <tr>
                 {colonnes.map(c => <th key={c.chemin} className="px-4 py-3 font-medium">{c.libelle}</th>)}
                 {ressource.statut && <th className="px-4 py-3 font-medium">Statut</th>}
                 {avecActions && <th className="px-4 py-3"><span className="sr-only">Actions</span></th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody className="divide-y divide-bordure">
               {lignes.map(ligne => (
                 <tr key={ligne.id} className="align-top">
                   {colonnes.map(c => (
@@ -155,7 +155,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
                     <td className="px-4 py-3">
                       <select
                         aria-label="Statut"
-                        className="rounded-lg border border-stone-300 bg-white px-2 py-1.5"
+                        className="rounded-lg border border-bordure-forte bg-surface px-2 py-1.5"
                         value={String(lire(ligne, ressource.statut.champ))}
                         onChange={e => appeler(ligne, 'PATCH', { [ressource.statut!.champ]: e.target.value }, 'Statut mis à jour.')}
                       >
@@ -170,7 +170,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
                         {actionsPossibles(ressource, ligne).map(action => (
                           <button key={action.id} type="button" onClick={() => executer(action, ligne)} className={classeAction}>{action.libelle}</button>
                         ))}
-                        {ressource.suppression && <button type="button" onClick={() => supprimer(ligne)} className={`${classeAction} text-red-700`}>Supprimer</button>}
+                        {ressource.suppression && <button type="button" onClick={() => supprimer(ligne)} className={`${classeAction} text-erreur`}>Supprimer</button>}
                       </div>
                     </td>
                   )}

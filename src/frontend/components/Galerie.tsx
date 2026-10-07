@@ -7,11 +7,11 @@ export default function Galerie({ photos, titre = 'En images' }: { photos: Photo
   if (photos.length === 0) return null;
   return (
     <section className="mt-14">
-      <h2 className="font-serif text-2xl">{titre}</h2>
+      <h2 className="font-serif text-3xl">{titre}</h2>
       <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {photos.map(photo => (
           <li key={photo.id}>
-            <Image src={photo.url} alt={photo.alt} width={600} height={450} sizes="(min-width: 640px) 33vw, 50vw" className="aspect-[4/3] w-full rounded-xl object-cover" />
+            <Image src={photo.url} alt={photo.alt} width={600} height={450} sizes="(min-width: 640px) 33vw, 50vw" className="aspect-[4/3] w-full rounded-2xl object-cover" />
           </li>
         ))}
       </ul>

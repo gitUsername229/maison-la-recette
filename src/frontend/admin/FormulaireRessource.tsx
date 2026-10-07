@@ -35,8 +35,8 @@ function ChampFormulaire({ champ, ligne, options, erreur }: ProprietesChamp) {
     case 'booleen':
       return (
         <label className="flex items-start gap-3">
-          <input type="checkbox" name={champ.nom} defaultChecked={initiale === true} className="mt-1 h-4 w-4 accent-stone-800" />
-          <span className="grid gap-0.5"><span className="text-sm font-medium">{champ.libelle}</span>{champ.aide && <span className="text-xs text-stone-500">{champ.aide}</span>}</span>
+          <input type="checkbox" name={champ.nom} defaultChecked={initiale === true} className="mt-1 h-4 w-4 accent-primaire" />
+          <span className="grid gap-0.5"><span className="text-sm font-medium">{champ.libelle}</span>{champ.aide && <span className="text-xs text-texte-doux">{champ.aide}</span>}</span>
         </label>
       );
     case 'texteLong': return <ChampTexte {...commun} maxLength={champ.longueurMax} defaultValue={String(initiale)} />;
@@ -63,7 +63,7 @@ function Fiche({ ressource, ligne }: { ressource: RessourceAdmin; ligne: Ligne }
     <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[max-content_1fr]">
       {ressource.fiche?.map(colonne => (
         <div key={colonne.chemin} className="contents">
-          <dt className="text-stone-500">{colonne.libelle}</dt>
+          <dt className="text-texte-doux">{colonne.libelle}</dt>
           <dd className="whitespace-pre-line"><Valeur colonne={colonne} ligne={ligne} /></dd>
         </div>
       ))}
@@ -108,12 +108,12 @@ export default function FormulaireRessource({ ressource, ligne, onEnregistre, on
   const titre = creation ? `Ajouter ${ressource.singulier}` : `${champs.length ? 'Modifier ' : ''}${champs.length ? ressource.designation(ligne) : majuscule(ressource.designation(ligne))}`;
 
   return (
-    <div className="grid gap-5 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-200 sm:p-6">
+    <div className="grid gap-5 rounded-2xl bg-surface p-5 shadow-sm ring-1 ring-bordure sm:p-6">
       <h2 className="font-serif text-2xl">{titre}</h2>
       {!creation && ressource.fiche && <Fiche ressource={ressource} ligne={ligne} />}
       {champs.length > 0 ? (
         <form onSubmit={enregistrer} className="grid gap-4">
-          <p className="text-xs text-stone-500">Les champs marqués <span className="text-red-700">*</span> sont obligatoires.</p>
+          <p className="text-xs text-texte-doux">Les champs marqués <span className="text-erreur">*</span> sont obligatoires.</p>
           <div className="grid gap-4 md:grid-cols-2">
             {champs.map(champ => (
               <div key={champ.nom} className={champs.length === 1 || ['texteLong', 'image', 'listeMultiple'].includes(champ.type) ? 'md:col-span-2' : undefined}>
@@ -124,11 +124,11 @@ export default function FormulaireRessource({ ressource, ligne, onEnregistre, on
           {erreur && <p role="alert" className={classeErreur}>{erreur}</p>}
           <div className="flex flex-wrap gap-3">
             <button type="submit" disabled={envoi} className={classeBouton}>{envoi ? 'Enregistrement…' : 'Enregistrer'}</button>
-            <button type="button" onClick={onAnnule} className="rounded-full px-5 py-3 ring-1 ring-stone-300 hover:bg-stone-100">Annuler</button>
+            <button type="button" onClick={onAnnule} className="rounded-full px-5 py-3 ring-1 ring-bordure-forte hover:bg-fond">Annuler</button>
           </div>
         </form>
       ) : (
-        <div><button type="button" onClick={onAnnule} className="rounded-full px-5 py-3 ring-1 ring-stone-300 hover:bg-stone-100">Fermer</button></div>
+        <div><button type="button" onClick={onAnnule} className="rounded-full px-5 py-3 ring-1 ring-bordure-forte hover:bg-fond">Fermer</button></div>
       )}
     </div>
   );

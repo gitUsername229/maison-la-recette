@@ -1,14 +1,90 @@
 @import "tailwindcss";
 
-/* Couleurs du site, utilisables en classes Tailwind : bg-creme, text-encre… */
-@theme {
-  --color-creme: #faf7f2;
-  --color-encre: #302c25;
+/*
+ * THÈME DU SITE — PROVISOIRE, en attendant la direction artistique.
+ *
+ * C'est le seul fichier où sont définies les couleurs et les polices. Les composants n'emploient que les
+ * rôles de la partie 2 (bg-fond, text-texte, bg-primaire…), jamais une couleur : pour changer de DA, on
+ * modifie la palette (partie 1), et au besoin l'attribution des rôles (partie 2).
+ * Les contrastes (WCAG AA) sont vérifiés par tests/theme.test.ts.
+ */
+
+/* 1. Palette : 6 couleurs nommées, autour du vert du logo du podcast. */
+:root {
+  --creme: #f6f5e9;   /* fond clair, légèrement teinté de vert */
+  --foret: #1d3324;   /* vert très foncé : texte et pied de page (pas de noir) */
+  --salade: #2f6e3b;  /* vert principal : boutons, liens, focus */
+  --pousse: #d5e8c4;  /* vert pastel : aplats, étiquettes */
+  --tomate: #b9412a;  /* accent chaud : catégories, appels à l'action, erreurs */
+  --citron: #f3c94b;  /* accent pastel : surlignage, encarts */
 }
 
-body {
-  margin: 0;
-  background: var(--color-creme);
-  color: var(--color-encre);
-  font-family: Arial, Helvetica, sans-serif;
+/* 2. Rôles. Les couleurs par défaut de Tailwind sont retirées : une classe hors thème (ex : text-stone-600) ne produit rien. */
+@theme {
+  --color-*: initial;
+}
+
+@theme inline {
+  --color-fond: var(--creme);
+  --color-surface: color-mix(in srgb, var(--creme) 35%, #ffffff);
+  --color-texte: var(--foret);
+  --color-texte-doux: color-mix(in srgb, var(--foret) 78%, var(--creme));
+  --color-bordure: color-mix(in srgb, var(--foret) 15%, var(--creme));
+  --color-bordure-forte: color-mix(in srgb, var(--foret) 58%, var(--creme)); /* contour des champs : 3:1 minimum */
+  --color-primaire: var(--salade);
+  --color-primaire-fort: color-mix(in srgb, var(--salade) 70%, var(--foret));
+  --color-sur-primaire: var(--creme);
+  --color-pastel: var(--pousse);
+  --color-pastel-chaud: var(--citron);
+  --color-accent: var(--tomate);
+  --color-sur-accent: var(--creme);
+  --color-fond-sombre: var(--foret);
+  --color-sur-fond-sombre: var(--creme);
+  --color-lien-sur-sombre: var(--pousse);
+  --color-erreur: var(--tomate);
+  --color-erreur-fond: color-mix(in srgb, var(--tomate) 10%, #ffffff);
+  --color-succes: var(--salade);
+  --color-succes-fond: var(--pousse);
+
+  /* Polices chargées par next/font (src/app/layout.tsx), avec leurs polices de secours. */
+  --font-serif: var(--police-titres);
+  --font-sans: var(--police-texte);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--color-fond);
+    color: var(--color-texte);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: var(--color-pastel-chaud);
+    color: var(--color-texte);
+  }
+
+  /* Focus clavier visible partout, y compris dans les champs. */
+  :focus-visible {
+    outline: 3px solid var(--color-primaire);
+    outline-offset: 2px;
+  }
+}
+
+/* Le seul effet du site (zoom des photos au survol des cartes) et tout défilement animé disparaissent si l'utilisateur le demande. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

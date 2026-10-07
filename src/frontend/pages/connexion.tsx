@@ -33,19 +33,19 @@ export default function Connexion({retour}: { retour: string }) {
     return (
         <main className="mx-auto max-w-md px-6 py-12 sm:py-16">
             <h1 className="font-serif text-4xl">Connexion</h1>
-            <p className="mt-3 leading-relaxed text-stone-600">Un compte est nécessaire pour réserver une expérience ou
+            <p className="mt-3 leading-relaxed text-texte-doux">Un compte est nécessaire pour réserver une expérience ou
                 demander un devis.</p>
             <form onSubmit={connecter} className="mt-8 grid gap-4">
                 <Champ libelle="E-mail" name="email" type="email" autoComplete="email" required/>
                 <Champ libelle="Mot de passe" name="motDePasse" type="password" autoComplete="current-password"
                        required/>
-                <Link href="/mot-de-passe-oublie" className="-mt-2 text-sm text-stone-600 underline">Mot de passe
+                <Link href="/mot-de-passe-oublie" className="-mt-2 text-sm text-texte-doux underline">Mot de passe
                     oublié ?</Link>
                 {erreur && <p role="alert" className={classeErreur}>{erreur}</p>}
                 <button type="submit" disabled={envoi}
                         className={classeBouton}>{envoi ? 'Connexion…' : 'Se connecter'}</button>
             </form>
-            <p className="mt-6 text-sm text-stone-600">
+            <p className="mt-6 text-sm text-texte-doux">
                 Pas encore de compte ? <Link href={`/inscription?retour=${encodeURIComponent(retour)}`}
                                              className="underline">Créer un compte</Link>
             </p>

@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import PhotoCarte from '@/frontend/components/PhotoCarte';
 import { formatDate } from '@/frontend/format';
 
 export type ArticleResume = {
@@ -18,19 +18,19 @@ type Props = {
 };
 
 const classeOnglet = (actif: boolean) =>
-  `rounded-full px-4 py-2 text-sm ${actif ? 'bg-encre text-creme' : 'text-stone-700 ring-1 ring-stone-300 hover:bg-white'}`;
+  `rounded-full px-4 py-2 text-sm ${actif ? 'bg-primaire text-sur-primaire' : 'text-texte-doux ring-1 ring-bordure-forte hover:bg-surface'}`;
 
 /** Liste du blog : tous les articles (/blog) ou ceux d'une catégorie (/blog/categorie/<clé>). */
 export default function Blog({ textes, articles, categories, categorieActive }: Props) {
   return (
     <main className="mx-auto max-w-4xl px-6 py-16">
-      <span className="rounded-full bg-stone-200 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-stone-700">
+      <span className="rounded-full bg-pastel px-3 py-1 text-xs font-semibold uppercase tracking-wider text-texte-doux">
         {textes.surtitre}
       </span>
-      <h1 className="mt-4 font-serif text-4xl sm:text-5xl font-bold text-stone-900">
+      <h1 className="mt-4 font-serif text-4xl sm:text-5xl text-texte">
         {categorieActive?.libelle ?? textes.titre}
       </h1>
-      <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-stone-600">
+      <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-texte-doux">
         {categorieActive?.description ?? textes.introduction}
       </p>
 
@@ -47,7 +47,7 @@ export default function Blog({ textes, articles, categories, categorieActive }: 
       </nav>
 
       {articles.length === 0 ? (
-        <div className="mt-12 rounded-2xl border border-dashed border-stone-300 p-12 text-center text-stone-500">
+        <div className="mt-12 rounded-2xl border border-dashed border-bordure-forte p-12 text-center text-texte-doux">
           <p className="whitespace-pre-line">{textes.aucunArticle}</p>
         </div>
       ) : (
@@ -55,12 +55,12 @@ export default function Blog({ textes, articles, categories, categorieActive }: 
           {articles.map(article => (
             <li key={article.id}>
               <Link href={`/blog/${article.slug}`} className="group block">
-                {article.image && <Image src={article.image} alt={article.imageAlt} width={800} height={500} className="aspect-[16/10] w-full rounded-2xl object-cover" />}
-                <p className="mt-4 text-sm text-stone-500">
-                  <span className="font-medium text-amber-800">{article.categorieLibelle}</span> · {formatDate(article.datePublication)}
+                {article.image && <PhotoCarte src={article.image} alt={article.imageAlt} ratio="aspect-[16/10]" sizes="(min-width: 640px) 45vw, 100vw" />}
+                <p className="mt-4 text-sm text-texte-doux">
+                  <span className="font-semibold text-accent">{article.categorieLibelle}</span> · {formatDate(article.datePublication)}
                 </p>
-                <h2 className="mt-1 font-serif text-2xl font-bold text-stone-900 group-hover:underline">{article.titre}</h2>
-                <p className="mt-2 leading-relaxed text-stone-600">{article.extrait}</p>
+                <h2 className="mt-1 font-serif text-2xl text-texte group-hover:underline">{article.titre}</h2>
+                <p className="mt-2 leading-relaxed text-texte-doux">{article.extrait}</p>
               </Link>
             </li>
           ))}

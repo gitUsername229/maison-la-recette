@@ -107,12 +107,12 @@ export default function ReservationForm({ sessions, utilisateur }: Props) {
         />
       </label>
 
-      <p className="text-sm text-stone-600">
-        Réservation au nom de <strong className="text-stone-800">{utilisateur.nom}</strong> ({utilisateur.email}).
+      <p className="text-sm text-texte-doux">
+        Réservation au nom de <strong className="text-texte">{utilisateur.nom}</strong> ({utilisateur.email}).
       </p>
 
-      <p className="flex items-baseline justify-between border-t border-stone-200 pt-4">
-        <span className="text-stone-600">Total</span>
+      <p className="flex items-baseline justify-between border-t border-bordure pt-4">
+        <span className="text-texte-doux">Total</span>
         <strong className="text-xl">{formatPrix(total)}</strong>
       </p>
 

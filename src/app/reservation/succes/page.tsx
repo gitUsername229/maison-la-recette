@@ -18,7 +18,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
   if (!reservation) {
     return (
       <main className="mx-auto max-w-xl px-6 py-16">
-        <h1 className="text-2xl font-semibold">Réservation introuvable</h1>
+        <h1 className="font-serif text-3xl">Réservation introuvable</h1>
         <p className="mt-4">
           Nous ne retrouvons pas cette réservation. Si vous avez été débité, écrivez-nous à
           larecette@ecomail.fr avec l’adresse e-mail utilisée.
@@ -46,7 +46,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-xl px-6 py-16">
-      <h1 className="text-3xl font-semibold">
+      <h1 className="font-serif text-4xl">
         {paye ? "Votre place est réservée" : "Paiement en cours de vérification"}
       </h1>
 
@@ -56,7 +56,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
           : "Votre paiement est en cours de traitement. Rechargez cette page dans quelques instants."}
       </p>
 
-      <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 border-t pt-6">
+      <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 border-t border-bordure pt-6">
         <dt className="font-medium">Expérience</dt>
         <dd>{session.experience.titre}</dd>
         <dt className="font-medium">Date</dt>

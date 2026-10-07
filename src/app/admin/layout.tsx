@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: 'Administration | Maison La recette',
 
 export default function LayoutAdmin({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div className="mx-auto max-w-5xl px-6 pb-16">
+    <div className="mx-auto max-w-5xl px-6 pb-16 pt-6">
       <NavigationAdmin />
       <div className="mt-8">{children}</div>
     </div>

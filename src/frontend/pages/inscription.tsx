@@ -37,7 +37,7 @@ export default function Inscription({ retour }: { retour: string }) {
   return (
     <main className="mx-auto max-w-md px-6 py-12 sm:py-16">
       <h1 className="font-serif text-4xl">Créer un compte</h1>
-      <p className="mt-3 leading-relaxed text-stone-600">Pour réserver une expérience, demander un devis et retrouver vos demandes.</p>
+      <p className="mt-3 leading-relaxed text-texte-doux">Pour réserver une expérience, demander un devis et retrouver vos demandes.</p>
       <form onSubmit={inscrire} className="mt-8 grid gap-4">
         <Champ libelle="Nom et prénom" name="nom" autoComplete="name" required maxLength={120} />
         <Champ libelle="E-mail" name="email" type="email" autoComplete="email" required />
@@ -46,7 +46,7 @@ export default function Inscription({ retour }: { retour: string }) {
         {erreur && <p role="alert" className={classeErreur}>{erreur}</p>}
         <button type="submit" disabled={envoi} className={classeBouton}>{envoi ? 'Création…' : 'Créer mon compte'}</button>
       </form>
-      <p className="mt-6 text-sm text-stone-600">
+      <p className="mt-6 text-sm text-texte-doux">
         Déjà un compte ? <Link href={`/connexion?retour=${encodeURIComponent(retour)}`} className="underline">Se connecter</Link>
       </p>
     </main>

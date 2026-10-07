@@ -21,24 +21,24 @@ export type TextesArticle = Record<
 
 // Contenu en Markdown (écrit dans /admin/articles) ; le HTML brut n'est jamais interprété.
 const STYLES = {
-  h2: 'mt-10 font-serif text-2xl font-bold text-stone-900',
-  h3: 'mt-8 font-serif text-xl font-bold text-stone-900',
-  p: 'mt-4 leading-relaxed text-stone-700',
-  ul: 'mt-4 list-disc space-y-1 pl-6 text-stone-700',
-  ol: 'mt-4 list-decimal space-y-1 pl-6 text-stone-700',
-  a: 'text-amber-800 underline',
-  blockquote: 'mt-6 border-l-4 border-stone-300 pl-4 italic text-stone-600',
+  h2: 'mt-10 font-serif text-2xl text-texte',
+  h3: 'mt-8 font-serif text-xl text-texte',
+  p: 'mt-4 leading-relaxed text-texte-doux',
+  ul: 'mt-4 list-disc space-y-1 pl-6 text-texte-doux',
+  ol: 'mt-4 list-decimal space-y-1 pl-6 text-texte-doux',
+  a: 'text-primaire underline',
+  blockquote: 'mt-6 border-l-4 border-bordure-forte pl-4 italic text-texte-doux',
 };
 
 export default function Article({ article, textes }: { article: ArticleComplet; textes: TextesArticle }) {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
-      <Link href="/blog" className="text-sm text-stone-500 hover:text-stone-800">← {textes.tousLesArticles}</Link>
-      <p className="mt-8 text-sm text-stone-500">
-        <Link href={`/blog/categorie/${article.categorie}`} className="font-medium text-amber-800 hover:underline">{article.categorieLibelle}</Link>
+      <Link href="/blog" className="text-sm text-texte-doux hover:text-texte">← {textes.tousLesArticles}</Link>
+      <p className="mt-8 text-sm text-texte-doux">
+        <Link href={`/blog/categorie/${article.categorie}`} className="font-medium text-primaire hover:underline">{article.categorieLibelle}</Link>
         {' · '}{formatDate(article.datePublication)}
       </p>
-      <h1 className="mt-2 font-serif text-4xl sm:text-5xl font-bold text-stone-900">{article.titre}</h1>
+      <h1 className="mt-2 font-serif text-4xl sm:text-5xl text-texte">{article.titre}</h1>
       {article.image && <Image src={article.image} alt={article.imageAlt} width={1200} height={750} priority className="mt-8 aspect-[16/10] w-full rounded-2xl object-cover" />}
       <div className="mt-8">
         <Markdown

@@ -1,21 +1,21 @@
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { Libelles } from '@/frontend/format';
-import { classeChamp, classeLibelle } from '@/frontend/styles/classes';
+import { classeChamp, classeChampErreur, classeLibelle } from '@/frontend/styles/classes';
 
 // `erreur` : message affiché sous le champ (ex : « Champ obligatoire. »), qui remplace l'aide.
 type Habillage = { libelle: string; aide?: string; erreur?: string };
 
-const classeEnErreur = (erreur?: string) => (erreur ? `${classeChamp} border-red-600 focus:border-red-600 focus:ring-red-100` : classeChamp);
+const classeEnErreur = (erreur?: string) => (erreur ? classeChampErreur : classeChamp);
 
 function Libelle({ libelle, aide, erreur, requis, children }: Habillage & { requis?: boolean; children: ReactNode }) {
   return (
     <label className={classeLibelle}>
       <span className="text-sm font-medium">
         {libelle}
-        {requis && <span className="text-red-700" title="Obligatoire"> *</span>}
+        {requis && <span className="text-erreur" title="Obligatoire"> *</span>}
       </span>
       {children}
-      {erreur ? <span className="text-xs font-medium text-red-700">{erreur}</span> : aide && <span className="text-xs text-stone-500">{aide}</span>}
+      {erreur ? <span className="text-xs font-medium text-erreur">{erreur}</span> : aide && <span className="text-xs text-texte-doux">{aide}</span>}
     </label>
   );
 }
@@ -55,16 +55,16 @@ export function ChampCases({ libelle, aide, erreur, name, options, valeurs }: Ha
   return (
     <fieldset className={classeLibelle}>
       <legend className="mb-1 text-sm font-medium">{libelle}</legend>
-      <div className={`grid max-h-56 gap-2 overflow-y-auto rounded-lg border bg-white p-3 ${erreur ? 'border-red-600' : 'border-stone-300'}`}>
-        {choix.length === 0 && <span className="text-sm text-stone-500">Aucun choix pour l’instant.</span>}
+      <div className={`grid max-h-56 gap-2 overflow-y-auto rounded-lg border bg-surface p-3 ${erreur ? 'border-erreur' : 'border-bordure-forte'}`}>
+        {choix.length === 0 && <span className="text-sm text-texte-doux">Aucun choix pour l’instant.</span>}
         {choix.map(([valeur, texte]) => (
           <label key={valeur} className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name={name} value={valeur} defaultChecked={valeurs.includes(valeur)} className="mt-0.5 h-4 w-4 shrink-0 accent-stone-800" />
+            <input type="checkbox" name={name} value={valeur} defaultChecked={valeurs.includes(valeur)} className="mt-0.5 h-4 w-4 shrink-0 accent-primaire" />
             {texte}
           </label>
         ))}
       </div>
-      {erreur ? <span className="text-xs font-medium text-red-700">{erreur}</span> : aide && <span className="text-xs text-stone-500">{aide}</span>}
+      {erreur ? <span className="text-xs font-medium text-erreur">{erreur}</span> : aide && <span className="text-xs text-texte-doux">{aide}</span>}
     </fieldset>
   );
 }

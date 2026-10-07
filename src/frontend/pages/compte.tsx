@@ -29,19 +29,19 @@ type Props = {
   demandesDevis: DevisCompte[];
 };
 
-const classeCarte = 'rounded-xl bg-white p-4 ring-1 ring-stone-200';
+const classeCarte = 'rounded-xl bg-surface p-4 ring-1 ring-bordure';
 
 export default function Compte({ utilisateur, lienExpire, reservations, demandesDevis }: Props) {
   return (
     <main className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
       <h1 className="font-serif text-4xl sm:text-5xl">Mon compte</h1>
-      <p className="mt-3 text-stone-600">{utilisateur.nom} · {utilisateur.email}{utilisateur.telephone && ` · ${utilisateur.telephone}`}</p>
+      <p className="mt-3 text-texte-doux">{utilisateur.nom} · {utilisateur.email}{utilisateur.telephone && ` · ${utilisateur.telephone}`}</p>
       {!utilisateur.emailVerifie && <RappelVerification email={utilisateur.email} lienExpire={lienExpire} />}
 
       <section className="mt-12">
         <h2 className="font-serif text-2xl">Mes réservations</h2>
         {reservations.length === 0 ? (
-          <p className="mt-4 text-stone-600">Aucune réservation pour l’instant. <Link href="/experiences" className="underline">Découvrir les expériences</Link></p>
+          <p className="mt-4 text-texte-doux">Aucune réservation pour l’instant. <Link href="/experiences" className="underline">Découvrir les expériences</Link></p>
         ) : (
           <ul className="mt-4 grid gap-3">
             {reservations.map(r => (
@@ -50,7 +50,7 @@ export default function Compte({ utilisateur, lienExpire, reservations, demandes
                   <Link href={`/experiences/${r.session.experience.slug}`} className="font-medium hover:underline">{r.session.experience.titre}</Link>
                   <Pastille statut={r.statut} texte={libelle(STATUTS_RESERVATION, r.statut)} />
                 </div>
-                <p className="mt-1 text-sm text-stone-600">
+                <p className="mt-1 text-sm text-texte-doux">
                   {formatDateHeure(r.session.dateDebut)} · {r.session.lieu} · {r.nbPersonnes} personne{r.nbPersonnes > 1 ? 's' : ''} · {formatPrix(r.montantCents)}
                 </p>
               </li>
@@ -65,7 +65,7 @@ export default function Compte({ utilisateur, lienExpire, reservations, demandes
           <Link href="/contact" className="text-sm underline">Nouvelle demande</Link>
         </div>
         {demandesDevis.length === 0 ? (
-          <p className="mt-4 text-stone-600">Aucune demande de devis pour l’instant.</p>
+          <p className="mt-4 text-texte-doux">Aucune demande de devis pour l’instant.</p>
         ) : (
           <ul className="mt-4 grid gap-3">
             {demandesDevis.map(d => (
@@ -74,7 +74,7 @@ export default function Compte({ utilisateur, lienExpire, reservations, demandes
                   <p className="font-medium">{libelle(TYPES_DEVIS, d.typeDemande)}{d.experience && ` : ${d.experience.titre}`}</p>
                   <Pastille statut={d.statut} texte={libelle(STATUTS_DEVIS, d.statut)} />
                 </div>
-                <p className="mt-1 text-sm text-stone-600">
+                <p className="mt-1 text-sm text-texte-doux">
                   {d.entreprise} · envoyée le {formatDate(d.createdAt)}
                   {d.nbParticipants && ` · ${d.nbParticipants} participants`}
                   {d.dateSouhaitee && ` · souhaitée le ${formatDate(d.dateSouhaitee)}`}
