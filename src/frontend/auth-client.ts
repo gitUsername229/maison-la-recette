@@ -6,7 +6,6 @@ export const authClient = createAuthClient({
   plugins: [
     inferAdditionalFields({
       user: {
-        telephone: { type: 'string', required: false },
         role: { type: 'string', required: false, input: false },
       },
     }),
@@ -18,8 +17,6 @@ const MESSAGES: Record<string, string> = {
   INVALID_EMAIL: 'Adresse e-mail invalide.',
   PASSWORD_TOO_SHORT: 'Le mot de passe doit contenir au moins 8 caractères.',
   PASSWORD_TOO_LONG: 'Le mot de passe est trop long.',
-  USER_ALREADY_EXISTS: 'Un compte existe déjà avec cette adresse e-mail.',
-  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: 'Un compte existe déjà avec cette adresse e-mail.',
 };
 
 /** Message en français pour une erreur renvoyée par Better Auth. */

@@ -3,7 +3,7 @@ import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
 import { champsDe, ressourceAdmin } from '../src/frontend/admin/ressources';
 import type { Ligne } from '../src/frontend/admin/valeurs';
-import { inscrire, preparerBaseDeTest, requete } from './outils';
+import { creerCompte, preparerBaseDeTest, requete } from './outils';
 
 let nettoyer: () => Promise<void>;
 let prisma: PrismaClient;
@@ -49,7 +49,7 @@ test('le seed crée les textes manquants sans jamais remplacer un texte modifié
 test('modification : admin seulement, règles de l’emplacement, visible aussitôt sur la page', async () => {
   const titre = await idDe('a-propos', 'titre');
   assert.equal((await modifier(titre, { texte: 'Piraté' }, {})).status, 401);
-  const client = await inscrire('textes-client@example.com');
+  const client = await creerCompte('textes-client@example.com', 'client');
   assert.equal((await textes.modifier(requete(`/api/textes/${titre}`, { methode: 'PUT', corps: { texte: 'Piraté' }, cookie: client.cookie }), avecId(titre))).status, 403);
 
   const vide = await modifier(titre, { texte: '   ' });

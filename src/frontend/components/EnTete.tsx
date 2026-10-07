@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { authClient } from '@/frontend/auth-client';
+import { usePathname } from 'next/navigation';
 import Feuille from '@/frontend/components/Feuille';
 import Icone from '@/frontend/components/Icone';
 
@@ -22,9 +21,7 @@ const SECONDAIRES = [
 const NAVIGATION_ORDINATEUR = [...PRINCIPAUX.slice(1), ...SECONDAIRES.toReversed()];
 
 export default function EnTete() {
-  const { data: session, isPending } = authClient.useSession();
   const pathname = usePathname();
-  const router = useRouter();
   const [menuOuvert, setMenuOuvert] = useState(false);
   const fermer = () => setMenuOuvert(false);
 
@@ -39,13 +36,6 @@ export default function EnTete() {
       window.removeEventListener('keydown', echap);
     };
   }, [menuOuvert]);
-
-  async function deconnecter() {
-    await authClient.signOut();
-    fermer();
-    router.push('/');
-    router.refresh();
-  }
 
   const estActif = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
   const courant = (href: string) => (estActif(href) ? 'page' : undefined);
@@ -70,23 +60,6 @@ export default function EnTete() {
             </Link>
           ))}
         </nav>
-
-        <div className="hidden shrink-0 items-center gap-x-4 whitespace-nowrap lg:flex">
-          {!isPending && (session ? (
-            <>
-              {session.user.role === 'admin' && (
-                <Link href="/admin" className="rounded-full bg-pastel px-3 py-1 text-xs font-bold uppercase tracking-wider text-texte">Admin</Link>
-              )}
-              <Link href="/compte" aria-current={courant('/compte')} className="hover:underline">Mon compte</Link>
-              <button type="button" onClick={deconnecter} className="text-lien-sur-sombre hover:underline">Déconnexion</button>
-            </>
-          ) : (
-            <>
-              <Link href="/connexion" className="hover:underline">Connexion</Link>
-              <Link href="/inscription" className="rounded-full bg-primaire px-5 py-2 font-bold text-sur-primaire hover:bg-primaire-fort">Créer un compte</Link>
-            </>
-          ))}
-        </div>
 
         <button
           type="button"
@@ -116,20 +89,6 @@ export default function EnTete() {
               <li key={lien.href}><Link href={lien.href} onClick={fermer} aria-current={courant(lien.href)}>{lien.label}</Link></li>
             ))}
           </ul>
-          <div className="mt-10 grid gap-3 border-t border-sur-fond-sombre/30 pt-6 text-lg text-lien-sur-sombre">
-            {!isPending && (session ? (
-              <>
-                {session.user.role === 'admin' && <Link href="/admin" onClick={fermer}>Administration</Link>}
-                <Link href="/compte" onClick={fermer}>Mon compte</Link>
-                <button type="button" onClick={deconnecter} className="text-left">Déconnexion</button>
-              </>
-            ) : (
-              <>
-                <Link href="/connexion" onClick={fermer}>Connexion</Link>
-                <Link href="/inscription" onClick={fermer}>Créer un compte</Link>
-              </>
-            ))}
-          </div>
         </nav>
       )}
     </header>

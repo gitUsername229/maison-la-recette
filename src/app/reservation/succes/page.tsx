@@ -1,27 +1,30 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { confirmerPaiementDepuisStripe } from "@/backend/ateliers/bookings";
-import { exigerConnexionPage } from "@/backend/auth/acces-page";
-import { reservationApresPaiement } from "@/backend/comptes/compte";
+import { reservationApresPaiement } from "@/backend/ateliers/bookings";
+import { EMAIL_DE_CONTACT } from "@/backend/site";
 import { formatDateHeure, formatPrix } from "@/frontend/format";
+
+export const metadata: Metadata = { title: "Réservation | Maison La recette", robots: { index: false } };
 
 type Props = { searchParams: Promise<{ session_id?: string }> };
 
+const SI_DEBITE = `Si vous avez été débité, écrivez-nous à ${EMAIL_DE_CONTACT} avec l’adresse e-mail utilisée.`;
+
 export default async function ReservationSucces({ searchParams }: Props) {
   const { session_id } = await searchParams;
-  const utilisateur = await exigerConnexionPage(
-    session_id ? `/reservation/succes?session_id=${encodeURIComponent(session_id)}` : "/reservation/succes"
-  );
+  // Sans compte : la réservation n'est montrée que si Stripe confirme que cette session de paiement la désigne.
+  const resultat = session_id ? await reservationApresPaiement(session_id) : ({ refus: "introuvable" } as const);
 
-  // Seul le propriétaire de la réservation (ou un admin) la voit.
-  const reservation = session_id ? await reservationApresPaiement(session_id, utilisateur) : null;
-
-  if (!reservation) {
+  if ("refus" in resultat) {
+    const indisponible = resultat.refus === "indisponible";
     return (
       <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
-        <h1 className="text-3xl font-bold lg:text-4xl">Réservation introuvable</h1>
+        <h1 className="text-3xl font-bold lg:text-4xl">{indisponible ? "Vérification en cours" : "Réservation introuvable"}</h1>
         <p className="mt-4">
-          Nous ne retrouvons pas cette réservation. Si vous avez été débité, écrivez-nous à
-          larecette@ecomail.fr avec l’adresse e-mail utilisée.
+          {indisponible
+            ? "Nous n’arrivons pas à vérifier votre paiement pour le moment. Rechargez cette page dans un instant."
+            : "Nous ne retrouvons pas cette réservation."}{" "}
+          {SI_DEBITE}
         </p>
         <Link href="/experiences" className="mt-8 inline-block underline">
           Voir les expériences
@@ -30,19 +33,9 @@ export default async function ReservationSucces({ searchParams }: Props) {
     );
   }
 
-  // Le webhook peut arriver après la redirection (ou jamais si stripe listen est coupé) :
-  // on interroge Stripe et, s'il confirme le paiement, on l'enregistre comme le webhook.
-  let paye = reservation.statut === "payee";
-  if (!paye && reservation.statut === "en_attente" && session_id) {
-    try {
-      paye = await confirmerPaiementDepuisStripe(session_id);
-    } catch (erreur) {
-      // Stripe injoignable ou paiement incohérent : on garde le statut de la base.
-      console.error("Confirmation depuis la page de succès impossible :", erreur instanceof Error ? erreur.message : erreur);
-    }
-  }
-
+  const { reservation } = resultat;
   const { session } = reservation;
+  const paye = reservation.statut === "payee";
 
   return (
     <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
@@ -52,7 +45,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
 
       <p className="mt-4">
         {paye
-          ? `Merci ${reservation.nom}. Un e-mail de confirmation vous est envoyé, et vous retrouvez cette réservation dans « Mon compte ».`
+          ? "Merci ! Un e-mail de confirmation vous est envoyé avec ce récapitulatif. Une question ? Répondez simplement à cet e-mail."
           : "Votre paiement est en cours de traitement. Rechargez cette page dans quelques instants."}
       </p>
 
@@ -67,10 +60,14 @@ export default async function ReservationSucces({ searchParams }: Props) {
         <dd>{reservation.nbPersonnes}</dd>
         <dt className="font-medium">Montant</dt>
         <dd>{formatPrix(reservation.montantCents)}</dd>
+        <dt className="font-medium">Réservation</dt>
+        <dd>n° {reservation.id}</dd>
       </dl>
 
+      <p className="mt-8 text-sm text-texte-doux">Pour toute question : {EMAIL_DE_CONTACT}</p>
+
       <div className="mt-10 flex flex-wrap gap-6">
-        <Link href="/compte" className="underline">Mon compte</Link>
+        <Link href={`/experiences/${session.experience.slug}`} className="underline">Revoir l’expérience</Link>
         <Link href="/experiences" className="underline">Découvrir les autres expériences</Link>
       </div>
     </main>

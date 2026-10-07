@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve, sep } from 'node:path';
@@ -29,18 +30,33 @@ export async function preparerBaseDeTest() {
   };
 }
 
-/** Inscription par la vraie route Better Auth ; renvoie le cookie de session et l'id du compte. */
-export async function inscrire(email: string, telephone?: string) {
-  const { auth } = await import('../src/backend/auth/auth');
+export const MOT_DE_PASSE_TEST = 'motdepasse-de-test';
+
+/**
+ * Compte créé en base, comme le fait le seed (aucune inscription n'est possible sur le site), puis connecté
+ * par la vraie route Better Auth. `role: 'client'` simule un compte sans le rôle admin. Renvoie l'id et le cookie.
+ */
+export async function creerCompte(email: string, role: 'admin' | 'client' = 'admin') {
   const { prisma } = await import('../src/backend/db/prisma');
-  const corps = { name: `Client ${email}`, email, password: 'motdepasse-de-test', ...(telephone ? { telephone } : {}) };
-  const reponse = await auth.handler(new Request(`${BASE}/api/auth/sign-up/email`, {
-    method: 'POST', headers: { 'content-type': 'application/json', origin: BASE }, body: JSON.stringify(corps),
+  const { hacherMotDePasse } = await import('../src/backend/auth/mot-de-passe');
+  const id = randomUUID();
+  await prisma.user.create({
+    data: {
+      id, email, nom: `Compte ${email}`, role, emailVerified: true,
+      comptes: { create: { id: randomUUID(), accountId: id, providerId: 'credential', password: await hacherMotDePasse(MOT_DE_PASSE_TEST) } },
+    },
+  });
+  return { id, cookie: await connecter(email) };
+}
+
+/** Connexion par la vraie route Better Auth ; renvoie le cookie de session. */
+export async function connecter(email: string, motDePasse = MOT_DE_PASSE_TEST) {
+  const { auth } = await import('../src/backend/auth/auth');
+  const reponse = await auth.handler(new Request(`${BASE}/api/auth/sign-in/email`, {
+    method: 'POST', headers: { 'content-type': 'application/json', origin: BASE }, body: JSON.stringify({ email, password: motDePasse }),
   }));
   assert.equal(reponse.status, 200);
-  const cookie = reponse.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
-  const utilisateur = await prisma.user.findUniqueOrThrow({ where: { email } });
-  return { cookie, id: utilisateur.id };
+  return reponse.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
 }
 
 type OptionsRequete = { cookie?: string; methode?: string; corps?: unknown; entetes?: Record<string, string> };

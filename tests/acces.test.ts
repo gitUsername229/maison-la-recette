@@ -2,26 +2,31 @@ import assert from 'node:assert/strict';
 import { rm, stat } from 'node:fs/promises';
 import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
-import { BASE, inscrire, preparerBaseDeTest, requete } from './outils';
+import type Stripe from 'stripe';
+import { BASE, creerCompte, preparerBaseDeTest, requete } from './outils';
 
 let nettoyer: () => Promise<void>;
 let prisma: PrismaClient;
 let handlers: typeof import('../src/backend/ateliers/payment-handlers');
+let bookings: typeof import('../src/backend/ateliers/bookings');
 let devis: typeof import('../src/backend/ateliers/devis');
 let catalogue: typeof import('../src/backend/ateliers/catalogue');
 let utilisateurs: typeof import('../src/backend/comptes/utilisateurs');
 let contenus: typeof import('../src/backend/contenus/contenus');
 let images: typeof import('../src/backend/contenus/images');
+let newsletter: typeof import('../src/backend/contenus/newsletter');
 
 before(async () => {
   nettoyer = await preparerBaseDeTest();
   ({ prisma } = await import('../src/backend/db/prisma'));
   handlers = await import('../src/backend/ateliers/payment-handlers');
+  bookings = await import('../src/backend/ateliers/bookings');
   devis = await import('../src/backend/ateliers/devis');
   catalogue = await import('../src/backend/ateliers/catalogue');
   utilisateurs = await import('../src/backend/comptes/utilisateurs');
   contenus = await import('../src/backend/contenus/contenus');
   images = await import('../src/backend/contenus/images');
+  newsletter = await import('../src/backend/contenus/newsletter');
 });
 
 after(async () => {
@@ -32,48 +37,77 @@ after(async () => {
 const avecId = (id: string | number) => ({ params: Promise.resolve({ id: String(id) }) });
 const CLE_ADMIN = () => ({ 'x-admin-key': process.env.ADMIN_KEY! });
 
-const DEVIS = { entreprise: 'Acme', typeDemande: 'studio', message: 'Un podcast pour notre marque' };
+const DEVIS = { nom: 'Sophie Martin', entreprise: 'Acme', email: 'sophie@example.com', telephone: '0600000001', typeDemande: 'studio', message: 'Un podcast pour notre marque' };
 
-test('réserver et demander un devis exigent un compte connecté (401)', async () => {
-  const checkout = await handlers.checkout(requete('/api/checkout', { methode: 'POST', corps: { sessionId: 1, nbPersonnes: 1 } }));
-  assert.equal(checkout.status, 401);
-  const demande = await devis.createDevis(requete('/api/devis', { methode: 'POST', corps: DEVIS }));
-  assert.equal(demande.status, 401);
-});
+/** Champs signalés par une réponse 400 de validation. */
+const champsRefuses = async (reponse: Response) => ((await reponse.json()) as { details?: { champ: string }[] }).details?.map(d => d.champ).sort();
 
-test('le devis reprend le nom, l’e-mail et le téléphone du compte, jamais ceux du front', async () => {
-  const camille = await inscrire('devis@example.com', '0600000001');
-  const usurpation = await devis.createDevis(requete('/api/devis', { cookie: camille.cookie, methode: 'POST', corps: { ...DEVIS, userId: 'autre', email: 'pirate@example.com' } }));
-  assert.equal(usurpation.status, 400);
+async function sessionOuverte(slug: string) {
+  const experience = await prisma.experience.create({ data: { slug, type: 'atelier', titre: 'Atelier', accroche: 'A', description: 'D', dureeMin: 60, prixCents: 4500, capaciteMax: 5, image: '', imageAlt: '' } });
+  return prisma.session.create({ data: { experienceId: experience.id, dateDebut: new Date(Date.now() + 86400_000), dateFin: new Date(Date.now() + 90000_000), lieu: 'Test', placesTotal: 5 } });
+}
 
-  const reponse = await devis.createDevis(requete('/api/devis', { cookie: camille.cookie, methode: 'POST', corps: DEVIS }));
+test('demander un devis se fait sans compte : les coordonnées saisies sont enregistrées', async () => {
+  const reponse = await devis.createDevis(requete('/api/devis', { methode: 'POST', corps: DEVIS }));
   assert.equal(reponse.status, 201);
-  const { id } = await reponse.json() as { id: number };
-  const enregistre = await prisma.demandeDevis.findUniqueOrThrow({ where: { id } });
+  assert.deepEqual(Object.keys(await reponse.json()), ['message']); // aucun identifiant interne communiqué au visiteur
+  const enregistre = await prisma.demandeDevis.findFirstOrThrow({ where: { email: 'sophie@example.com' } });
   assert.deepEqual(
-    { userId: enregistre.userId, email: enregistre.email, telephone: enregistre.telephone },
-    { userId: camille.id, email: 'devis@example.com', telephone: '0600000001' },
+    { contactNom: enregistre.contactNom, entreprise: enregistre.entreprise, telephone: enregistre.telephone },
+    { contactNom: 'Sophie Martin', entreprise: 'Acme', telephone: '0600000001' },
   );
+
+  // Champ inconnu refusé (l'ancien userId notamment) ; nom, e-mail et téléphone obligatoires.
+  assert.equal((await devis.createDevis(requete('/api/devis', { methode: 'POST', corps: { ...DEVIS, userId: 'autre' } }))).status, 400);
+  const incomplet = await devis.createDevis(requete('/api/devis', { methode: 'POST', corps: { ...DEVIS, nom: undefined, email: 'pas-une-adresse', telephone: undefined } }));
+  assert.equal(incomplet.status, 400);
+  assert.deepEqual(await champsRefuses(incomplet), ['email', 'nom', 'telephone']);
 });
 
-test('un client ne peut pas lire la réservation d’un autre client', async () => {
-  const alice = await inscrire('alice@example.com');
-  const bruno = await inscrire('bruno@example.com');
-  const experience = await prisma.experience.create({ data: { slug: 'acces-test', type: 'atelier', titre: 'Atelier', accroche: 'A', description: 'D', dureeMin: 60, prixCents: 4500, capaciteMax: 5, image: '', imageAlt: '' } });
-  const session = await prisma.session.create({ data: { experienceId: experience.id, dateDebut: new Date(Date.now() + 86400_000), dateFin: new Date(Date.now() + 90000_000), lieu: 'Test', placesTotal: 5 } });
-  await prisma.reservation.create({ data: { sessionId: session.id, userId: alice.id, nom: 'Alice', email: 'alice@example.com', nbPersonnes: 1, montantCents: 4500, stripeSessionId: 'cs_test_alice' } });
-
-  const chemin = '/api/reservations?session_id=cs_test_alice';
-  assert.equal((await handlers.listReservations(requete(chemin))).status, 401);
-  assert.equal((await handlers.listReservations(requete(chemin, { cookie: bruno.cookie }))).status, 404);
-  assert.equal((await handlers.listReservations(requete(chemin, { cookie: alice.cookie }))).status, 200);
+test('réserver se fait sans compte : nom et e-mail demandés, téléphone facultatif', async () => {
+  // Sans coordonnées : refus de validation (et non 401 « connectez-vous »), avant tout appel à Stripe.
+  const reponse = await handlers.checkout(requete('/api/checkout', { methode: 'POST', corps: { sessionId: 1, nbPersonnes: 1 } }));
+  assert.equal(reponse.status, 400);
+  assert.deepEqual(await champsRefuses(reponse), ['email', 'nom']);
+  const telephoneInvalide = await handlers.checkout(requete('/api/checkout', { methode: 'POST', corps: { sessionId: 1, nbPersonnes: 1, nom: 'Camille', email: 'camille@example.com', telephone: '12' } }));
+  assert.deepEqual(await champsRefuses(telephoneInvalide), ['telephone']);
 });
 
-test('les routes admin refusent un visiteur (401) et un client (403)', async () => {
-  const client = await inscrire('client-admin@example.com');
-  const creer = (cookie?: string) => catalogue.createExperience(requete('/api/experiences', { cookie, methode: 'POST', corps: {} }));
-  assert.equal((await creer()).status, 401);
-  assert.equal((await creer(client.cookie)).status, 403);
+test('après paiement, la réservation n’est montrée que si la session Stripe existe et la désigne', async () => {
+  const session = await sessionOuverte('apres-paiement');
+  const reservation = await prisma.reservation.create({ data: { sessionId: session.id, nom: 'Camille', email: 'camille@example.com', telephone: '0600000004', nbPersonnes: 1, montantCents: 4500, stripeSessionId: 'cs_test_camille' } });
+  const enCours = { id: 'cs_test_camille', livemode: false, mode: 'payment', status: 'open', payment_status: 'unpaid', metadata: { reservationId: String(reservation.id) } };
+  const stripe = (reponse: object | Error) => ({ checkout: { sessions: { retrieve: async () => { if (reponse instanceof Error) throw reponse; return reponse; } } } }) as unknown as Stripe;
+  const apresPaiement = (id: string, reponse: object | Error) => bookings.reservationApresPaiement(id, stripe(reponse));
+
+  // Identifiant mal formé (400) ou absent de la base (404), sans même interroger Stripe.
+  assert.equal((await handlers.listReservations(requete('/api/reservations?session_id=abc'))).status, 400);
+  assert.equal((await handlers.listReservations(requete('/api/reservations?session_id=cs_test_inconnu'))).status, 404);
+  // Session Stripe qui désigne une autre réservation, ou inconnue de Stripe : rien n'est montré.
+  assert.deepEqual(await apresPaiement('cs_test_camille', { ...enCours, metadata: { reservationId: String(reservation.id + 1) } }), { refus: 'introuvable' });
+  assert.deepEqual(await apresPaiement('cs_test_camille', { ...enCours, livemode: true }), { refus: 'introuvable' });
+  assert.deepEqual(await apresPaiement('cs_test_camille', Object.assign(new Error('No such checkout.session'), { name: 'StripeInvalidRequestError' })), { refus: 'introuvable' });
+  // Stripe injoignable : rien n'est montré non plus, la page invite à réessayer.
+  assert.deepEqual(await apresPaiement('cs_test_camille', new Error('Timeout')), { refus: 'indisponible' });
+
+  // Session valide qui correspond : la réservation est montrée, sans nom, e-mail ni téléphone.
+  const resultat = await apresPaiement('cs_test_camille', enCours);
+  assert.ok('reservation' in resultat);
+  assert.equal(resultat.reservation.statut, 'en_attente');
+  assert.deepEqual(Object.keys(resultat.reservation).sort(), ['id', 'montantCents', 'nbPersonnes', 'session', 'statut']);
+});
+
+test('un compte sans le rôle admin n’a aucun droit ; sans session, 401', async () => {
+  const sansRole = await creerCompte('sans-role@example.com', 'client');
+  const routes = (cookie?: string) => Promise.all([
+    catalogue.createExperience(requete('/api/experiences', { cookie, methode: 'POST', corps: {} })),
+    handlers.listReservations(requete('/api/reservations', { cookie })),
+    devis.listDevis(requete('/api/devis', { cookie })),
+    newsletter.lister(requete('/api/newsletter', { cookie })),
+    utilisateurs.listUtilisateurs(requete('/api/utilisateurs', { cookie })),
+  ]);
+  assert.deepEqual((await routes()).map(r => r.status), [401, 401, 401, 401, 401]);
+  assert.deepEqual((await routes(sansRole.cookie)).map(r => r.status), [403, 403, 403, 403, 403]);
 });
 
 test('x-admin-key est accepté en développement et refusé en production', async () => {
@@ -90,8 +124,7 @@ test('x-admin-key est accepté en développement et refusé en production', asyn
 });
 
 test('le dernier compte admin ne peut être ni rétrogradé ni supprimé, même par lui-même', async () => {
-  const julie = await inscrire('julie@example.com');
-  await prisma.user.update({ where: { id: julie.id }, data: { role: 'admin' } });
+  const julie = await creerCompte('julie@example.com');
   const modifier = (cookie: string, id: string, corps: unknown) =>
     utilisateurs.updateUtilisateur(requete(`/api/utilisateurs/${id}`, { cookie, methode: 'PATCH', corps }), avecId(id));
   const supprimer = (cookie: string, id: string) =>
@@ -101,7 +134,7 @@ test('le dernier compte admin ne peut être ni rétrogradé ni supprimé, même 
   assert.equal((await supprimer(julie.cookie, julie.id)).status, 409);
 
   // Avec un second admin, Julie peut se rétrograder ; Marc devient alors le dernier.
-  const marc = await inscrire('marc@example.com');
+  const marc = await creerCompte('marc@example.com', 'client');
   assert.equal((await modifier(julie.cookie, marc.id, { role: 'admin' })).status, 200);
   assert.equal((await modifier(julie.cookie, julie.id, { role: 'client' })).status, 200);
   assert.equal((await modifier(julie.cookie, marc.id, { role: 'client' })).status, 403);

@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import Galerie, { type PhotoGalerie } from '@/frontend/components/Galerie';
-import ProchainesDates from '@/frontend/components/ProchainesDates';
 import ReservationForm, { type SessionDisponible } from '@/frontend/components/ReservationForm';
 import { formatDuree, formatPrix, libelleType } from '@/frontend/format';
 import { classeBouton } from '@/frontend/styles/classes';
@@ -22,15 +21,7 @@ export type ExperienceDetail = {
   sessions: SessionDisponible[];
 };
 
-type Props = {
-  experience: ExperienceDetail;
-  // Compte connecté, ou null pour un visiteur (invité à se connecter avant de réserver).
-  utilisateur: { nom: string; email: string } | null;
-};
-
-export default function Experience({ experience, utilisateur }: Props) {
-  const retour = encodeURIComponent(`/experiences/${experience.slug}`);
-
+export default function Experience({ experience }: { experience: ExperienceDetail }) {
   return (
     <main className="mx-auto max-w-5xl px-5 py-8 lg:px-6 lg:py-12">
       <Link href="/experiences" className="text-sm text-texte-doux hover:text-texte">← Toutes les expériences</Link>
@@ -66,17 +57,8 @@ export default function Experience({ experience, utilisateur }: Props) {
             <>
               <h2 className="font-serif text-2xl">Réserver</h2>
               <p className="mb-6 mt-1 text-sm text-texte-doux">Paiement sécurisé par Stripe.</p>
-              {utilisateur ? (
-                <ReservationForm sessions={experience.sessions} utilisateur={utilisateur} />
-              ) : (
-                <div className="grid gap-3">
-                  <ProchainesDates sessions={experience.sessions} className="mb-5" />
-                  <p className="leading-relaxed text-texte-doux">Un compte est nécessaire pour réserver : vous retrouverez ensuite vos réservations dans « Mon compte ».</p>
-                  <Link href={`/connexion?retour=${retour}`} className={`text-center ${classeBouton}`}>Se connecter pour réserver</Link>
-                  <Link href={`/inscription?retour=${retour}`} className="text-center text-sm underline">Créer un compte</Link>
-                </div>
-              )}
-              {utilisateur && process.env.NODE_ENV !== 'production' && (
+              <ReservationForm sessions={experience.sessions} />
+              {process.env.NODE_ENV !== 'production' && (
                 <p className="mt-5 rounded-lg bg-fond px-3 py-2 text-sm leading-relaxed text-texte-doux">
                   Mode test : carte <strong>4242 4242 4242 4242</strong>, date d’expiration future, CVC au choix.
                 </p>

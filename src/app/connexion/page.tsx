@@ -4,10 +4,7 @@ import { utilisateurCourant } from '@/backend/auth/acces-page';
 import Connexion from '@/frontend/pages/connexion';
 import { cheminDeRetour } from '@/frontend/navigation';
 
-export const metadata: Metadata = {
-  title: 'Connexion | Maison La recette',
-  description: 'Connectez-vous pour réserver une expérience ou demander un devis.',
-};
+export const metadata: Metadata = { title: 'Connexion | Maison La recette', robots: { index: false } };
 
 type Props = { searchParams: Promise<{ retour?: string }> };
 

@@ -58,12 +58,9 @@ model Reservation {
   checkoutKey     String?  @unique
   checkoutPayload String?
   createdAt       DateTime @default(now())
-  userId          String?
   session         Session  @relation(fields: [sessionId], references: [id], onDelete: Restrict)
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([sessionId])
-  @@index([userId])
 }
 
 model DemandeDevis {
@@ -81,23 +78,20 @@ model DemandeDevis {
   statut         String      @default("nouvelle")
   noteInterne    String?
   createdAt      DateTime    @default(now())
-  userId         String?
   experience     Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
-  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([experienceId])
-  @@index([userId])
 }
 
 model Episode {
-  id              Int      @id @default(autoincrement())
-  guid            String?  @unique
-  saison          Int      @default(1)
+  id              Int       @id @default(autoincrement())
+  guid            String?   @unique
+  saison          Int       @default(1)
   numero          Int
   titre           String
   description     String
-  resume          String   @default("")
-  type            String   @default("complet")
+  resume          String    @default("")
+  type            String    @default("complet")
   invite          String?
   datePublication DateTime
   dureeMin        Int
@@ -178,24 +172,21 @@ model TextePage {
   @@unique([page, cle])
 }
 
-// Comptes : tables imposées par Better Auth (src/backend/auth/auth.ts).
-// Les modèles Auth* ne s'appellent pas Session/Account pour ne pas entrer en
-// conflit avec Session (dates des expériences).
+// Comptes d'administration (les visiteurs n'ont pas de compte) : tables imposées par Better Auth
+// (src/backend/auth/auth.ts). Les modèles Auth* ne s'appellent pas Session/Account pour ne pas
+// entrer en conflit avec Session (dates des expériences).
 
 model User {
-  id            String         @id
+  id            String        @id
   nom           String
-  email         String         @unique
-  emailVerified Boolean        @default(false)
+  email         String        @unique
+  emailVerified Boolean       @default(false)
   image         String?
-  telephone     String?
-  role          String         @default("client")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  role          String        @default("client")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
   sessions      AuthSession[]
   comptes       AuthAccount[]
-  reservations  Reservation[]
-  demandesDevis DemandeDevis[]
 }
 
 model AuthSession {

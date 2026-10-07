@@ -1,4 +1,5 @@
 import 'server-only';
+import type { Prisma } from '@prisma/client';
 import type Stripe from 'stripe';
 import { prisma } from '@/backend/db/prisma';
 import { ApiError } from '@/backend/http';
@@ -7,11 +8,7 @@ import { enArrierePlan } from '@/backend/mails/envoi';
 import { envoyerMailsReservationPayee } from '@/backend/mails/notifications';
 import { DUREE_BLOCAGE_MS, placesDisponibles } from '@/backend/places';
 import { lockSession } from './inventory';
-import type { Utilisateur } from '@/backend/auth/acces';
 import type { CheckoutInput } from './validation';
-
-/** Ce qu'une réservation reprend du compte connecté. */
-export type Client = Pick<Utilisateur, 'id' | 'nom' | 'email' | 'telephone'>;
 
 function configuredStripe() {
   try { return getStripe(); }
@@ -30,7 +27,8 @@ export async function attachCheckout(reservationId: number, stripe: Stripe) {
   return session;
 }
 
-export async function createCheckout(client: Client, input: CheckoutInput, key: string, stripe: Stripe = configuredStripe()) {
+/** Réservation sans compte : nom, e-mail et téléphone sont ceux saisis dans le formulaire. */
+export async function createCheckout(input: CheckoutInput, key: string, stripe: Stripe = configuredStripe()) {
   const base = process.env.NEXT_PUBLIC_BASE_URL;
   if (!base || !/^https?:\/\//.test(base)) throw new ApiError(503, 'NEXT_PUBLIC_BASE_URL doit être configurée');
   const origin = new URL(base).origin;
@@ -38,7 +36,9 @@ export async function createCheckout(client: Client, input: CheckoutInput, key: 
     const session = await lockSession(tx, input.sessionId);
     const previous = await tx.reservation.findUnique({ where: { checkoutKey: key } });
     if (previous) {
-      if (previous.userId !== client.id || previous.sessionId !== input.sessionId || previous.nbPersonnes !== input.nbPersonnes) throw new ApiError(409, 'Cette clé de réservation est déjà utilisée pour une autre demande');
+      // Une clé ne resservira qu'à la même demande : même date, même nombre de places, même personne.
+      const memeDemande = previous.sessionId === input.sessionId && previous.nbPersonnes === input.nbPersonnes && previous.nom === input.nom && previous.email === input.email;
+      if (!memeDemande) throw new ApiError(409, 'Cette clé de réservation est déjà utilisée pour une autre demande');
       if (previous.statut !== 'en_attente') throw new ApiError(409, 'Réservation déjà traitée');
       return previous;
     }
@@ -49,9 +49,10 @@ export async function createCheckout(client: Client, input: CheckoutInput, key: 
     const unitPrice = session.prixCents ?? session.experience.prixCents;
     const total = unitPrice * input.nbPersonnes;
     if (total < 50 || total > 99_999_999) throw new ApiError(400, 'Montant incompatible avec un paiement par carte en euros');
-    const created = await tx.reservation.create({ data: { ...input, userId: client.id, nom: client.nom, email: client.email, telephone: client.telephone, montantCents: total, checkoutKey: key } });
+    const { sessionId, nbPersonnes, nom, email, telephone } = input;
+    const created = await tx.reservation.create({ data: { sessionId, nbPersonnes, nom, email, telephone: telephone ?? null, montantCents: total, checkoutKey: key } });
     const payload: Stripe.Checkout.SessionCreateParams = {
-      mode: 'payment', allowed_payment_method_types: ['card'], customer_email: client.email,
+      mode: 'payment', allowed_payment_method_types: ['card'], customer_email: email,
       client_reference_id: String(created.id), metadata: { reservationId: String(created.id) },
       expires_at: Math.floor((Date.now() + DUREE_BLOCAGE_MS) / 1000),
       success_url: `${origin}/reservation/succes?session_id={CHECKOUT_SESSION_ID}`,
@@ -132,16 +133,49 @@ export async function traiterSessionStripe(checkout: Stripe.Checkout.Session, ev
   return payee;
 }
 
+/** Ce qu'affiche la page de succès : jamais le nom, l'e-mail ni le téléphone. */
+const champsApresPaiement = {
+  id: true, nbPersonnes: true, montantCents: true, statut: true,
+  session: { select: { dateDebut: true, lieu: true, experience: { select: { titre: true, slug: true } } } },
+} as const;
+
+export type ReservationApresPaiement = Prisma.ReservationGetPayload<{ select: typeof champsApresPaiement }>;
+
 /**
- * Page de succès : relit la session chez Stripe (source de vérité, interrogée avec la clé secrète)
- * et, si elle est payée, l'enregistre exactement comme le webhook. Une place payée ne peut donc
- * pas être libérée parce que le webhook arrive en retard (ou jamais).
+ * Page de succès et GET /api/reservations?session_id= : sans compte, seul l'identifiant de session Stripe
+ * de l'adresse de retour (connu du payeur) donne accès à la réservation. La session doit exister chez Stripe
+ * (interrogé avec la clé secrète) et désigner cette réservation ; sinon rien n'est montré.
+ * Si Stripe confirme le paiement, il est enregistré exactement comme par le webhook : une place payée
+ * n'est donc pas libérée parce que le webhook arrive en retard (ou jamais).
  */
-export async function confirmerPaiementDepuisStripe(stripeSessionId: string, stripe: Stripe = configuredStripe()): Promise<boolean> {
-  const checkout = await stripe.checkout.sessions.retrieve(stripeSessionId);
-  if (checkout.payment_status !== 'paid' || checkout.status !== 'complete') return false;
-  await traiterSessionStripe(checkout, 'checkout.session.completed');
-  return true;
+export async function reservationApresPaiement(
+  stripeSessionId: string, stripe?: Stripe,
+): Promise<{ reservation: ReservationApresPaiement } | { refus: 'introuvable' | 'indisponible' }> {
+  if (!/^cs_test_[A-Za-z0-9]+$/.test(stripeSessionId)) return { refus: 'introuvable' };
+  const reservation = await prisma.reservation.findUnique({ where: { stripeSessionId }, select: champsApresPaiement });
+  if (!reservation) return { refus: 'introuvable' };
+
+  let checkout: Stripe.Checkout.Session;
+  try { checkout = await (stripe ?? configuredStripe()).checkout.sessions.retrieve(stripeSessionId); }
+  catch (erreur) {
+    // Session inconnue de Stripe : introuvable. Stripe injoignable ou non configuré : vérification impossible.
+    const inconnue = erreur instanceof Error && erreur.name === 'StripeInvalidRequestError';
+    return { refus: inconnue ? 'introuvable' : 'indisponible' };
+  }
+  const correspond = checkout.id === stripeSessionId && !checkout.livemode && checkout.metadata?.reservationId === String(reservation.id);
+  if (!correspond) return { refus: 'introuvable' };
+
+  if (reservation.statut === 'en_attente' && checkout.payment_status === 'paid' && checkout.status === 'complete') {
+    try {
+      if (await traiterSessionStripe(checkout, 'checkout.session.completed')) return { reservation: { ...reservation, statut: 'payee' } };
+    } catch (erreur) {
+      // Paiement incohérent (montant, devise) : on garde le statut de la base, à vérifier dans l'admin.
+      console.error('Confirmation depuis la page de succès impossible :', erreur instanceof Error ? erreur.message : erreur);
+    }
+    const relue = await prisma.reservation.findUniqueOrThrow({ where: { id: reservation.id }, select: champsApresPaiement });
+    return { reservation: relue };
+  }
+  return { reservation };
 }
 
 export async function cancelReservation(id: number, stripe: Stripe = configuredStripe()) {

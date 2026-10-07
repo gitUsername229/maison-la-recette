@@ -4,7 +4,7 @@ import { rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
-import { inscrire, preparerBaseDeTest, requete } from './outils';
+import { preparerBaseDeTest, requete } from './outils';
 
 let nettoyer: () => Promise<void>;
 let prisma: PrismaClient;
@@ -12,7 +12,6 @@ let catalogue: typeof import('../src/backend/ateliers/catalogue');
 let devis: typeof import('../src/backend/ateliers/devis');
 let contenus: typeof import('../src/backend/contenus/contenus');
 let images: typeof import('../src/backend/contenus/images');
-let compte: typeof import('../src/backend/comptes/compte');
 let newsletter: typeof import('../src/backend/contenus/newsletter');
 let blog: typeof import('../src/backend/contenus/articles');
 
@@ -23,7 +22,6 @@ before(async () => {
   devis = await import('../src/backend/ateliers/devis');
   contenus = await import('../src/backend/contenus/contenus');
   images = await import('../src/backend/contenus/images');
-  compte = await import('../src/backend/comptes/compte');
   newsletter = await import('../src/backend/contenus/newsletter');
   blog = await import('../src/backend/contenus/articles');
 });
@@ -84,14 +82,12 @@ test('les erreurs de saisie disent, en français, quel champ corriger', async ()
   assert.deepEqual((await doublon.json() as Erreur).details?.map(d => d.champ), ['slug']);
 });
 
-test('devis : note interne enregistrée mais jamais montrée au client, suppression possible', async () => {
-  const client = await inscrire('devis-note@example.com', '0600000003');
-  const { id } = await prisma.demandeDevis.create({ data: { entreprise: 'Acme', contactNom: 'C', email: 'devis-note@example.com', typeDemande: 'studio', message: 'M', userId: client.id } });
+test('devis : note interne enregistrée, lisible seulement dans l’admin, suppression possible', async () => {
+  const { id } = await prisma.demandeDevis.create({ data: { entreprise: 'Acme', contactNom: 'C', email: 'devis-note@example.com', telephone: '0600000003', typeDemande: 'studio', message: 'M' } });
 
   assert.equal((await devis.updateDevis(admin(`/api/devis/${id}`, 'PATCH', { noteInterne: 'Rappeler jeudi', statut: 'en_cours' }), avecId(id))).status, 200);
   assert.equal((await prisma.demandeDevis.findUniqueOrThrow({ where: { id } })).noteInterne, 'Rappeler jeudi');
-  const vueClient = await (await compte.getCompte(requete('/api/compte', { cookie: client.cookie }))).text();
-  assert.ok(!vueClient.includes('Rappeler jeudi'));
+  assert.equal((await devis.listDevis(requete('/api/devis'))).status, 401);
 
   assert.equal((await devis.deleteDevis(admin(`/api/devis/${id}`, 'DELETE'), avecId(id))).status, 200);
   assert.equal(await prisma.demandeDevis.count({ where: { id } }), 0);

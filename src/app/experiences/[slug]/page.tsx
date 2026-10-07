@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { cache } from 'react';
 import { experiencePublique } from '@/backend/ateliers/catalogue';
-import { utilisateurCourant } from '@/backend/auth/acces-page';
 import Experience from '@/frontend/pages/experience';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -32,7 +31,5 @@ export default async function Page({ params }: Props) {
       prixCents: session.prixCents ?? experience.prixCents,
     }));
 
-  const utilisateur = await utilisateurCourant();
-  const compte = utilisateur && { nom: utilisateur.nom, email: utilisateur.email };
-  return <Experience experience={{ ...experience, sessions }} utilisateur={compte} />;
+  return <Experience experience={{ ...experience, sessions }} />;
 }

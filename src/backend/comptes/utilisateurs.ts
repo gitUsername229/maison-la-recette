@@ -7,7 +7,6 @@ import { ApiError, endpoint, json, type RouteContext } from '@/backend/http';
 
 const modificationSchema = z.object({
   nom: z.string().trim().min(1).max(120),
-  telephone: z.string().trim().min(6).max(40).nullable(),
   role: z.enum(['client', 'admin']),
 }).partial().strict();
 
@@ -33,11 +32,11 @@ export const listUtilisateurs = endpoint(async (request: Request) => {
   await exigerAdmin(request);
   return json(await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
-    select: { id: true, nom: true, email: true, emailVerified: true, telephone: true, role: true, createdAt: true, _count: { select: { reservations: true, demandesDevis: true } } },
+    select: { id: true, nom: true, email: true, role: true, createdAt: true },
   }));
 });
 
-/** PATCH /api/utilisateurs/[id] (admin) : nom, téléphone ou rôle. */
+/** PATCH /api/utilisateurs/[id] (admin) : nom ou rôle. */
 export const updateUtilisateur = endpoint(async (request: Request, context: RouteContext) => {
   await exigerAdmin(request);
   const id = idUtilisateur((await context.params).id);
@@ -45,11 +44,11 @@ export const updateUtilisateur = endpoint(async (request: Request, context: Rout
   // Transaction : le comptage et la modification ne peuvent pas être entrecoupés.
   return json(await prisma.$transaction(async tx => {
     if (data.role === 'client') await verifierQueCeNestPasLeDernierAdmin(tx, id);
-    return tx.user.update({ where: { id }, data, select: { id: true, nom: true, email: true, telephone: true, role: true } });
+    return tx.user.update({ where: { id }, data, select: { id: true, nom: true, email: true, role: true } });
   }));
 });
 
-/** DELETE /api/utilisateurs/[id] (admin) : réservations et devis sont conservés, détachés du compte. */
+/** DELETE /api/utilisateurs/[id] (admin). */
 export const deleteUtilisateur = endpoint(async (request: Request, context: RouteContext) => {
   await exigerAdmin(request);
   const id = idUtilisateur((await context.params).id);

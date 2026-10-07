@@ -3,7 +3,7 @@ import { after, before, beforeEach, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
 import nodemailer from 'nodemailer';
 import Stripe from 'stripe';
-import { BASE, inscrire, preparerBaseDeTest, requete } from './outils';
+import { BASE, creerCompte, MOT_DE_PASSE_TEST, preparerBaseDeTest, requete } from './outils';
 
 type Envoye = { to: string; subject: string; html: string; text: string; replyTo?: string };
 
@@ -53,13 +53,13 @@ test('la mise en page neutralise le HTML saisi et fournit une version texte', as
     titre: 'Bonjour <b>Julie</b>',
     paragraphes: ['<script>alert(1)</script>'],
     details: [['Entreprise', '"Acme" & fils']],
-    lien: { texte: 'Voir', url: 'http://localhost:3000/compte?a=1&b=2' },
+    lien: { texte: 'Voir', url: 'http://localhost:3000/experiences?a=1&b=2' },
   }));
   assert.equal(envoyes.length, 1);
   const [mail] = envoyes;
   assert.ok(!mail.html.includes('<script>') && mail.html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
   assert.ok(mail.html.includes('&quot;Acme&quot; &amp; fils'));
-  assert.ok(mail.html.includes('href="http://localhost:3000/compte?a=1&amp;b=2"'));
+  assert.ok(mail.html.includes('href="http://localhost:3000/experiences?a=1&amp;b=2"'));
   assert.match(mail.text, /Entreprise : "Acme" & fils/);
 });
 
@@ -93,15 +93,19 @@ test('un paiement confirmé envoie la confirmation au client et l’information 
   assert.match(client.subject, /Réservation confirmée : Atelier pain perdu/);
   assert.match(client.text, /Participants : 2/);
   assert.match(client.text, /Montant payé : 90,00\s€/);
+  assert.match(client.text, /Date : samedi 6 mars à 10:00/);
+  assert.match(client.text, /Lieu : La Rochelle/);
+  // Sans compte : aucun lien « Mon compte », mais un moyen de joindre Julie (la réponse lui arrive).
+  assert.ok(!client.text.includes('/compte'));
+  assert.match(client.text, /Répondez simplement à cet e-mail/);
+  assert.equal(client.replyTo, 'julie@exemple.fr');
   assert.equal(envoyes.find(m => m.to === 'julie@exemple.fr')!.replyTo, 'camille@example.com');
 });
 
 test('une demande de devis envoie le détail à Julie (réponse directe au client) et un accusé, sans HTML injecté', async () => {
-  const { cookie } = await inscrire('devis-mail@example.com', '0600000002');
-  await envoi.attendreLesEnvois();
-  envoyes.length = 0; // l'e-mail de vérification de l'inscription n'est pas l'objet du test
   const message = '<img src=x onerror=alert(1)> Team building';
-  const reponse = await devis.createDevis(requete('/api/devis', { cookie, methode: 'POST', corps: { entreprise: 'Acme', typeDemande: 'evenement', lieuSouhaite: 'a_proximite', message } }));
+  const corps = { nom: 'Sophie', entreprise: 'Acme', email: 'devis-mail@example.com', telephone: '0600000002', typeDemande: 'evenement', lieuSouhaite: 'a_proximite', message };
+  const reponse = await devis.createDevis(requete('/api/devis', { methode: 'POST', corps }));
   assert.equal(reponse.status, 201);
   await envoi.attendreLesEnvois();
 
@@ -113,6 +117,8 @@ test('une demande de devis envoie le détail à Julie (réponse directe au clien
   assert.match(pourJulie.text, /Lieu : Dans un lieu proche de nos locaux/);
   assert.ok(!pourJulie.html.includes('<img') && pourJulie.html.includes('&lt;img src=x'));
   assert.match(accuse.subject, /bien reçu/);
+  assert.ok(!accuse.text.includes('/compte'));
+  assert.equal(accuse.replyTo, 'julie@exemple.fr');
 });
 
 test('un serveur SMTP en panne n’empêche pas d’enregistrer le paiement', async t => {
@@ -138,9 +144,7 @@ function routeAuth(chemin: string, corps?: unknown) {
 const lienDuMail = (mail: Envoye) => mail.text.match(/https?:\/\/\S+/)![0];
 
 test('mot de passe oublié : lien par e-mail, nouveau mot de passe accepté, ancien refusé, aucune fuite sur les adresses', async () => {
-  await inscrire('oubli@example.com');
-  await envoi.attendreLesEnvois();
-  envoyes.length = 0;
+  await creerCompte('oubli@example.com');
 
   const demander = (email: string) => routeAuth('/request-password-reset', { email, redirectTo: '/reinitialiser-mot-de-passe' });
   const connu = await demander('oubli@example.com');
@@ -152,36 +156,37 @@ test('mot de passe oublié : lien par e-mail, nouveau mot de passe accepté, anc
 
   const token = lienDuMail(envoyes[0]).match(/reset-password\/([^?\s]+)/)![1];
   assert.equal((await routeAuth('/reset-password', { newPassword: 'nouveau-motdepasse', token })).status, 200);
-  assert.equal((await routeAuth('/sign-in/email', { email: 'oubli@example.com', password: 'motdepasse-de-test' })).status, 401);
+  assert.equal((await routeAuth('/sign-in/email', { email: 'oubli@example.com', password: MOT_DE_PASSE_TEST })).status, 401);
   assert.equal((await routeAuth('/sign-in/email', { email: 'oubli@example.com', password: 'nouveau-motdepasse' })).status, 200);
   assert.equal((await routeAuth('/reset-password', { newPassword: 'encore-un-autre', token })).status, 400); // lien à usage unique
 });
 
-test('l’inscription envoie un lien qui vérifie l’adresse e-mail', async () => {
-  const { id } = await inscrire('verif@example.com');
+test('aucune inscription possible : la route d’inscription de Better Auth est refusée', async () => {
+  const reponse = await routeAuth('/sign-up/email', { name: 'Camille', email: 'inscription@example.com', password: 'motdepasse-solide' });
+  assert.equal(reponse.status, 400);
+  assert.equal(await prisma.user.count({ where: { email: 'inscription@example.com' } }), 0);
   await envoi.attendreLesEnvois();
-  const mail = envoyes.find(m => m.to === 'verif@example.com' && /Confirmez/.test(m.subject))!;
-  assert.equal((await prisma.user.findUniqueOrThrow({ where: { id } })).emailVerified, false);
-
-  const lien = new URL(lienDuMail(mail));
-  await auth.handler(new Request(lien, { headers: { origin: BASE } }));
-  assert.equal((await prisma.user.findUniqueOrThrow({ where: { id } })).emailVerified, true);
+  assert.equal(envoyes.length, 0);
 });
 
 test('la page de succès enregistre le paiement confirmé par Stripe ; le webhook arrivé ensuite ne refait rien', async () => {
-  const { reservation, paye, envoyer } = await paiementReussi('cs_test_succes_avant_webhook');
+  const { reservation, paye, envoyer } = await paiementReussi('cs_test_succesAvantWebhook');
   const stripeRenvoyant = (session: object) => ({ checkout: { sessions: { retrieve: async () => session } } }) as unknown as Stripe;
   const etat = async () => {
     const r = await prisma.reservation.findUniqueOrThrow({ where: { id: reservation.id }, include: { session: true } });
     return { statut: r.statut, placesPrises: r.session.placesPrises };
   };
+  const statutAffiche = async (session: object) => {
+    const resultat = await bookings.reservationApresPaiement(paye.id, stripeRenvoyant(session));
+    return 'reservation' in resultat ? resultat.reservation.statut : resultat.refus;
+  };
 
   // Stripe n'a pas encore encaissé : rien n'est enregistré.
-  assert.equal(await bookings.confirmerPaiementDepuisStripe(paye.id, stripeRenvoyant({ ...paye, status: 'open', payment_status: 'unpaid' })), false);
+  assert.equal(await statutAffiche({ ...paye, status: 'open', payment_status: 'unpaid' }), 'en_attente');
   assert.deepEqual(await etat(), { statut: 'en_attente', placesPrises: 0 });
 
   // Arrivée sur la page de succès, Stripe confirme : même traitement que le webhook.
-  assert.equal(await bookings.confirmerPaiementDepuisStripe(paye.id, stripeRenvoyant(paye)), true);
+  assert.equal(await statutAffiche(paye), 'payee');
   assert.deepEqual(await etat(), { statut: 'payee', placesPrises: 2 });
 
   // Le webhook arrive ensuite : ni double comptage des places, ni second e-mail.

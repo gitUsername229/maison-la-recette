@@ -15,7 +15,7 @@ function pourJulie(creer: (adresse: string) => Mail): Mail[] {
 export async function envoyerMailsReservationPayee(id: number) {
   const reservation = await prisma.reservation.findUniqueOrThrow({
     where: { id },
-    select: { id: true, nom: true, email: true, telephone: true, nbPersonnes: true, montantCents: true, session: { select: { dateDebut: true, lieu: true, experience: { select: { titre: true } } } } },
+    select: { id: true, nom: true, email: true, telephone: true, nbPersonnes: true, montantCents: true, session: { select: { dateDebut: true, lieu: true, experience: { select: { titre: true, slug: true } } } } },
   });
   await Promise.all([confirmationReservation(reservation), ...pourJulie(a => reservationPourJulie(a, reservation))].map(envoyerMail));
 }

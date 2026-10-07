@@ -33,7 +33,7 @@ const PAGES_PUBLIQUES = ['/', '/experiences', '/experiences/entreprises', '/podc
 
 /** Pages réservées aux comptes, techniques ou de passage : exclues du sitemap et interdites aux robots. */
 export const CHEMINS_PRIVES = [
-  '/admin', '/compte', '/connexion', '/inscription', '/mot-de-passe-oublie', '/reinitialiser-mot-de-passe',
+  '/admin', '/connexion', '/mot-de-passe-oublie', '/reinitialiser-mot-de-passe',
   '/reservation', '/acces-refuse', '/api/',
 ];
 

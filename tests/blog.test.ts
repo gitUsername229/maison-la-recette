@@ -136,7 +136,7 @@ test('SEO : balises d’un article ; sitemap sans brouillon ni page privée ; ro
   const { default: robots } = await import('../src/app/robots');
   const { rules, sitemap } = robots();
   assert.deepEqual(rules, { userAgent: '*', allow: '/', disallow: seo.CHEMINS_PRIVES });
-  assert.ok(['/admin', '/compte', '/connexion', '/api/'].every(prive => seo.CHEMINS_PRIVES.includes(prive)));
+  assert.ok(['/admin', '/connexion', '/api/'].every(prive => seo.CHEMINS_PRIVES.includes(prive)));
   assert.equal(sitemap, 'http://localhost:3000/sitemap.xml');
 });
 

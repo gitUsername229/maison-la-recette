@@ -1,4 +1,4 @@
-// Appels des routes /api depuis l'interface admin (cookie de session envoyé automatiquement).
+// Appels des routes /api depuis l'interface admin (cookie de session envoyé automatiquement) et depuis les formulaires publics.
 
 export type Resultat<T> =
   | { ok: true; donnees: T }
