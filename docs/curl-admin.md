@@ -285,7 +285,8 @@ curl -X PUT "$BASE/api/episodes/12" \
 
 ## Admin : blog
 
-**Créer un article** (`"publie": false` pour un brouillon)
+**Créer un article** (`"publie": false` pour un brouillon). `categorie` : `retours-experience`, `coulisses-podcast`,
+`guides` (par défaut) ou `entreprises` ; `episodeId` et `experienceIds` sont facultatifs.
 
 ```bash
 curl -X POST "$BASE/api/articles" \
@@ -298,15 +299,30 @@ curl -X POST "$BASE/api/articles" \
     "contenu": "## 1. Des chips d'\''épluchures\n\n...",
     "image": "/images/blog/epluchures.jpg",
     "imageAlt": "Épluchures de légumes sur une planche",
+    "categorie": "guides",
+    "episodeId": 12,
+    "experienceIds": [1],
     "datePublication": "2026-10-01T08:00:00.000Z",
     "publie": true
   }'
 ```
 
-**Voir tous les articles, brouillons compris**
+Épisode ou expérience inexistant : `400`, avec le champ en cause (`episodeId` ou `experienceIds`). L'adresse `categorie`
+est réservée aux pages de catégories (`400` sur `slug`).
+
+**Voir tous les articles, brouillons compris** (avec `experienceIds` et le titre de l'épisode lié ; `?categorie=` pour filtrer)
 
 ```bash
-curl "$BASE/api/articles" -H "x-admin-key: $ADMIN_KEY"
+curl "$BASE/api/articles?categorie=entreprises" -H "x-admin-key: $ADMIN_KEY"
+```
+
+**Changer les expériences liées** (la liste remplace les anciennes ; `[]` les retire toutes ; `"episodeId": null` délie l'épisode)
+
+```bash
+curl -X PUT "$BASE/api/articles/2" \
+  -H "x-admin-key: $ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "experienceIds": [1, 3], "episodeId": null }'
 ```
 
 **Modifier** (par exemple dépublier)
@@ -444,7 +460,7 @@ curl -X DELETE "$BASE/api/images/2" -H "x-admin-key: $ADMIN_KEY"
 
 ## Admin : textes des pages
 
-Les emplacements (titre, paragraphes, boutons de l'accueil, d'À propos et du studio) sont fixés dans
+Les emplacements (titre, paragraphes, boutons de l'accueil, d'À propos, du studio et du blog) sont fixés dans
 `src/backend/contenus/textes-par-defaut.ts` : on modifie leur texte, on ne les crée ni ne les supprime.
 
 **Voir les textes** (avec l'accès admin, les emplacements absents de la base y sont créés avec leur texte d'origine)

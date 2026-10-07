@@ -46,10 +46,11 @@ Conventions :
 | GET | `/api/episodes` | Liste des épisodes, les plus récents d'abord (`?type=complet\|extrait\|replay`, `?saison=`, `?limit=`) | Public |
 | GET | `/api/avis` | Avis clients visibles | Public |
 | GET | `/api/partenaires` | Partenaires visibles | Public |
-| GET | `/api/articles` | Articles publiés du blog (`?limit=`) | Public |
+| GET | `/api/articles` | Articles publiés du blog, avec le libellé de leur catégorie (`?categorie=`, `?limit=`) | Public |
 | GET | `/api/articles/[slug]` | Un article du blog | Public |
+| GET | `/api/blog/categories` | Les 4 catégories du blog dans l'ordre (`valeur`, `libelle`, `description`) | Public |
 | GET | `/api/images?page=` | Galerie photos d'une page | Public |
-| GET | `/api/textes?page=` | Textes fixes d'une page (`accueil`, `a-propos`, `studio`), avec leur texte d'origine | Public |
+| GET | `/api/textes?page=` | Textes fixes d'une page (`accueil`, `a-propos`, `studio`, `blog`), avec leur texte d'origine | Public |
 | POST | `/api/checkout` | Réserver et payer (expériences réservables en ligne) | Connecté |
 | GET | `/api/reservations?session_id=` | Réservation après paiement | Connecté (propriétaire) |
 | POST | `/api/webhook` | Confirmation de paiement Stripe | Stripe |
@@ -69,8 +70,8 @@ Conventions :
 | POST | `/api/episodes` | Ajouter un épisode | Admin |
 | PUT | `/api/episodes/[id]` | Modifier un épisode (type, résumé, invité, liens) | Admin |
 | DELETE | `/api/episodes/[id]` | Supprimer un épisode | Admin |
-| POST | `/api/articles` | Créer un article | Admin |
-| PUT | `/api/articles/[id]` | Modifier ou (dé)publier un article | Admin |
+| POST | `/api/articles` | Créer un article (`categorie`, `episodeId` et `experienceIds` facultatifs) | Admin |
+| PUT | `/api/articles/[id]` | Modifier, (dé)publier un article ou changer ses liens (`experienceIds` remplace les expériences liées) | Admin |
 | DELETE | `/api/articles/[id]` | Supprimer un article | Admin |
 | POST | `/api/avis` | Ajouter un avis | Admin |
 | PUT | `/api/avis/[id]` | Modifier, afficher ou masquer un avis | Admin |
@@ -103,3 +104,8 @@ Conventions :
 **E-mails envoyés** (après la réponse, voir `src/backend/mails/`) : confirmation de réservation et information à Julie
 après le webhook de paiement, détail du devis à Julie et accusé au client après `POST /api/devis`, lien de mot de passe
 oublié, lien de vérification à l'inscription.
+
+**Référencement** : `/sitemap.xml` (pages publiques, expériences visibles, articles publiés et catégories qui en ont,
+recalculé à chaque demande) et `/robots.txt` (exclut `/admin`, `/compte`, `/connexion`, `/inscription`, les pages de mot de
+passe et de réservation, et `/api/`). Chaque article a son titre, sa description (l'extrait), son adresse canonique et ses
+balises de partage (Open Graph, X) avec la couverture.

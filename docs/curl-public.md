@@ -320,13 +320,13 @@ Tant qu'aucun partenaire n'est visible : `[]`.
 curl "$BASE/api/articles"
 ```
 
-**Limiter le nombre d'articles**
+**Les articles d'une catégorie** (page `/blog/categorie/guides`), éventuellement limités
 
 ```bash
-curl "$BASE/api/articles?limit=3"
+curl "$BASE/api/articles?categorie=guides&limit=3"
 ```
 
-Réponse `200` :
+Réponse `200` (extrait) :
 
 ```json
 [
@@ -337,10 +337,24 @@ Réponse `200` :
     "extrait": "Chips, bouillons, pestos : les épluchures ont de la ressource.",
     "image": "/images/blog/epluchures.jpg",
     "imageAlt": "Épluchures de légumes sur une planche",
+    "categorie": "guides",
+    "categorieLibelle": "Guides pratiques",
+    "episodeId": null,
     "datePublication": "2026-10-01T08:00:00.000Z"
   }
 ]
 ```
+
+Catégorie inconnue : `400` avec `{ "error": "Catégorie inconnue : retours-experience, coulisses-podcast, guides, entreprises." }`.
+
+**Les catégories** (dans l'ordre des onglets du blog)
+
+```bash
+curl "$BASE/api/blog/categories"
+```
+
+Réponse `200` (extrait) : `[{ "valeur": "retours-experience", "libelle": "Retours d’expérience", "description": "…", "appelDevis": false }, …]`.
+`appelDevis` vaut `true` pour « Pour les entreprises » : ses articles affichent l'encadré « Demander un devis ».
 
 **Lire un article** (page `/blog/cuisiner-les-epluchures`)
 
@@ -359,8 +373,22 @@ Réponse `200` :
   "contenu": "## 1. Des chips d'épluchures\n\n...",
   "image": "/images/blog/epluchures.jpg",
   "imageAlt": "Épluchures de légumes sur une planche",
+  "categorie": "guides",
+  "categorieLibelle": "Guides pratiques",
+  "episodeId": null,
   "datePublication": "2026-10-01T08:00:00.000Z"
 }
+```
+
+La page `/blog/<adresse>` affiche en plus, sous l'article, l'épisode lié (« Écouter l'épisode »), les expériences liées
+avec leurs 3 prochaines dates ouvertes (ou un lien vers toutes les expériences) et, pour « Pour les entreprises »,
+l'encadré « Demander un devis ».
+
+**Référencement**
+
+```bash
+curl "$BASE/sitemap.xml"
+curl "$BASE/robots.txt"
 ```
 
 Article inconnu ou brouillon : `404` avec `{ "error": "Article introuvable" }`.
@@ -384,7 +412,7 @@ Réponse `200` (triée par `ordre`) :
 
 ## Textes des pages
 
-**Textes d'une page** (`accueil`, `a-propos` ou `studio`), dans l'ordre de la page
+**Textes d'une page** (`accueil`, `a-propos`, `studio` ou `blog`), dans l'ordre de la page
 
 ```bash
 curl "$BASE/api/textes?page=studio"
@@ -402,7 +430,7 @@ Réponse `200` (extrait) :
 ]
 ```
 
-Page inconnue : `400` avec `{ "error": "Page inconnue : accueil, a-propos ou studio." }`.
+Page inconnue : `400` avec `{ "error": "Page inconnue : accueil, a-propos, studio, blog." }`.
 Les pages du site lisent ces textes directement côté serveur ; un texte absent de la base affiche son texte d'origine.
 
 ## Newsletter

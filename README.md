@@ -23,7 +23,7 @@ cd maison-la-recette
 npm install
 cp .env.example .env.local      # puis remplir les clés (voir ci-dessous)
 npx prisma migrate dev          # crée la base SQLite
-npx prisma db seed              # données de démo, compte admin, textes des pages
+npx prisma db seed              # données de démo, compte admin, textes des pages, articles de démo
 npm run dev                     # http://localhost:3000
 ```
 
@@ -63,13 +63,19 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 ### État du projet
 
 **En place :**
-- Next.js, React, TypeScript, Tailwind, Prisma (SQLite) ; seed de trois expériences avec sessions, du compte admin
-  et des textes des pages (textes d'origine).
+- Next.js, React, TypeScript, Tailwind, Prisma (SQLite) ; seed de trois expériences avec sessions, du compte admin,
+  des textes des pages (textes d'origine) et de trois articles de démonstration du blog (à remplacer).
 - **Comptes** ([Better Auth](https://www.better-auth.com)) : inscription, connexion, déconnexion (`/inscription`, `/connexion`),
   mots de passe hachés en argon2id, session en cookie httpOnly. Rôles `client` et `admin`.
 - **Site public sans compte**, alimenté par l'admin (un changement apparaît aussitôt) : accueil (avis, galerie,
   newsletter), `/experiences` et `/experiences/[slug]` (couverture, galerie, dates et places restantes),
-  `/a-propos` (partenaires, avis, galerie), `/blog` et `/blog/[slug]` (articles mis en forme en Markdown), `/podcast`.
+  `/a-propos` (partenaires, avis, galerie), `/blog` (voir ci-dessous), `/podcast`, `/studio`.
+- **Blog** : 4 catégories (`src/backend/contenus/categories-blog.ts`), une page par catégorie (`/blog/categorie/guides`).
+  Sous chaque article : l'épisode lié (« Écouter l'épisode »), les expériences liées avec leurs prochaines dates ouvertes
+  (lues dans les sessions, rien à ressaisir) ou un lien vers toutes les expériences, et pour « Pour les entreprises »
+  un encadré « Demander un devis ».
+- **Référencement** : titre, description, adresse canonique et balises de partage (Open Graph, X) avec la couverture
+  pour chaque article ; `/sitemap.xml` et `/robots.txt` (`src/backend/seo.ts`).
 - **Réservation et paiement Stripe Checkout (sandbox)**, réservés aux comptes connectés
   (voir [docs/stripe.md](docs/stripe.md) et [docs/ateliers-stripe.md](docs/ateliers-stripe.md)).
 - **Demande de devis** (`/contact`), réservée aux comptes connectés : nom, e-mail et téléphone repris du compte.
@@ -87,8 +93,11 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 - **Places** : un paiement Stripe expiré ne bloque plus de place, même si l'événement d'expiration n'arrive jamais.
 
 **Reste à faire :**
-1. Contenus réels (photos, articles, avis, partenaires, textes des pages) : Julie les saisit dans `/admin` ; le seed
-   ne contient pas de contenus fictifs. Les épisodes, eux, viennent d'Ausha.
+1. Contenus réels (photos, articles, avis, partenaires, textes des pages) : Julie les saisit dans `/admin`. Le seed
+   ne contient que trois articles de démonstration, marqués « Contenu de démonstration à remplacer » : à réécrire
+   ou supprimer. Les épisodes, eux, viennent d'Ausha.
+2. En production : `NEXT_PUBLIC_BASE_URL` = la vraie adresse du site (sitemap, adresses canoniques, aperçus de partage),
+   puis déclarer `/sitemap.xml` dans Google Search Console.
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
@@ -142,7 +151,9 @@ sans écraser le type, le résumé, l'invité ni les liens modifiés dans l'admi
 - **Français uniquement** : pas de traduction, `<html lang="fr">`, dates et prix au format français (`14 novembre 2026`, `70,00 €`).
 - **Mobile d'abord** : chaque page est pensée pour le téléphone, puis élargie pour la tablette et l'ordinateur (préfixes Tailwind `md:` et `lg:`).
 - **SEO de base** :
-  - chaque page a un titre (`<title>`) et une meta description (via `metadata` de Next.js) ;
+  - chaque page a un titre (`<title>`) et une meta description (via `metadata` de Next.js) ; les articles et les
+    catégories du blog ont aussi une adresse canonique et des balises de partage (`metadonnees()` dans `src/backend/seo.ts`) ;
+  - `/sitemap.xml` liste les pages publiques, et `/robots.txt` écarte les pages privées (admin, compte, connexion, API) ;
   - toutes les images ont un texte alternatif (`alt`), obligatoire en base (`imageAlt`, `photoAlt`, `alt`) ;
   - des URLs lisibles grâce aux slugs (`/experiences/atelier-cuisine-anti-gaspi`, `/blog/cuisiner-les-epluchures`).
 
@@ -171,8 +182,9 @@ Tout tourne en local sur `http://localhost:3000`.
 | Offre podcast | Studio de production pour d'autres marques, sponsoring du podcast | B2B | `POST /api/devis` |
 | Expériences | Concept général | Tous | `GET /api/experiences` |
 | Ateliers / Good tours / Immersions | 1 page par expérience, galerie photos. Ateliers et good tours : sessions réservables en ligne. Immersions (surtout B2B) : sur devis uniquement | B2C et B2B | `GET /api/experiences/[slug]`, `GET /api/sessions`, `POST /api/devis` |
-| Blog (`/blog`) | Liste des articles publiés | Tous | `GET /api/articles` |
-| Article (`/blog/[slug]`) | Un article complet, mis en forme en Markdown (intertitres, gras, listes, liens) | Tous | `GET /api/articles/[slug]` |
+| Blog (`/blog`) | Articles publiés, onglets par catégorie | Tous | `GET /api/articles` |
+| Catégorie (`/blog/categorie/[categorie]`) | Les articles d'une catégorie, avec son titre et sa description | Tous (« Pour les entreprises » : B2B) | `GET /api/articles?categorie=` |
+| Article (`/blog/[slug]`) | Un article mis en forme en Markdown, puis l'épisode lié, les expériences liées et leurs prochaines dates, l'encadré devis pour les entreprises | Tous | `GET /api/articles/[slug]` |
 | À propos | Mission, histoire, Julie Van Ossel, partenaires, avis, galerie photos | Tous | `GET /api/partenaires`, `GET /api/avis` |
 | Contact (`/contact`) | Demande de devis (B2B : expérience, sponsoring, studio, événement ; réponse sous 48h). Compte requis | B2B | `POST /api/devis` |
 | Réservation (succès / annulée) | Confirmation après le paiement (succès : propriétaire de la réservation uniquement) | B2C | `GET /api/reservations?session_id=` |
@@ -196,10 +208,10 @@ admin à un autre compte dans `/admin/utilisateurs`. Un client qui ouvre `/admin
 | `/admin/devis` | Voir la fiche d'une demande, changer son statut, ajouter une note interne (jamais vue par le client), la supprimer |
 | `/admin/experiences` | Créer, modifier, masquer ou afficher une expérience, choisir « réservable en ligne » ou « sur devis ». Une expérience qui a des sessions ne se supprime pas : l'admin propose de la masquer |
 | `/admin/sessions` | Ajouter des dates, les modifier, fermer ou rouvrir une session. Une session réservée ne se supprime pas (l'admin propose de la fermer) et ses places ne descendent pas sous les places réservées |
-| `/admin/textes` | Modifier les titres, paragraphes et boutons de l'accueil, d'« À propos » et du studio (filtre par page), ou remettre le texte d'origine. Les liens et la mise en page restent fixes |
+| `/admin/textes` | Modifier les titres, paragraphes et boutons de l'accueil, d'« À propos », du studio et du blog (filtre par page), ou remettre le texte d'origine. Les liens et la mise en page restent fixes |
 | `/admin/photos` | Envoyer, modifier ou supprimer une photo (le fichier est effacé du disque), choisir sa page dans une liste, sa description et son ordre |
 | `/admin/episodes` | Importer depuis Ausha, changer le type (complet, extrait, replay), modifier le résumé, l'invité et les liens, supprimer (un épisode supprimé revient au prochain import) |
-| `/admin/articles` | Écrire (mise en forme Markdown), publier ou dépublier, supprimer un article du blog |
+| `/admin/articles` | Écrire (mise en forme Markdown), publier ou dépublier, supprimer un article du blog ; choisir sa catégorie, l'épisode lié (du plus récent au plus ancien) et les expériences liées (cases à cocher) ; filtrer par catégorie |
 | `/admin/avis` | Ajouter, modifier, afficher ou masquer, supprimer un avis client |
 | `/admin/partenaires` | Ajouter, modifier, supprimer un partenaire ; l'afficher une fois son accord obtenu |
 | `/admin/utilisateurs` | Voir les comptes, modifier un nom, un téléphone ou un rôle, supprimer un compte (ses réservations sont gardées). Les comptes se créent sur `/inscription` ; le dernier admin ne peut être ni rétrogradé ni supprimé |

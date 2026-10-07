@@ -14,7 +14,7 @@
 | `Partenaire` | Un producteur ou artisan partenaire |
 | `Image` | Une photo de galerie, rattachée à une page du site |
 | `Newsletter` | Un e-mail inscrit à la newsletter |
-| `TextePage` | Un texte fixe de l'accueil, d'À propos ou du studio (titre, paragraphe, bouton), modifiable par Julie |
+| `TextePage` | Un texte fixe de l'accueil, d'À propos, du studio ou du blog (titre, paragraphe, bouton), modifiable par Julie |
 | `User` | Un compte (client ou admin) |
 | `AuthSession`, `AuthAccount`, `AuthVerification` | Tables techniques de Better Auth : sessions de connexion, mot de passe haché, jetons |
 
@@ -23,6 +23,8 @@ Relations :
 ```
 Experience 1 ──── n Session 1 ──── n Reservation
 Experience 1 ──── n DemandeDevis   (optionnel)
+Article    n ──── n Experience     (expériences liées à un article)
+Episode    1 ──── n Article        (episodeId, optionnel)
 User       1 ──── n Reservation    (userId, vide pour les réservations faites avant les comptes)
 User       1 ──── n DemandeDevis   (userId, idem)
 User       1 ──── n AuthSession / AuthAccount  (supprimés avec le compte)
@@ -138,6 +140,9 @@ Les règles de type et de coupure du résumé sont dans `src/backend/podcast/emi
 | `contenu` | String | Texte complet (Markdown) |
 | `image` | String | Image de couverture, ex : `/images/blog/epluchures.jpg` |
 | `imageAlt` | String | Texte alternatif de la couverture |
+| `categorie` | String | `retours-experience`, `coulisses-podcast`, `guides` (par défaut) ou `entreprises`. Libellés et descriptions : `src/backend/contenus/categories-blog.ts` |
+| `episodeId` | Int? | Épisode du podcast lié (bloc « Écouter l'épisode »). Mis à vide si l'épisode est supprimé |
+| `experiences` | relation | Expériences liées (bloc « Envie d'aller plus loin ? » avec leurs prochaines dates), table `_ArticleToExperience` |
 | `datePublication` | DateTime | |
 | `publie` | Boolean | `false` : brouillon, invisible sur le site |
 
@@ -192,7 +197,7 @@ du disque quand plus aucune ligne n'y fait référence (`Image.url`, `Experience
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
-| `page` | String | `accueil`, `a-propos` ou `studio` |
+| `page` | String | `accueil`, `a-propos`, `studio` ou `blog` |
 | `cle` | String | Emplacement dans la page, ex : `titre`, `introduction`, `bouton`. Unique avec `page` |
 | `texte` | String | Texte affiché, modifiable dans `/admin/textes` |
 | `updatedAt` | DateTime | Dernière modification |
