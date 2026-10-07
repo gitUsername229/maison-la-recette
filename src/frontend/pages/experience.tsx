@@ -61,7 +61,7 @@ export default function Experience({ experience, utilisateur }: Props) {
           <Galerie photos={experience.images} />
         </article>
 
-        <aside className="h-fit rounded-2xl bg-surface p-6 shadow-sm ring-1 ring-bordure">
+        <aside id="reserver" className="h-fit scroll-mt-24 rounded-xl bg-fond-doux p-6">
           {experience.reservableEnLigne ? (
             <>
               <h2 className="font-serif text-2xl">Réserver</h2>

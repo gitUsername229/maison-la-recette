@@ -5,7 +5,8 @@ const text = z.string().trim().min(1).max(500);
 const money = z.number().int().min(0).max(10_000_000);
 const positive = z.number().int().min(1).max(10_000);
 export const experienceSchema = z.object({
-  slug: z.string().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Minuscules, chiffres et tirets uniquement (ex : atelier-pain-perdu)'),
+  slug: z.string().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Minuscules, chiffres et tirets uniquement (ex : atelier-pain-perdu)')
+    .refine(v => v !== 'entreprises', 'Adresse réservée à l’onglet Entreprises : choisissez-en une autre.'),
   type: z.enum(['atelier', 'good_tour', 'immersion']),
   titre: text, accroche: text, description: z.string().trim().min(1).max(30_000),
   dureeMin: positive, prixCents: money, prixEntrepriseCents: money.nullable().optional(),

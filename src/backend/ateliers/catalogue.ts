@@ -37,16 +37,31 @@ export async function experiencePublique(slug: string) {
   return { ...result, images, sessions: result.sessions.map(avecPlacesRestantes) };
 }
 
+/** Dates ouvertes où il reste de la place, au prix de la session (sinon celui de l'expérience). */
+const datesOuvertes = (sessions: SessionAVenir[], prixExperience: number) => sessions
+  .map(avecPlacesRestantes)
+  .filter(s => s.statut === 'ouverte' && s.placesRestantes > 0)
+  .map(s => ({ ...s, prixCents: s.prixCents ?? prixExperience }));
+
 /** Expériences visibles avec leurs prochaines dates ouvertes où il reste de la place (blocs du blog). */
 export async function experiencesAvecProchainesDates(ids: number[], nombreDeDates = 3) {
   const experiences = await prisma.experience.findMany({ where: { id: { in: ids }, actif: true }, include: { sessions: sessionsAVenir() }, orderBy: { id: 'asc' } });
   return experiences.map(({ sessions, ...experience }) => ({
     ...experience,
-    prochainesDates: sessions.map(avecPlacesRestantes)
-      .filter(s => s.statut === 'ouverte' && s.placesRestantes > 0)
-      .slice(0, nombreDeDates)
-      .map(s => ({ ...s, prixCents: s.prixCents ?? experience.prixCents })), // prix de la session, sinon de l'expérience
+    prochainesDates: datesOuvertes(sessions, experience.prixCents).slice(0, nombreDeDates),
   }));
+}
+
+/**
+ * Cartes de /experiences : chaque expérience visible, sa prochaine date ouverte et le nombre d'autres dates.
+ * Sans date ouverte, ou pour une expérience sur devis, `prochaineDate` est vide : la carte propose un devis.
+ */
+export async function cartesExperiences() {
+  const experiences = await prisma.experience.findMany({ where: { actif: true }, include: { sessions: sessionsAVenir() }, orderBy: { id: 'asc' } });
+  return experiences.map(({ sessions, ...experience }) => {
+    const dates = experience.reservableEnLigne ? datesOuvertes(sessions, experience.prixCents) : [];
+    return { ...experience, prochaineDate: dates[0] ?? null, autresDates: Math.max(0, dates.length - 1) };
+  });
 }
 
 export const listExperiences = endpoint(async (request: Request) => {

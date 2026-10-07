@@ -104,7 +104,7 @@ const PAGES_AVEC_GALERIE: SourceOptions = {
 };
 
 // Pages dont les textes sont modifiables (emplacements : src/backend/contenus/textes-par-defaut.ts).
-const PAGES_TEXTES: Libelles = { accueil: 'Accueil', 'a-propos': 'À propos', studio: 'Studio', blog: 'Blog' };
+const PAGES_TEXTES: Libelles = { accueil: 'Accueil', 'a-propos': 'À propos', studio: 'Studio', experiences: 'Expériences', blog: 'Blog' };
 const designationTexte = (ligne: Ligne) => `« ${String(lire(ligne, 'libelle'))} » (${libelle(PAGES_TEXTES, String(lire(ligne, 'page')))})`;
 
 const visible = (aide: string, defaut: boolean): ChampAdmin => ({ nom: 'visible', libelle: 'Visible sur le site', type: 'booleen', aide, defaut });
@@ -247,7 +247,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     cle: 'textes', titre: 'Textes des pages', singulier: 'un texte', api: '/api/textes',
     textes: { enregistre: 'Texte enregistré : il est déjà en ligne.', supprime: 'Texte supprimé' },
     designation: designationTexte,
-    description: 'Les titres, paragraphes et boutons de l’accueil, de la page « À propos », de la page studio et du blog. Un texte modifié change aussitôt sur le site ; « Remettre le texte d’origine » annule vos changements.',
+    description: 'Les titres, paragraphes et boutons de l’accueil, des pages « À propos », studio et expériences, et du blog. Un texte modifié change aussitôt sur le site ; « Remettre le texte d’origine » annule vos changements.',
     colonnes: [
       { libelle: 'Page', chemin: 'page', libelles: PAGES_TEXTES },
       { libelle: 'Emplacement', chemin: 'libelle' },
