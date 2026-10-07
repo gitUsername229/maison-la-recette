@@ -3,6 +3,7 @@ import { loadEnvConfig } from '@next/env';
 import { PrismaClient } from '@prisma/client';
 import { hacherMotDePasse, LONGUEUR_MIN_MOT_DE_PASSE } from '../src/backend/auth/mot-de-passe';
 import { creerTextesManquants } from '../src/backend/contenus/textes-par-defaut';
+import { creerArticlesDemo } from './articles-demo';
 
 loadEnvConfig(process.cwd());
 const prisma = new PrismaClient();
@@ -88,10 +89,18 @@ async function creerTextes() {
   console.log(crees ? `Textes des pages : ${crees} texte${s} d'origine créé${s}.` : 'Textes des pages déjà présents (non modifiés).');
 }
 
+// Articles de démonstration du blog (à remplacer), liés aux expériences du seed et au dernier épisode importé.
+async function creerArticles() {
+  const { crees, sansEpisode } = await creerArticlesDemo(prisma);
+  console.log(crees ? `Blog : ${crees} article${crees > 1 ? 's' : ''} de démonstration créé${crees > 1 ? 's' : ''}.` : 'Blog : articles de démonstration déjà présents (non modifiés).');
+  if (crees && sansEpisode) console.warn('Aucun épisode importé : l’article « coulisses » n’est lié à aucun épisode. Importez-les depuis /admin/episodes, puis liez-le.');
+}
+
 async function main() {
   await creerExperiences();
   await creerAdmin();
   await creerTextes();
+  await creerArticles();
 }
 
 main()
