@@ -28,11 +28,11 @@ export default function ReinitialiserMotDePasse({ token }: { token: string | nul
 
   return (
     <main className="mx-auto max-w-md px-5 py-8 lg:px-6 lg:py-12">
-      <h1 className="text-3xl font-bold lg:text-4xl">Nouveau mot de passe</h1>
+      <h1 className="text-3xl font-bold lg:text-4xl">Choisir un mot de passe</h1>
       {termine ? (
         <>
-          <p className="mt-4 leading-relaxed text-texte-doux">Votre mot de passe est changé. Par sécurité, vos autres connexions ont été fermées.</p>
-          <Link href="/connexion" className={`mt-8 inline-block ${classeBouton}`}>Se connecter</Link>
+          <p className="mt-4 leading-relaxed text-texte-doux">Votre mot de passe est enregistré. Par sécurité, vos autres connexions ont été fermées.</p>
+          <Link href="/admin/connexion" className={`mt-8 inline-block ${classeBouton}`}>Se connecter</Link>
         </>
       ) : (
         <form onSubmit={changer} className="mt-8 grid gap-4">
@@ -46,7 +46,7 @@ export default function ReinitialiserMotDePasse({ token }: { token: string | nul
           {token ? (
             <button type="submit" disabled={envoi} className={classeBouton}>{envoi ? 'Enregistrement…' : 'Changer le mot de passe'}</button>
           ) : (
-            <Link href="/mot-de-passe-oublie" className="text-sm underline">Recevoir un nouveau lien</Link>
+            <Link href="/admin/mot-de-passe-oublie" className="text-sm underline">Recevoir un nouveau lien</Link>
           )}
         </form>
       )}

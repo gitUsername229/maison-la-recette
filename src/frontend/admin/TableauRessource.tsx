@@ -81,7 +81,8 @@ export default function TableauRessource({ cle }: { cle: string }) {
   }
 
   const modifiable = Boolean(ressource.champs);
-  const avecActions = modifiable || ressource.fiche || ressource.suppression || ressource.actions;
+  const modificationPossible = modifiable && ressource.modification !== false;
+  const avecActions = modificationPossible || ressource.fiche || ressource.suppression || ressource.actions;
 
   return (
     <section>
@@ -166,7 +167,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
                   {avecActions && (
                     <td className="whitespace-nowrap px-4 py-3">
                       <div className="flex gap-4">
-                        {(modifiable || ressource.fiche) && <button type="button" onClick={() => ouvrir(ligne)} className={classeAction}>{modifiable ? 'Modifier' : 'Voir'}</button>}
+                        {(modificationPossible || ressource.fiche) && <button type="button" onClick={() => ouvrir(ligne)} className={classeAction}>{modificationPossible ? 'Modifier' : 'Voir'}</button>}
                         {actionsPossibles(ressource, ligne).map(action => (
                           <button key={action.id} type="button" onClick={() => executer(action, ligne)} className={classeAction}>{action.libelle}</button>
                         ))}

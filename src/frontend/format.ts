@@ -34,7 +34,6 @@ export const TYPES_DEVIS: Libelles = {
   evenement: 'Un événement',
 };
 export const LIEUX_DEVIS: Libelles = { dans_les_locaux: 'Dans nos locaux', a_proximite: 'Dans un lieu proche de nos locaux' };
-export const ROLES: Libelles = { client: 'Client', admin: 'Administration' };
 export const TYPES_EPISODE: Libelles = { complet: 'Épisode complet', extrait: 'Extrait', replay: 'Replay' };
 
 /** Libellé d'une valeur stockée en base (la valeur brute si elle est inconnue). */

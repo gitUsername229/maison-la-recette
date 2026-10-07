@@ -1,7 +1,7 @@
 import { createAuthClient } from 'better-auth/react';
 import { inferAdditionalFields } from 'better-auth/client/plugins';
 
-// Client Better Auth du navigateur : appelle /api/auth/* (même origine).
+// Client Better Auth du navigateur, pour l'administration (les visiteurs n'ont pas de compte) : appelle /api/auth/*.
 export const authClient = createAuthClient({
   plugins: [
     inferAdditionalFields({

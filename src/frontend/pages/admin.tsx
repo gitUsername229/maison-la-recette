@@ -3,7 +3,7 @@ import { RESSOURCES_ADMIN } from '@/frontend/admin/ressources';
 
 type Props = {
   nom: string;
-  chiffres: { devisNouveaux: number; reservationsAVenir: number; paiementsEnAttente: number; sessionsOuvertes: number; clients: number };
+  chiffres: { devisNouveaux: number; reservationsAVenir: number; paiementsEnAttente: number; sessionsOuvertes: number };
 };
 
 export default function TableauDeBord({ nom, chiffres }: Props) {
@@ -12,7 +12,6 @@ export default function TableauDeBord({ nom, chiffres }: Props) {
     { valeur: chiffres.reservationsAVenir, texte: 'réservations payées à venir', href: '/admin/reservations' },
     { valeur: chiffres.paiementsEnAttente, texte: 'paiements en attente', href: '/admin/reservations' },
     { valeur: chiffres.sessionsOuvertes, texte: 'sessions ouvertes à venir', href: '/admin/sessions' },
-    { valeur: chiffres.clients, texte: 'comptes clients', href: '/admin/utilisateurs' },
   ];
 
   return (
@@ -20,7 +19,7 @@ export default function TableauDeBord({ nom, chiffres }: Props) {
       <h1 className="font-serif text-4xl">Administration</h1>
       <p className="mt-2 text-texte-doux">Connecté en tant que {nom}. Tout le contenu du site se gère ici, sans toucher au code.</p>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         {cartes.map(c => (
           <Link key={c.texte} href={c.href} className="rounded-2xl bg-surface p-4 ring-1 ring-bordure hover:ring-bordure-forte">
             <p className="font-serif text-3xl">{c.valeur}</p>

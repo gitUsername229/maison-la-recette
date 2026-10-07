@@ -16,6 +16,7 @@ let handlers: typeof import('../src/backend/ateliers/payment-handlers');
 let devis: typeof import('../src/backend/ateliers/devis');
 let bookings: typeof import('../src/backend/ateliers/bookings');
 let auth: typeof import('../src/backend/auth/auth').auth;
+let utilisateurs: typeof import('../src/backend/comptes/utilisateurs');
 
 /** Transport Nodemailer en mémoire : les e-mails « envoyés » sont gardés dans `envoyes`. */
 function transportMemoire() {
@@ -38,6 +39,7 @@ before(async () => {
   devis = await import('../src/backend/ateliers/devis');
   bookings = await import('../src/backend/ateliers/bookings');
   ({ auth } = await import('../src/backend/auth/auth'));
+  utilisateurs = await import('../src/backend/comptes/utilisateurs');
   envoi.utiliserTransport(transportMemoire());
 });
 
@@ -141,12 +143,16 @@ function routeAuth(chemin: string, corps?: unknown) {
     : { method: 'POST', headers: { 'content-type': 'application/json', origin: BASE }, body: JSON.stringify(corps) }));
 }
 
-const lienDuMail = (mail: Envoye) => mail.text.match(/https?:\/\/\S+/)![0];
+/** Jeton et page de retour du lien « choisir un mot de passe » d'un e-mail. */
+function lienMotDePasse(mail: Envoye) {
+  const lien = new URL(mail.text.match(/https?:\/\/\S+\/reset-password\/\S+/)![0]);
+  return { token: lien.pathname.split('/').at(-1)!, retour: lien.searchParams.get('callbackURL') };
+}
 
 test('mot de passe oublié : lien par e-mail, nouveau mot de passe accepté, ancien refusé, aucune fuite sur les adresses', async () => {
   await creerCompte('oubli@example.com');
 
-  const demander = (email: string) => routeAuth('/request-password-reset', { email, redirectTo: '/reinitialiser-mot-de-passe' });
+  const demander = (email: string) => routeAuth('/request-password-reset', { email, redirectTo: '/admin/reinitialiser-mot-de-passe' });
   const connu = await demander('oubli@example.com');
   const inconnu = await demander('personne@example.com');
   assert.equal(connu.status, 200);
@@ -154,11 +160,27 @@ test('mot de passe oublié : lien par e-mail, nouveau mot de passe accepté, anc
   await envoi.attendreLesEnvois();
   assert.deepEqual(envoyes.map(m => m.to), ['oubli@example.com']);
 
-  const token = lienDuMail(envoyes[0]).match(/reset-password\/([^?\s]+)/)![1];
+  const { token, retour } = lienMotDePasse(envoyes[0]);
+  assert.equal(retour, '/admin/reinitialiser-mot-de-passe');
   assert.equal((await routeAuth('/reset-password', { newPassword: 'nouveau-motdepasse', token })).status, 200);
   assert.equal((await routeAuth('/sign-in/email', { email: 'oubli@example.com', password: MOT_DE_PASSE_TEST })).status, 401);
   assert.equal((await routeAuth('/sign-in/email', { email: 'oubli@example.com', password: 'nouveau-motdepasse' })).status, 200);
   assert.equal((await routeAuth('/reset-password', { newPassword: 'encore-un-autre', token })).status, 400); // lien à usage unique
+});
+
+test('un admin ajouté reçoit un lien pour choisir son mot de passe, puis se connecte', async () => {
+  const julie = await creerCompte('julie-invite@example.com');
+  const ajout = await utilisateurs.ajouterAdmin(requete('/api/utilisateurs', { cookie: julie.cookie, methode: 'POST', corps: { nom: 'Marc', email: 'marc-invite@example.com' } }));
+  assert.equal(ajout.status, 201);
+  await envoi.attendreLesEnvois();
+
+  const [invitation] = envoyes.filter(m => m.to === 'marc-invite@example.com');
+  assert.match(invitation.subject, /accès à l’administration/);
+  assert.match(invitation.text, /valable 1 heure/);
+  const { token, retour } = lienMotDePasse(invitation);
+  assert.equal(retour, '/admin/reinitialiser-mot-de-passe');
+  assert.equal((await routeAuth('/reset-password', { newPassword: 'mot-de-passe-de-marc', token })).status, 200);
+  assert.equal((await routeAuth('/sign-in/email', { email: 'marc-invite@example.com', password: 'mot-de-passe-de-marc' })).status, 200);
 });
 
 test('aucune inscription possible : la route d’inscription de Better Auth est refusée', async () => {

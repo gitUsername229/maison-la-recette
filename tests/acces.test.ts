@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { rm, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readdir, readFile, rm, stat } from 'node:fs/promises';
+import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
 import type Stripe from 'stripe';
@@ -123,23 +125,68 @@ test('x-admin-key est accepté en développement et refusé en production', asyn
   }
 });
 
-test('le dernier compte admin ne peut être ni rétrogradé ni supprimé, même par lui-même', async () => {
+test('gestion des admins : ajout sans mot de passe, suppression, jamais le dernier admin', async () => {
   const julie = await creerCompte('julie@example.com');
-  const modifier = (cookie: string, id: string, corps: unknown) =>
-    utilisateurs.updateUtilisateur(requete(`/api/utilisateurs/${id}`, { cookie, methode: 'PATCH', corps }), avecId(id));
-  const supprimer = (cookie: string, id: string) =>
-    utilisateurs.deleteUtilisateur(requete(`/api/utilisateurs/${id}`, { cookie, methode: 'DELETE' }), avecId(id));
+  const ajouter = (corps: unknown) => utilisateurs.ajouterAdmin(requete('/api/utilisateurs', { cookie: julie.cookie, methode: 'POST', corps }));
+  const supprimer = (id: string, options: { cookie?: string; entetes?: Record<string, string> }) =>
+    utilisateurs.deleteUtilisateur(requete(`/api/utilisateurs/${id}`, { ...options, methode: 'DELETE' }), avecId(id));
 
-  assert.equal((await modifier(julie.cookie, julie.id, { role: 'client' })).status, 409);
-  assert.equal((await supprimer(julie.cookie, julie.id)).status, 409);
+  // Julie est la seule admin : elle ne peut pas supprimer son propre accès.
+  assert.equal((await supprimer(julie.id, { cookie: julie.cookie })).status, 409);
 
-  // Avec un second admin, Julie peut se rétrograder ; Marc devient alors le dernier.
-  const marc = await creerCompte('marc@example.com', 'client');
-  assert.equal((await modifier(julie.cookie, marc.id, { role: 'admin' })).status, 200);
-  assert.equal((await modifier(julie.cookie, julie.id, { role: 'client' })).status, 200);
-  assert.equal((await modifier(julie.cookie, marc.id, { role: 'client' })).status, 403);
-  assert.equal((await supprimer(marc.cookie, marc.id)).status, 409);
+  // Ajout de Marc : admin d'office, sans mot de passe tant qu'il n'a pas utilisé le lien reçu par e-mail.
+  const ajout = await ajouter({ nom: 'Marc', email: ' Marc@Example.com ' });
+  assert.equal(ajout.status, 201);
+  const marc = await ajout.json() as { id: string; email: string };
+  assert.equal(marc.email, 'marc@example.com');
+  assert.equal((await prisma.user.findUniqueOrThrow({ where: { id: marc.id } })).role, 'admin');
+  assert.equal(await prisma.authAccount.count({ where: { userId: marc.id } }), 0);
+  const liste = await (await utilisateurs.listUtilisateurs(requete('/api/utilisateurs', { cookie: julie.cookie }))).json() as { email: string; motDePasseChoisi: boolean }[];
+  assert.deepEqual(liste.map(a => [a.email, a.motDePasseChoisi]), [['julie@example.com', true], ['marc@example.com', false]]);
+
+  // Adresse déjà utilisée, ou rôle envoyé par le formulaire : refusés.
+  assert.equal((await ajouter({ nom: 'Marc bis', email: 'marc@example.com' })).status, 409);
+  assert.equal((await ajouter({ nom: 'Léa', email: 'lea@example.com', role: 'client' })).status, 400);
+
+  // Avec Marc, Julie peut retirer son propre accès : sa connexion est fermée et Marc devient le dernier admin.
+  assert.equal((await supprimer(julie.id, { cookie: julie.cookie })).status, 200);
+  assert.equal((await utilisateurs.listUtilisateurs(requete('/api/utilisateurs', { cookie: julie.cookie }))).status, 401);
+  assert.equal((await supprimer(marc.id, { entetes: CLE_ADMIN() })).status, 409);
   assert.equal(await prisma.user.count({ where: { role: 'admin' } }), 1);
+});
+
+test('connexion admin : session de 30 jours, prolongée à chaque visite', async () => {
+  const { auth } = await import('../src/backend/auth/auth');
+  const { id, cookie } = await creerCompte('session@example.com');
+  const joursRestants = async () => {
+    const { expiresAt } = await prisma.authSession.findFirstOrThrow({ where: { userId: id } });
+    return Math.round((expiresAt.getTime() - Date.now()) / 86400_000);
+  };
+  assert.equal(await joursRestants(), 30);
+
+  // Dernière visite il y a 5 jours : il en reste 25 ; la visite suivante les ramène à 30 (cookie compris).
+  await prisma.authSession.updateMany({ where: { userId: id }, data: { expiresAt: new Date(Date.now() + 25 * 86400_000) } });
+  const visite = await auth.handler(new Request(`${BASE}/api/auth/get-session`, { headers: { cookie, origin: BASE } }));
+  assert.equal(visite.status, 200);
+  assert.equal(await joursRestants(), 30);
+  assert.ok(visite.headers.getSetCookie().some(c => c.includes('Max-Age=2592000')));
+});
+
+test('/admin : sans connexion, redirection vers /admin/connexion ; sans le rôle admin, « Accès refusé »', async () => {
+  const { redirectionRefus } = await import('../src/backend/auth/acces');
+  assert.equal(redirectionRefus(401, '/admin/devis'), '/admin/connexion?retour=%2Fadmin%2Fdevis');
+  assert.equal(redirectionRefus(403, '/admin/devis'), '/acces-refuse');
+
+  // Chaque page de l'espace admin vérifie elle-même la connexion et le rôle côté serveur.
+  const pages = (await readdir('src/app/admin/(espace)', { recursive: true })).filter(f => f.endsWith('page.tsx'));
+  assert.ok(pages.length >= 2);
+  for (const page of pages) assert.match(await readFile(join('src/app/admin/(espace)', page), 'utf8'), /await exigerAdminPage\(/, page);
+});
+
+test('plus aucune page de compte : /inscription, /compte et l’ancienne /connexion n’existent plus (404)', () => {
+  for (const chemin of ['inscription', 'compte', 'connexion', 'mot-de-passe-oublie', 'reinitialiser-mot-de-passe', 'api/compte']) {
+    assert.equal(existsSync(join('src/app', chemin)), false, chemin);
+  }
 });
 
 test('un contenu masqué n’est visible que par l’admin, et une modification partielle ne le rend pas visible', async () => {

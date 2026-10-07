@@ -1,2 +1,2 @@
 export const runtime = 'nodejs';
-export { listUtilisateurs as GET } from '@/backend/comptes/utilisateurs';
+export { listUtilisateurs as GET, ajouterAdmin as POST } from '@/backend/comptes/utilisateurs';

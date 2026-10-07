@@ -138,9 +138,21 @@ export function motDePasseOublie(nom: string, email: string, url: string): Mail 
     titre: 'Nouveau mot de passe',
     paragraphes: [
       `Bonjour ${nom},`,
-      'Vous avez demandé à changer le mot de passe de votre compte Maison La recette. Ce lien est valable 1 heure.',
+      'Vous avez demandé à changer votre mot de passe pour l’administration du site Maison La recette. Ce lien est valable 1 heure.',
       'Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot de passe ne change pas.',
     ],
     lien: { texte: 'Choisir un nouveau mot de passe', url },
+  });
+}
+
+export function invitationAdmin(nom: string, email: string, url: string): Mail {
+  return composer(email, 'Votre accès à l’administration de Maison La recette', {
+    titre: 'Bienvenue dans l’administration',
+    paragraphes: [
+      `Bonjour ${nom},`,
+      'Un accès à l’administration du site Maison La recette vient d’être créé pour vous. Choisissez votre mot de passe avec le lien ci-dessous : il est valable 1 heure.',
+      `Passé ce délai, demandez un nouveau lien avec « Mot de passe oublié » sur la page de connexion : ${urlDuSite('/admin/connexion')}`,
+    ],
+    lien: { texte: 'Choisir mon mot de passe', url },
   });
 }

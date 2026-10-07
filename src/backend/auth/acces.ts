@@ -38,6 +38,13 @@ export async function verifierAcces(entetes: Headers, role: Role = 'admin'): Pro
   return { utilisateur };
 }
 
+/** Page de connexion de l'administration : aucun lien depuis le site public. */
+export const PAGE_CONNEXION = '/admin/connexion';
+
+/** Page refusée : la connexion (retour à `chemin` ensuite) si personne n'est connecté, sinon « Accès refusé ». */
+export const redirectionRefus = (refus: 401 | 403, chemin: string) =>
+  refus === 401 ? `${PAGE_CONNEXION}?retour=${encodeURIComponent(chemin)}` : '/acces-refuse';
+
 /** Header x-admin-key : tests curl en développement uniquement, jamais en production. */
 function cleDeveloppementValide(entetes: Headers): boolean {
   if (process.env.NODE_ENV === 'production') return false;

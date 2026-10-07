@@ -31,11 +31,11 @@ export function metadonnees({ titre, description, chemin, image, article }: Page
 
 const PAGES_PUBLIQUES = ['/', '/experiences', '/experiences/entreprises', '/podcast', '/blog', '/a-propos', '/studio', '/contact'];
 
-/** Pages réservées aux comptes, techniques ou de passage : exclues du sitemap et interdites aux robots. */
-export const CHEMINS_PRIVES = [
-  '/admin', '/connexion', '/mot-de-passe-oublie', '/reinitialiser-mot-de-passe',
-  '/reservation', '/acces-refuse', '/api/',
-];
+/**
+ * Pages réservées à l'administration (connexion comprise), techniques ou de passage : exclues du sitemap
+ * et interdites aux robots. Ce n'est pas une protection : chaque page et route admin vérifie l'accès.
+ */
+export const CHEMINS_PRIVES = ['/admin', '/reservation', '/acces-refuse', '/api/'];
 
 /**
  * Sitemap : pages publiques, expériences visibles, articles publiés et les catégories qui en ont

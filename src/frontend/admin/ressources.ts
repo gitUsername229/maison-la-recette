@@ -1,5 +1,5 @@
 import {
-  formatDate, formatDateHeure, libelle, LIEUX_DEVIS, ROLES, STATUTS_DEVIS, STATUTS_RESERVATION, STATUTS_SESSION, TYPES_DEVIS, TYPES_EPISODE, TYPES_EXPERIENCE, type Libelles,
+  formatDate, formatDateHeure, libelle, LIEUX_DEVIS, STATUTS_DEVIS, STATUTS_RESERVATION, STATUTS_SESSION, TYPES_DEVIS, TYPES_EPISODE, TYPES_EXPERIENCE, type Libelles,
 } from '@/frontend/format';
 import { lire, type Ligne } from './valeurs';
 
@@ -67,6 +67,7 @@ export type RessourceAdmin = {
   colonnes: ColonneAdmin[];
   champs?: ChampAdmin[] | ((ligne: Ligne | null) => ChampAdmin[]); // présents → création et modification ; fonction : champs propres à chaque ligne
   creation?: boolean;          // false : modification seulement
+  modification?: boolean;      // false : création seulement (pas de bouton « Modifier »)
   methodeModification?: 'PUT' | 'PATCH';
   suppression?: boolean;
   statut?: { champ: string; options: Libelles };        // statut modifiable dans la liste
@@ -404,20 +405,20 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     methodeModification: 'PUT', suppression: true,
   },
   {
-    cle: 'utilisateurs', titre: 'Utilisateurs', singulier: 'un utilisateur', api: '/api/utilisateurs',
-    textes: { enregistre: 'Compte enregistré', supprime: 'Compte supprimé' },
-    designation: ligne => `le compte de ${String(ligne.nom)} (${String(ligne.email)})`,
-    description: 'Les comptes qui se connectent à cet espace. Les visiteurs n’ont pas de compte : ils réservent et demandent un devis sans se connecter.',
+    cle: 'utilisateurs', titre: 'Administrateurs', singulier: 'un administrateur', api: '/api/utilisateurs',
+    textes: { enregistre: 'Administrateur ajouté : il reçoit par e-mail un lien, valable 1 h, pour choisir son mot de passe.', supprime: 'Accès supprimé' },
+    designation: ligne => `l’accès de ${String(ligne.nom)} (${String(ligne.email)})`,
+    description: 'Les personnes qui se connectent à cet espace. Un admin ajouté reçoit par e-mail un lien valable 1 h pour choisir son mot de passe ; ensuite, « Mot de passe oublié » sur la page de connexion. Le dernier admin ne peut pas être supprimé.',
     colonnes: [
       { libelle: 'Nom', chemin: 'nom', complements: ['email'] },
-      { libelle: 'Rôle', chemin: 'role', libelles: ROLES },
-      { libelle: 'Créé le', chemin: 'createdAt', format: 'date' },
+      { libelle: 'Mot de passe choisi', chemin: 'motDePasseChoisi', format: 'booleen' },
+      { libelle: 'Ajouté le', chemin: 'createdAt', format: 'date' },
     ],
     champs: [
-      { nom: 'nom', libelle: 'Nom', type: 'texte', requis: true },
-      { nom: 'role', libelle: 'Rôle', type: 'liste', options: ROLES, requis: true },
+      { nom: 'nom', libelle: 'Nom', type: 'texte', requis: true, longueurMax: 120 },
+      { nom: 'email', libelle: 'E-mail', type: 'texte', requis: true, aide: 'Le lien pour choisir le mot de passe y est envoyé.' },
     ],
-    creation: false, methodeModification: 'PATCH', suppression: true,
+    modification: false, suppression: true,
   },
   {
     cle: 'newsletter', titre: 'Newsletter', singulier: 'une adresse', api: '/api/newsletter',
