@@ -17,8 +17,8 @@ export default async function ReservationSucces({ searchParams }: Props) {
 
   if (!reservation) {
     return (
-      <main className="mx-auto max-w-xl px-6 py-16">
-        <h1 className="font-serif text-3xl">Réservation introuvable</h1>
+      <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
+        <h1 className="text-3xl font-bold lg:text-4xl">Réservation introuvable</h1>
         <p className="mt-4">
           Nous ne retrouvons pas cette réservation. Si vous avez été débité, écrivez-nous à
           larecette@ecomail.fr avec l’adresse e-mail utilisée.
@@ -45,8 +45,8 @@ export default async function ReservationSucces({ searchParams }: Props) {
   const { session } = reservation;
 
   return (
-    <main className="mx-auto max-w-xl px-6 py-16">
-      <h1 className="font-serif text-4xl">
+    <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
+      <h1 className="text-3xl font-bold lg:text-4xl">
         {paye ? "Votre place est réservée" : "Paiement en cours de vérification"}
       </h1>
 

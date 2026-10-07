@@ -33,8 +33,8 @@ const classeCarte = 'rounded-xl bg-surface p-4 ring-1 ring-bordure';
 
 export default function Compte({ utilisateur, lienExpire, reservations, demandesDevis }: Props) {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
-      <h1 className="font-serif text-4xl sm:text-5xl">Mon compte</h1>
+    <main className="mx-auto max-w-3xl px-5 py-8 lg:px-6 lg:py-12">
+      <h1 className="text-3xl font-bold lg:text-4xl">Mon compte</h1>
       <p className="mt-3 text-texte-doux">{utilisateur.nom} · {utilisateur.email}{utilisateur.telephone && ` · ${utilisateur.telephone}`}</p>
       {!utilisateur.emailVerifie && <RappelVerification email={utilisateur.email} lienExpire={lienExpire} />}
 

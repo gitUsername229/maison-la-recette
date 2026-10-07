@@ -32,13 +32,13 @@ export default function Experience({ experience, utilisateur }: Props) {
   const retour = encodeURIComponent(`/experiences/${experience.slug}`);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
+    <main className="mx-auto max-w-5xl px-5 py-8 lg:px-6 lg:py-12">
       <Link href="/experiences" className="text-sm text-texte-doux hover:text-texte">← Toutes les expériences</Link>
 
       <div className="mt-8 grid gap-12 lg:grid-cols-[1fr_24rem]">
         <article>
           <p className="w-fit rounded-full bg-pastel px-3 py-1 text-xs font-semibold uppercase tracking-wider">{libelleType(experience.type)}</p>
-          <h1 className="mt-3 font-serif text-4xl sm:text-5xl">{experience.titre}</h1>
+          <h1 className="mt-3 text-3xl font-bold lg:text-4xl">{experience.titre}</h1>
           <p className="mt-5 text-lg leading-relaxed">{experience.accroche}</p>
           {experience.image && <Image src={experience.image} alt={experience.imageAlt} width={1200} height={750} priority className="mt-8 aspect-[16/10] w-full rounded-2xl object-cover" />}
 

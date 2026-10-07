@@ -26,8 +26,8 @@ export default function MotDePasseOublie() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-12 sm:py-16">
-      <h1 className="font-serif text-4xl">Mot de passe oublié</h1>
+    <main className="mx-auto max-w-md px-5 py-8 lg:px-6 lg:py-12">
+      <h1 className="text-3xl font-bold lg:text-4xl">Mot de passe oublié</h1>
       {envoye ? (
         <p className="mt-4 leading-relaxed text-texte-doux">
           Si un compte existe pour cette adresse, un e-mail vient de partir avec un lien pour choisir un nouveau mot de passe. Il est valable 1 heure.

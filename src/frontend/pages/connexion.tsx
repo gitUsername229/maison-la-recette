@@ -31,8 +31,8 @@ export default function Connexion({retour}: { retour: string }) {
     }
 
     return (
-        <main className="mx-auto max-w-md px-6 py-12 sm:py-16">
-            <h1 className="font-serif text-4xl">Connexion</h1>
+        <main className="mx-auto max-w-md px-5 py-8 lg:px-6 lg:py-12">
+            <h1 className="text-3xl font-bold lg:text-4xl">Connexion</h1>
             <p className="mt-3 leading-relaxed text-texte-doux">Un compte est nécessaire pour réserver une expérience ou
                 demander un devis.</p>
             <form onSubmit={connecter} className="mt-8 grid gap-4">

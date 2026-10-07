@@ -56,8 +56,8 @@ export default function Contact({ utilisateur, experiences, experienceId }: Prop
 
   if (envoyee) {
     return (
-      <main className="mx-auto max-w-xl px-6 py-12 sm:py-16">
-        <h1 className="font-serif text-4xl">Demande envoyée</h1>
+      <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
+        <h1 className="text-3xl font-bold lg:text-4xl">Demande envoyée</h1>
         <p className="mt-4 leading-relaxed text-texte-doux">Merci ! Julie vous rappelle sous 48 h pour en parler.</p>
         <Link href="/compte" className="mt-8 inline-block underline">Suivre mes demandes</Link>
       </main>
@@ -68,9 +68,10 @@ export default function Contact({ utilisateur, experiences, experienceId }: Prop
   const avecLieu = typeDemande === 'experience' || typeDemande === 'evenement';
 
   return (
-    <main className="mx-auto max-w-xl px-6 py-12 sm:py-16">
-      <h1 className="font-serif text-4xl">Demande de devis</h1>
-      <p className="mt-3 leading-relaxed text-texte-doux">Une expérience pour votre équipe, le studio podcast, un sponsoring ou un événement : décrivez votre projet, Julie vous rappelle sous 48 h.</p>
+    <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
+      <h1 className="border-b border-texte pb-2 text-3xl font-bold lg:text-4xl">Contact</h1>
+      <h2 className="mt-6 text-lg font-bold">Demande de devis</h2>
+      <p className="mt-2 leading-relaxed text-texte-doux">Une expérience pour votre équipe, le studio podcast, un sponsoring ou un événement : décrivez votre projet, Julie vous rappelle sous 48 h.</p>
 
       <div className="mt-8 rounded-xl bg-surface p-4 text-sm ring-1 ring-bordure">
         <p className="font-medium">Vos coordonnées</p>

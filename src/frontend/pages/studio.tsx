@@ -5,11 +5,11 @@ export type TextesStudio = Record<'surtitre' | 'titre' | 'introduction' | 'proje
 
 export default function Studio({ textes }: { textes: TextesStudio }) {
   return (
-    <main className="mx-auto max-w-4xl px-6 py-16">
+    <main className="mx-auto max-w-4xl px-5 py-8 lg:px-6 lg:py-12">
       <span className="rounded-full bg-pastel px-3 py-1 text-xs font-semibold uppercase tracking-wider text-texte-doux">
         {textes.surtitre}
       </span>
-      <h1 className="mt-4 font-serif text-4xl sm:text-5xl text-texte">
+      <h1 className="mt-4 text-3xl font-bold lg:text-4xl">
         {textes.titre}
       </h1>
       <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-texte-doux">

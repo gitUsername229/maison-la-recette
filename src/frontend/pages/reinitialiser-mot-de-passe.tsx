@@ -27,8 +27,8 @@ export default function ReinitialiserMotDePasse({ token }: { token: string | nul
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-12 sm:py-16">
-      <h1 className="font-serif text-4xl">Nouveau mot de passe</h1>
+    <main className="mx-auto max-w-md px-5 py-8 lg:px-6 lg:py-12">
+      <h1 className="text-3xl font-bold lg:text-4xl">Nouveau mot de passe</h1>
       {termine ? (
         <>
           <p className="mt-4 leading-relaxed text-texte-doux">Votre mot de passe est changé. Par sécurité, vos autres connexions ont été fermées.</p>

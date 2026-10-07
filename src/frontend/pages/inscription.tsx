@@ -35,8 +35,8 @@ export default function Inscription({ retour }: { retour: string }) {
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-12 sm:py-16">
-      <h1 className="font-serif text-4xl">Créer un compte</h1>
+    <main className="mx-auto max-w-md px-5 py-8 lg:px-6 lg:py-12">
+      <h1 className="text-3xl font-bold lg:text-4xl">Créer un compte</h1>
       <p className="mt-3 leading-relaxed text-texte-doux">Pour réserver une expérience, demander un devis et retrouver vos demandes.</p>
       <form onSubmit={inscrire} className="mt-8 grid gap-4">
         <Champ libelle="Nom et prénom" name="nom" autoComplete="name" required maxLength={120} />

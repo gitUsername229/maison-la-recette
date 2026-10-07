@@ -32,13 +32,13 @@ const STYLES = {
 
 export default function Article({ article, textes }: { article: ArticleComplet; textes: TextesArticle }) {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <main className="mx-auto max-w-3xl px-5 py-8 lg:px-6 lg:py-12">
       <Link href="/blog" className="text-sm text-texte-doux hover:text-texte">← {textes.tousLesArticles}</Link>
       <p className="mt-8 text-sm text-texte-doux">
         <Link href={`/blog/categorie/${article.categorie}`} className="font-medium text-accent hover:underline">{article.categorieLibelle}</Link>
         {' · '}{formatDate(article.datePublication)}
       </p>
-      <h1 className="mt-2 font-serif text-4xl sm:text-5xl text-texte">{article.titre}</h1>
+      <h1 className="mt-2 text-3xl font-bold lg:text-4xl">{article.titre}</h1>
       {article.image && <Image src={article.image} alt={article.imageAlt} width={1200} height={750} priority className="mt-8 aspect-[16/10] w-full rounded-2xl object-cover" />}
       <div className="mt-8">
         <Markdown
