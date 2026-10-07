@@ -97,3 +97,23 @@ test('admin : le formulaire s’adapte à l’emplacement et « Remettre le text
   assert.equal((await modifier(Number(titre.id), corps)).status, 200);
   assert.equal((await textes.textesDePage('accueil')).titre, 'Maison La recette');
 });
+
+test('mentions légales et confidentialité : texte de base modifiable, intertitres et retours à la ligne gardés', async () => {
+  const confidentialite = await textes.textesDePage('confidentialite');
+  assert.equal(confidentialite.titre, 'Politique de confidentialité');
+  assert.match(confidentialite.contenu, /^## Vos droits$/m);
+  assert.match((await textes.textesDePage('mentions-legales')).contenu, /^## Hébergement$/m);
+
+  // Texte de page entière : retours à la ligne gardés, 20 000 caractères au plus ; bandeau « à valider » effaçable.
+  const contenu = await idDe('mentions-legales', 'contenu');
+  assert.equal((await modifier(contenu, { texte: '## Éditeur\nMaison La recette, SAS.\n\n## Hébergement\nHébergeur.' })).status, 200);
+  assert.equal((await textes.textesDePage('mentions-legales')).contenu, '## Éditeur\nMaison La recette, SAS.\n\n## Hébergement\nHébergeur.');
+  assert.equal((await modifier(contenu, { texte: 'x'.repeat(20_001) })).status, 400);
+  assert.equal((await modifier(await idDe('mentions-legales', 'avertissement'), { texte: '' })).status, 200);
+
+  // Dans l'admin : grand champ de saisie, et un simple aperçu dans la liste.
+  const lignes = await (await textes.lister(requete('/api/textes?page=confidentialite', { entetes: admin }))).json() as Ligne[];
+  const ligne = lignes.find(l => l.cle === 'contenu')!;
+  assert.equal(champsDe(ressourceAdmin('textes')!, ligne)[0].type, 'texteLong');
+  assert.ok(String(ligne.apercu).length <= 301 && String(ligne.apercu).endsWith('…'));
+});

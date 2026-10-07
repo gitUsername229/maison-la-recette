@@ -29,7 +29,7 @@ export function metadonnees({ titre, description, chemin, image, article }: Page
   };
 }
 
-const PAGES_PUBLIQUES = ['/', '/experiences', '/experiences/entreprises', '/podcast', '/blog', '/a-propos', '/studio', '/contact'];
+const PAGES_PUBLIQUES = ['/', '/experiences', '/experiences/entreprises', '/podcast', '/blog', '/a-propos', '/studio', '/contact', '/mentions-legales', '/confidentialite'];
 
 /**
  * Pages réservées à l'administration (connexion comprise), techniques ou de passage : exclues du sitemap

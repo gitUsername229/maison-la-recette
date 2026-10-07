@@ -105,7 +105,10 @@ const PAGES_AVEC_GALERIE: SourceOptions = {
 };
 
 // Pages dont les textes sont modifiables (emplacements : src/backend/contenus/textes-par-defaut.ts).
-const PAGES_TEXTES: Libelles = { accueil: 'Accueil', 'a-propos': 'À propos', studio: 'Studio', experiences: 'Expériences', blog: 'Blog' };
+const PAGES_TEXTES: Libelles = {
+  accueil: 'Accueil', 'a-propos': 'À propos', studio: 'Studio', experiences: 'Expériences', blog: 'Blog',
+  confidentialite: 'Confidentialité', 'mentions-legales': 'Mentions légales',
+};
 const designationTexte = (ligne: Ligne) => `« ${String(lire(ligne, 'libelle'))} » (${libelle(PAGES_TEXTES, String(lire(ligne, 'page')))})`;
 
 const visible = (aide: string, defaut: boolean): ChampAdmin => ({ nom: 'visible', libelle: 'Visible sur le site', type: 'booleen', aide, defaut });
@@ -248,11 +251,11 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     cle: 'textes', titre: 'Textes des pages', singulier: 'un texte', api: '/api/textes',
     textes: { enregistre: 'Texte enregistré : il est déjà en ligne.', supprime: 'Texte supprimé' },
     designation: designationTexte,
-    description: 'Les titres, paragraphes et boutons de l’accueil, des pages « À propos », studio et expériences, et du blog. Un texte modifié change aussitôt sur le site ; « Remettre le texte d’origine » annule vos changements.',
+    description: 'Les titres, paragraphes et boutons de l’accueil, des pages « À propos », studio et expériences, du blog, et le texte des pages Confidentialité et Mentions légales. Un texte modifié change aussitôt sur le site ; « Remettre le texte d’origine » annule vos changements.',
     colonnes: [
       { libelle: 'Page', chemin: 'page', libelles: PAGES_TEXTES },
       { libelle: 'Emplacement', chemin: 'libelle' },
-      { libelle: 'Texte', chemin: 'texte' },
+      { libelle: 'Texte', chemin: 'apercu' },
       { libelle: 'Modifié', chemin: 'modifie', format: 'booleen' },
     ],
     filtre: { parametre: 'page', options: PAGES_TEXTES },
@@ -260,13 +263,15 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     champs: ligne => {
       const longueurMax = Number(lire(ligne, 'longueurMax')) || undefined;
       const facultatif = lire(ligne, 'facultatif') === true;
+      const format = lire(ligne, 'format');
       const aide = [
         facultatif && 'Laissé vide, rien n’est affiché.',
         longueurMax && `${longueurMax} caractères maximum.`,
-        `Texte d’origine : « ${String(lire(ligne, 'texteOrigine') ?? '')} »`,
+        // Le texte d'une page entière ne tient pas dans l'aide : « Remettre le texte d'origine » reste possible.
+        format !== 'long' && `Texte d’origine : « ${String(lire(ligne, 'texteOrigine') ?? '')} »`,
       ];
       return [{
-        nom: 'texte', libelle: String(lire(ligne, 'libelle') ?? 'Texte'), type: lire(ligne, 'format') === 'paragraphe' ? 'texteLong' : 'texte',
+        nom: 'texte', libelle: String(lire(ligne, 'libelle') ?? 'Texte'), type: format === 'paragraphe' || format === 'long' ? 'texteLong' : 'texte',
         requis: !facultatif, longueurMax, aide: aide.filter(Boolean).join(' '),
       }];
     },

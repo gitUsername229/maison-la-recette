@@ -16,6 +16,9 @@ export async function textesDePage<P extends PageTextes>(page: P): Promise<Texte
   return textes as TextesDe<P>;
 }
 
+/** Début d'un texte pour la liste de l'admin (un texte de page entière y serait illisible). */
+const apercu = (texte: string) => (texte.length > 300 ? `${texte.slice(0, 300).trimEnd()}…` : texte);
+
 /**
  * GET /api/textes (?page=accueil) : les textes dans l'ordre des pages, avec ce qu'il faut à l'admin pour guider
  * la saisie (emplacement, forme, longueur maximale, texte d'origine). Pour l'admin, les emplacements ajoutés
@@ -32,7 +35,7 @@ export const lister = endpoint(async (request: Request) => {
     if (!ligne) return [];
     return [{
       id: ligne.id, page: e.page, cle: e.cle, libelle: e.libelle, format: e.format, facultatif: Boolean(e.facultatif),
-      longueurMax: LONGUEUR_MAX[e.format], texte: ligne.texte, texteOrigine: e.texte, modifie: ligne.texte !== e.texte, updatedAt: ligne.updatedAt,
+      longueurMax: LONGUEUR_MAX[e.format], texte: ligne.texte, apercu: apercu(ligne.texte), texteOrigine: e.texte, modifie: ligne.texte !== e.texte, updatedAt: ligne.updatedAt,
     }];
   }));
 });
@@ -48,8 +51,8 @@ export const modifier = endpoint(async (request: Request, context: RouteContext)
   const regle = emplacement(ligne.page, ligne.cle);
   if (!regle) throw new ApiError(404, 'Ce texte n’est plus utilisé sur le site.');
 
-  // Seuls les paragraphes gardent leurs retours à la ligne.
-  const texte = regle.format === 'paragraphe' ? saisi.trim() : saisi.replace(/\s+/g, ' ').trim();
+  // Seuls les paragraphes et les textes de page gardent leurs retours à la ligne.
+  const texte = regle.format === 'paragraphe' || regle.format === 'long' ? saisi.trim() : saisi.replace(/\s+/g, ' ').trim();
   if (!texte && !regle.facultatif) throw new ApiError(400, 'Champ obligatoire.', { champ: 'texte' });
   if (texte.length > LONGUEUR_MAX[regle.format]) throw new ApiError(400, `${LONGUEUR_MAX[regle.format]} caractères maximum.`, { champ: 'texte' });
   return json(await prisma.textePage.update({ where: { id }, data: { texte } }));

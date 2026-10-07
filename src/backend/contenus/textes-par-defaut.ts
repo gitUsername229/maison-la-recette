@@ -4,10 +4,16 @@ import type { PrismaClient } from '@prisma/client';
 // le seed les crée en base avec ces textes d'origine, et les pages les affichent tant qu'ils n'y sont pas.
 // Ajouter un emplacement : l'ajouter ici, puis l'afficher dans la page (src/frontend/pages/).
 
-/** Forme du texte : fixe le champ de saisie et la longueur maximale. */
-export type FormatTexte = 'titre' | 'paragraphe' | 'bouton';
+/**
+ * Forme du texte : fixe le champ de saisie et la longueur maximale. « long » : texte d'une page entière
+ * (mentions légales, confidentialité), où une ligne commençant par « ## » est un intertitre.
+ */
+export type FormatTexte = 'titre' | 'paragraphe' | 'bouton' | 'long';
 
-export const LONGUEUR_MAX: Record<FormatTexte, number> = { titre: 120, paragraphe: 1000, bouton: 40 };
+export const LONGUEUR_MAX: Record<FormatTexte, number> = { titre: 120, paragraphe: 1000, bouton: 40, long: 20_000 };
+
+/** Bandeau des pages légales tant que la cliente n'a pas validé leur texte (à vider ensuite). */
+const A_VALIDER = 'Texte de base, à compléter et à faire valider avant la mise en ligne.';
 
 type Definition = { libelle: string; format: FormatTexte; texte: string; facultatif?: boolean };
 
@@ -88,6 +94,62 @@ export const TEXTES_PAR_DEFAUT = {
     entreprisesTitre: { libelle: 'Article « Pour les entreprises » : titre de l’encadré', format: 'titre', texte: 'Une expérience pour votre équipe ?' },
     entreprisesTexte: { libelle: 'Article « Pour les entreprises » : texte de l’encadré', format: 'paragraphe', texte: 'Ateliers, good tours ou immersions : décrivez-nous votre projet, nous vous répondons avec une proposition adaptée.' },
     entreprisesBouton: { libelle: 'Article « Pour les entreprises » : bouton (vers la demande de devis)', format: 'bouton', texte: 'Demander un devis' },
+  },
+  confidentialite: {
+    titre: { libelle: 'Titre', format: 'titre', texte: 'Politique de confidentialité' },
+    avertissement: { libelle: 'Bandeau « texte à valider » (à vider une fois le texte validé)', format: 'paragraphe', texte: A_VALIDER, facultatif: true },
+    contenu: {
+      libelle: 'Texte de la page (une ligne commençant par « ## » devient un intertitre)', format: 'long',
+      texte: `Cette page explique quelles données personnelles Maison La recette recueille sur ce site, pourquoi, et comment exercer vos droits.
+
+## Qui est responsable de vos données ?
+Maison La recette, [forme juridique, adresse et numéro SIRET à compléter].
+Contact : larecette@ecomail.fr
+
+## Quelles données, et pour quoi faire ?
+Réservation d’une expérience : nom, adresse e-mail, téléphone (facultatif) et nombre de participants, pour enregistrer votre réservation, vous envoyer sa confirmation et vous prévenir en cas d’imprévu.
+Demande de devis : nom, entreprise, adresse e-mail, téléphone et description de votre projet, pour vous rappeler et vous faire une proposition.
+Newsletter : adresse e-mail, pour vous envoyer la newsletter jusqu’à votre désinscription.
+Nous gardons aussi la date à laquelle vous avez accepté cette politique. Le site ne vous demande jamais de créer un compte.
+
+## Paiement
+Le paiement par carte est traité par Stripe. Maison La recette ne voit ni ne conserve vos numéros de carte.
+
+## Qui a accès à vos données ?
+L’équipe de Maison La recette uniquement, et ses prestataires techniques pour ce qui les concerne : hébergement du site [à compléter], envoi des e-mails [à compléter], paiement (Stripe). Vos données ne sont jamais vendues ni cédées.
+
+## Combien de temps sont-elles conservées ?
+[À compléter, par exemple : réservations et demandes de devis, 3 ans après le dernier contact ; pièces comptables, 10 ans ; newsletter, jusqu’à la désinscription.]
+
+## Cookies
+Le site n’utilise ni cookie publicitaire ni mesure d’audience. Un cookie technique sert uniquement à la connexion de l’équipe à l’administration. [À vérifier : cookies déposés par le lecteur du podcast Ausha lorsqu’il est affiché.]
+
+## Vos droits
+Vous pouvez demander à consulter, corriger ou supprimer vos données, ou vous opposer à leur utilisation, en écrivant à larecette@ecomail.fr. Vous pouvez vous désinscrire de la newsletter à tout moment. En cas de difficulté, vous pouvez adresser une réclamation à la CNIL (www.cnil.fr).`,
+    },
+  },
+  'mentions-legales': {
+    titre: { libelle: 'Titre', format: 'titre', texte: 'Mentions légales' },
+    avertissement: { libelle: 'Bandeau « texte à valider » (à vider une fois le texte validé)', format: 'paragraphe', texte: A_VALIDER, facultatif: true },
+    contenu: {
+      libelle: 'Texte de la page (une ligne commençant par « ## » devient un intertitre)', format: 'long',
+      texte: `## Éditeur du site
+Maison La recette, [forme juridique, capital, adresse du siège et numéro SIRET ou RCS à compléter].
+Responsable de la publication : [nom à compléter].
+Contact : larecette@ecomail.fr
+
+## Hébergement
+[Nom, adresse et téléphone de l’hébergeur à compléter.]
+
+## Propriété intellectuelle
+Les textes, photos, logos et épisodes du podcast présentés sur ce site appartiennent à Maison La recette ou à leurs auteurs. Toute reproduction sans autorisation est interdite.
+
+## Crédits
+Photos de démonstration : Unsplash (provisoires, à remplacer).
+
+## Données personnelles
+Pour savoir quelles données sont recueillies et comment exercer vos droits, consultez la politique de confidentialité.`,
+    },
   },
 } as const satisfies Record<string, Record<string, Definition>>;
 

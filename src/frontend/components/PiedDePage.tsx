@@ -46,9 +46,13 @@ export default function PiedDePage({ liensEcoute }: { liensEcoute: readonly Lien
           </Link>
         </div>
       </div>
-      <p className="mx-auto max-w-6xl border-t border-sur-fond-sombre/20 px-6 py-5 text-xs">
-        © {new Date().getFullYear()} Maison La recette · Photos de démonstration : Unsplash
-      </p>
+      <div className="mx-auto flex max-w-6xl flex-wrap gap-x-4 gap-y-2 border-t border-sur-fond-sombre/20 px-6 py-5 text-xs">
+        <p>© {new Date().getFullYear()} Maison La recette · Photos de démonstration : Unsplash</p>
+        <nav aria-label="Informations légales" className="flex gap-4">
+          <Link href="/mentions-legales" className={classeLien}>Mentions légales</Link>
+          <Link href="/confidentialite" className={classeLien}>Confidentialité</Link>
+        </nav>
+      </div>
     </footer>
   );
 }
