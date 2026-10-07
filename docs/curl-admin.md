@@ -248,9 +248,13 @@ curl -X POST "$BASE/api/episodes" \
     "datePublication": "2026-10-01",
     "dureeMin": 42,
     "image": "https://image.ausha.co/...",
-    "embedUrl": "https://player.ausha.co/..."
+    "embedUrl": "https://player.ausha.co/...",
+    "audioUrl": "https://audio.ausha.co/....mp3"
   }'
 ```
+
+`audioUrl` (facultatif) est le fichier lu par le lecteur sur mesure de `/podcast` ; l'import Ausha le remplit. Sans lui,
+la page affiche le lecteur Ausha (`embedUrl`).
 
 **Importer depuis le flux RSS Ausha** (bouton « Importer depuis Ausha » de `/admin/episodes`)
 

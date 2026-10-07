@@ -412,7 +412,7 @@ Réponse `200` (triée par `ordre`) :
 
 ## Textes des pages
 
-**Textes d'une page** (`accueil`, `a-propos`, `studio` ou `blog`), dans l'ordre de la page
+**Textes d'une page** (`accueil`, `a-propos`, `studio`, `experiences` ou `blog`), dans l'ordre de la page
 
 ```bash
 curl "$BASE/api/textes?page=studio"
@@ -430,7 +430,7 @@ Réponse `200` (extrait) :
 ]
 ```
 
-Page inconnue : `400` avec `{ "error": "Page inconnue : accueil, a-propos, studio, blog." }`.
+Page inconnue : `400` avec `{ "error": "Page inconnue : accueil, a-propos, studio, experiences, blog." }`.
 Les pages du site lisent ces textes directement côté serveur ; un texte absent de la base affiche son texte d'origine.
 
 ## Newsletter

@@ -121,6 +121,7 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 | `dureeMin` | Int | |
 | `image` | String | Visuel de l'épisode (URL fournie par le flux Ausha) |
 | `embedUrl` | String | Lien du lecteur Ausha (`player.ausha.co/?podcastId=…`, déduit du fichier audio du flux) |
+| `audioUrl` | String? | Fichier audio du flux (`audio.ausha.co/….mp3`), lu par le lecteur sur mesure de `/podcast`. Vide : lecteur Ausha |
 | `spotifyUrl` | String? | |
 | `deezerUrl` | String? | |
 | `appleUrl` | String? | |
@@ -197,7 +198,7 @@ du disque quand plus aucune ligne n'y fait référence (`Image.url`, `Experience
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
-| `page` | String | `accueil`, `a-propos`, `studio` ou `blog` |
+| `page` | String | `accueil`, `a-propos`, `studio`, `experiences` ou `blog` |
 | `cle` | String | Emplacement dans la page, ex : `titre`, `introduction`, `bouton`. Unique avec `page` |
 | `texte` | String | Texte affiché, modifiable dans `/admin/textes` |
 | `updatedAt` | DateTime | Dernière modification |

@@ -89,19 +89,24 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
   (`/mot-de-passe-oublie`) et vérification de l'adresse à l'inscription (non bloquante, rappel dans `/compte`).
   Envoyés après la réponse ; un échec est journalisé sans rien annuler (`src/backend/mails/`).
 - **Podcast** (`/podcast`) : les 101 épisodes de « la recette » importés depuis le flux Ausha (bouton dans
-  `/admin/episodes`), classés en épisodes complets (affichés par défaut), extraits et replays, groupés par saison,
-  avec lecteur Ausha et liens d'écoute de l'émission (`src/backend/podcast/emission.ts`).
+  `/admin/episodes`), classés en épisodes complets (affichés par défaut), extraits et replays, une saison à la fois
+  (liste déroulante), avec le **lecteur sur mesure** de la maquette : il lit le fichier audio du flux (`Episode.audioUrl`).
+  Pour revenir au lecteur Ausha (statistiques d'écoute), passer `LECTEUR_PODCAST` à `'ausha'` dans
+  `src/backend/podcast/emission.ts`. Liens d'écoute de l'émission dans le même fichier.
+- **Expériences** : `/experiences` (Particuliers : une carte par expérience, prochaine date, places restantes, autres
+  dates, ou « Sur devis ») et `/experiences/entreprises` (sur-mesure, formats, déroulé appel puis proposition sous 48 h,
+  avis, « Obtenir un devis »).
 - **Places** : un paiement Stripe expiré ne bloque plus de place, même si l'événement d'expiration n'arrive jamais.
 
 **Reste à faire :**
 1. Contenus réels (photos, articles, avis, partenaires, textes des pages) : Julie les saisit dans `/admin`. Le seed
    ne contient que trois articles de démonstration, marqués « Contenu de démonstration à remplacer », et des photos
-   provisoires (voir « Thème et images provisoires ») : à remplacer. Les épisodes, eux, viennent d'Ausha.
+   provisoires (voir « Thème (maquette Figma) et images provisoires ») : à remplacer. Les épisodes, eux, viennent d'Ausha.
 2. En production : `NEXT_PUBLIC_BASE_URL` = la vraie adresse du site (sitemap, adresses canoniques, aperçus de partage),
    puis déclarer `/sitemap.xml` dans Google Search Console.
-3. **Direction artistique** : le thème vert actuel est provisoire. La vraie DA se reporte dans un seul fichier,
-   `src/frontend/styles/globals.css` (et les polices dans `src/app/layout.tsx`) ; les e-mails gardent pour l'instant
-   leurs propres couleurs (`src/backend/mails/modeles.ts`).
+3. **Questions à Romain (maquette)** : « Événements » ou « Expériences » ; écran d'accueil sans texte (Frame 16) ;
+   cartes grises inclinées et icône globe de la page podcast ; logo définitif ; versions ordinateur. Les e-mails
+   gardent pour l'instant leurs propres couleurs (`src/backend/mails/modeles.ts`).
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
@@ -161,35 +166,42 @@ sans écraser le type, le résumé, l'invité ni les liens modifiés dans l'admi
   - toutes les images ont un texte alternatif (`alt`), obligatoire en base (`imageAlt`, `photoAlt`, `alt`) ;
   - des URLs lisibles grâce aux slugs (`/experiences/atelier-cuisine-anti-gaspi`, `/blog/cuisiner-les-epluchures`).
 
-## Thème et images provisoires
+## Thème (maquette Figma) et images provisoires
 
-En attendant la direction artistique, le site a une identité verte provisoire, tirée du brief : univers food, coloré,
-un peu rétro, simple et chaleureux ; vert du logo du podcast (feuille de salade, serif en minuscules) ; jamais de noir.
+Le site suit la maquette UX/UI de Romain (Figma « Workshop 1 », page Maquettes : écrans mobiles) ; la version
+ordinateur en est déduite. Le logo reste provisoire, et le libellé « Expériences » est conservé en attendant la réponse
+de Romain (la maquette dit « Événements »).
 
-**Toutes les couleurs sont dans un seul fichier : [`src/frontend/styles/globals.css`](src/frontend/styles/globals.css).**
-- La **palette** (6 couleurs nommées) est dans `:root` :
+**Couleurs, police et tailles de texte sont dans un seul fichier : [`src/frontend/styles/globals.css`](src/frontend/styles/globals.css).**
+- La **palette** (`:root`) reprend les variables Figma (collection « Temp ») et le vert de l'en-tête :
 
-  | Nom | Valeur | Usage |
-  |---|---|---|
-  | `creme` | #f6f5e9 | Fond, légèrement teinté de vert |
-  | `foret` | #1d3324 | Texte et pied de page (vert très foncé, à la place du noir) |
-  | `salade` | #2f6e3b | Vert principal : boutons, liens, focus clavier |
-  | `pousse` | #d5e8c4 | Vert pastel : aplats, étiquettes |
-  | `tomate` | #b9412a | Accent chaud : catégories du blog, étoiles des avis, erreurs |
-  | `citron` | #f3c94b | Accent pastel : newsletter, encarts, surlignage |
+  | Nom | Valeur | Variable Figma | Usage |
+  |---|---|---|---|
+  | `blanc` | #ffffff | — | Fonds de page |
+  | `fond-clair` | #e9edd7 | BG | Cartes, encarts (lecteur, déroulé, réservation) |
+  | `vert-fonce` | #123f1b | 1 | Texte, à la place du noir de la maquette |
+  | `vert-tendre` | #bdd3a7 | 2 | Aplats, étiquettes |
+  | `vert-olive` | #90ae2d | 3 | Décor uniquement |
+  | `orange` | #f57f03 | Accent 1 | Décor uniquement (onglet actif, contours d'étiquettes) |
+  | `corail` | #c94e3e | Accent 2 (#e75a47) | Boutons ; assombri de 13 % pour le contraste AA du texte blanc |
+  | `vert-entete` | #146048 | — | En-tête, menu et pied de page |
 
+  Le corail en couleur de texte (liens, catégories, erreurs) est à peine plus foncé, pour rester AA sur les fonds teintés.
 - Les **rôles** (`@theme inline`) sont les seules classes de couleur employées par les composants : `bg-fond`,
-  `bg-surface`, `text-texte`, `text-texte-doux`, `border-bordure`, `bg-primaire`, `text-sur-primaire`, `bg-pastel`,
-  `bg-pastel-chaud`, `text-accent`, `bg-fond-sombre`, `text-erreur`… Les couleurs par défaut de Tailwind sont retirées :
-  une classe comme `text-stone-600` ne produit rien.
-- **Polices** : Fraunces (titres, `font-serif`) et DM Sans (texte, `font-sans`), chargées par `next/font` dans
-  `src/app/layout.tsx`, avec des polices de secours (Georgia, system-ui, Arial).
-- `tests/theme.test.ts` vérifie les contrastes WCAG AA de chaque couple de couleurs utilisé, et échoue si une couleur
-  en dur ou une couleur Tailwind par défaut réapparaît dans un composant.
-- Accessibilité : focus clavier visible partout (contour vert épais) ; un seul effet animé, le léger zoom des photos
-  au survol des cartes (expériences, blog), désactivé avec `prefers-reduced-motion`.
-- Changer de DA : modifier la palette dans `globals.css` (et au besoin l'attribution des rôles), lancer `npm test`
-  pour vérifier les contrastes. Aucun composant à toucher.
+  `bg-fond-doux`, `text-texte`, `text-texte-doux`, `bg-primaire`, `text-accent`, `bg-fond-sombre`, `border-decor`…
+  Les couleurs par défaut de Tailwind sont retirées : une classe comme `text-stone-600` ne produit rien.
+- **Police** : Inria Serif partout (comme la maquette), chargée par `next/font` dans `src/app/layout.tsx`, avec ses
+  polices de secours (Georgia, serif).
+- **Échelle des tailles** (`--text-*`), tirée de la maquette : 14 px (étiquettes, dates), 16 px (texte courant,
+  jamais moins), 20, 24, 28, 32 (titres de page), 40, 48, 58 (menu) et 72 px.
+- **Icônes** de la maquette dans `public/images/icones/`, affichées par le composant `Icone` en masque : la forme vient
+  du fichier, la couleur du thème.
+- `tests/theme.test.ts` vérifie les valeurs Figma, les contrastes WCAG AA de chaque couple utilisé, l'échelle des
+  tailles, l'absence de couleur en dur et d'émoji dans les composants, et que l'orange et l'olive ne servent jamais
+  de couleur de texte.
+- Accessibilité : focus clavier visible partout (vert foncé, blanc dans les zones sombres) ; un seul effet animé, le
+  léger zoom des photos au survol des cartes, désactivé avec `prefers-reduced-motion`.
+- Pas d'émojis sur le site : ceux des descriptions Ausha sont retirés à l'import et à l'affichage (`sansEmojis`).
 
 **Images de démonstration** : 12 photos [Unsplash](https://unsplash.com/license) (licence libre, usage commercial
 autorisé, sans Unsplash+), dans `public/images/demo/` et commitées pour que la démo fonctionne sans internet ; auteurs
@@ -212,7 +224,7 @@ Tout tourne en local sur `http://localhost:3000`.
 | Images | **Dossier `public/images/`** + chemins stockés en base (table `Image` pour les galeries) | Pas d'hébergement externe, les images sont servies par Next.js |
 | Paiement | **Stripe Checkout (sandbox)** | Paiement simulé, gratuit, carte de test `4242 4242 4242 4242`. Seulement pour les expériences réservables en ligne |
 | E-mails | **Nodemailer + Mailpit** | Réservations, devis, mot de passe oublié, vérification d'adresse ; en local, Mailpit capture les e-mails sans rien envoyer. En production, il suffit de changer `SMTP_*` |
-| Podcast | **Flux RSS Ausha** importé dans la table `Episode` + lecteur intégré Ausha | Pas de double saisie : les audios restent chez Ausha, seuls les liens et métadonnées sont en base |
+| Podcast | **Flux RSS Ausha** importé dans la table `Episode` + lecteur sur mesure (fichier audio du flux), ou lecteur intégré Ausha au choix | Pas de double saisie : les audios restent chez Ausha, seuls les liens et métadonnées sont en base |
 | Comptes | **Better Auth** + argon2id (`@node-rs/argon2`) | Librairie reconnue : inscription, connexion, sessions en base et cookie httpOnly, sans authentification faite maison |
 | Admin | **Interface `/admin` réservée au rôle admin** + clé `x-admin-key` pour les devs (développement uniquement) | Julie gère le site seule, sans toucher au code (voir plus bas) |
 
@@ -221,9 +233,10 @@ Tout tourne en local sur `http://localhost:3000`.
 | Page | Contenu | Public visé | Routes utilisées |
 |---|---|---|---|
 | Accueil | Présentation de la marque chapeau et des 3 pôles, avis clients, galerie photos, inscription à la newsletter | Tous | `GET /api/avis`, `GET /api/images?page=/`, `POST /api/newsletter` |
-| Podcast (`/podcast`) | Épisodes par saison (résumé, lecteur Ausha), complets par défaut, filtre extraits / replays, liens de l'émission (smartlink, Apple Podcasts, Spotify, Deezer, YouTube) | Auditeurs | `GET /api/episodes?type=` |
+| Podcast (`/podcast`) | Lecteur sur mesure (épisode en cours, précédent / suivant, progression), liste de la saison choisie (`?saison=`), complets par défaut, filtre extraits / replays, liens de l'émission (smartlink, Apple Podcasts, Spotify, Deezer, YouTube) | Auditeurs | `GET /api/episodes?type=` |
 | Offre podcast | Studio de production pour d'autres marques, sponsoring du podcast | B2B | `POST /api/devis` |
-| Expériences | Concept général | Tous | `GET /api/experiences` |
+| Expériences (`/experiences`) | Onglet Particuliers : une carte par expérience (prochaine date, places restantes, autres dates, ou « Sur devis ») | B2C | `GET /api/experiences` |
+| Expériences entreprises (`/experiences/entreprises`) | Onglet Entreprises : sur-mesure, formats en photos, déroulé, avis, « Obtenir un devis » | B2B | `POST /api/devis` |
 | Ateliers / Good tours / Immersions | 1 page par expérience, galerie photos. Ateliers et good tours : sessions réservables en ligne. Immersions (surtout B2B) : sur devis uniquement | B2C et B2B | `GET /api/experiences/[slug]`, `GET /api/sessions`, `POST /api/devis` |
 | Blog (`/blog`) | Articles publiés, onglets par catégorie | Tous | `GET /api/articles` |
 | Catégorie (`/blog/categorie/[categorie]`) | Les articles d'une catégorie, avec son titre et sa description | Tous (« Pour les entreprises » : B2B) | `GET /api/articles?categorie=` |
@@ -251,7 +264,7 @@ admin à un autre compte dans `/admin/utilisateurs`. Un client qui ouvre `/admin
 | `/admin/devis` | Voir la fiche d'une demande, changer son statut, ajouter une note interne (jamais vue par le client), la supprimer |
 | `/admin/experiences` | Créer, modifier, masquer ou afficher une expérience, choisir « réservable en ligne » ou « sur devis ». Une expérience qui a des sessions ne se supprime pas : l'admin propose de la masquer |
 | `/admin/sessions` | Ajouter des dates, les modifier, fermer ou rouvrir une session. Une session réservée ne se supprime pas (l'admin propose de la fermer) et ses places ne descendent pas sous les places réservées |
-| `/admin/textes` | Modifier les titres, paragraphes et boutons de l'accueil, d'« À propos », du studio et du blog (filtre par page), ou remettre le texte d'origine. Les liens et la mise en page restent fixes |
+| `/admin/textes` | Modifier les titres, paragraphes et boutons de l'accueil, d'« À propos », du studio, des expériences et du blog (filtre par page), ou remettre le texte d'origine. Les liens et la mise en page restent fixes |
 | `/admin/photos` | Envoyer, modifier ou supprimer une photo (le fichier est effacé du disque), choisir sa page dans une liste, sa description et son ordre |
 | `/admin/episodes` | Importer depuis Ausha, changer le type (complet, extrait, replay), modifier le résumé, l'invité et les liens, supprimer (un épisode supprimé revient au prochain import) |
 | `/admin/articles` | Écrire (mise en forme Markdown), publier ou dépublier, supprimer un article du blog ; choisir sa catégorie, l'épisode lié (du plus récent au plus ancien) et les expériences liées (cases à cocher) ; filtrer par catégorie |

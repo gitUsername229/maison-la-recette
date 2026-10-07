@@ -50,7 +50,7 @@ Conventions :
 | GET | `/api/articles/[slug]` | Un article du blog | Public |
 | GET | `/api/blog/categories` | Les 4 catégories du blog dans l'ordre (`valeur`, `libelle`, `description`) | Public |
 | GET | `/api/images?page=` | Galerie photos d'une page | Public |
-| GET | `/api/textes?page=` | Textes fixes d'une page (`accueil`, `a-propos`, `studio`, `blog`), avec leur texte d'origine | Public |
+| GET | `/api/textes?page=` | Textes fixes d'une page (`accueil`, `a-propos`, `studio`, `experiences`, `blog`), avec leur texte d'origine | Public |
 | POST | `/api/checkout` | Réserver et payer (expériences réservables en ligne) | Connecté |
 | GET | `/api/reservations?session_id=` | Réservation après paiement | Connecté (propriétaire) |
 | POST | `/api/webhook` | Confirmation de paiement Stripe | Stripe |
