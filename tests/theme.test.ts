@@ -102,3 +102,11 @@ test('échelle typographique : texte courant à 16 px minimum, étiquettes à 14
   const echelle = ['xs', 'sm', 'base', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl', '7xl'].map(taille);
   assert.deepEqual(echelle, [...echelle].sort((a, b) => a - b)); // croissante
 });
+
+test('icônes de la maquette : chaque nom a son fichier SVG', () => {
+  const source = readFileSync('src/frontend/components/Icone.tsx', 'utf8');
+  const noms = [...(/type NomIcone = ([^;]+);/.exec(source) ?? assert.fail('NomIcone introuvable'))[1].matchAll(/'([a-z-]+)'/g)].map(m => m[1]);
+  assert.ok(noms.length >= 8);
+  const manquantes = noms.filter(nom => !statSync(`public/images/icones/${nom}.svg`, { throwIfNoEntry: false }));
+  assert.deepEqual(manquantes, []);
+});

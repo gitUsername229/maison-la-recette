@@ -1,208 +1,136 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { authClient } from '@/frontend/auth-client';
 import Feuille from '@/frontend/components/Feuille';
+import Icone from '@/frontend/components/Icone';
 
-const liensNavigation = [
+// Navigation de la maquette (écran « Frame 17 ») : grands liens, puis liens secondaires. Le blog est dans le pied de page.
+const PRINCIPAUX = [
+  { href: '/', label: 'Accueil' },
   { href: '/podcast', label: 'Podcast' },
-  { href: '/experiences', label: 'Ateliers' },
-  { href: '/studio', label: 'Studio de production' },
-  { href: '/a-propos', label: 'À propos' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/contact', label: 'Contact' },
+  { href: '/experiences', label: 'Expériences' },
+  { href: '/studio', label: 'Studio' },
 ];
+const SECONDAIRES = [
+  { href: '/contact', label: 'Contact' },
+  { href: '/a-propos', label: 'À propos' },
+];
+// Sur ordinateur, le logo mène à l'accueil.
+const NAVIGATION_ORDINATEUR = [...PRINCIPAUX.slice(1), ...SECONDAIRES.toReversed()];
 
 export default function EnTete() {
   const { data: session, isPending } = authClient.useSession();
   const pathname = usePathname();
   const router = useRouter();
   const [menuOuvert, setMenuOuvert] = useState(false);
+  const fermer = () => setMenuOuvert(false);
+
+  // Menu ouvert : la page ne défile plus derrière, et Échap le referme.
+  useEffect(() => {
+    if (!menuOuvert) return;
+    const echap = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOuvert(false); };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', echap);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', echap);
+    };
+  }, [menuOuvert]);
 
   async function deconnecter() {
     await authClient.signOut();
-    setMenuOuvert(false);
+    fermer();
     router.push('/');
     router.refresh();
   }
 
-  const estActif = (href: string) => {
-    if (href === '/') return pathname === '/';
-    return pathname.startsWith(href);
-  };
+  const estActif = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+  const courant = (href: string) => (estActif(href) ? 'page' : undefined);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-bordure bg-fond/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        {/* Logo / Titre du site */}
-        <Link
-          href="/"
-          className="flex items-center gap-2 font-serif text-2xl font-semibold lowercase tracking-tight text-accent"
-          onClick={() => setMenuOuvert(false)}
-        >
+    <header className="zone-sombre sticky top-0 z-50 bg-fond-sombre text-sur-fond-sombre">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 lg:px-6">
+        <Link href="/" onClick={fermer} className="flex items-center gap-2 text-2xl lowercase">
           <Feuille className="h-7 w-7" />
           Maison La recette
         </Link>
 
-        {/* Navigation Desktop */}
-        <nav className="hidden lg:flex items-center gap-x-6 text-sm font-medium">
-          {liensNavigation.map((lien) => {
-            const actif = estActif(lien.href);
-            return (
-              <Link
-                key={lien.href}
-                href={lien.href}
-                aria-current={actif ? 'page' : undefined}
-                className={`border-b-2 pb-0.5 hover:text-texte ${
-                  actif ? 'border-accent font-semibold text-texte' : 'border-transparent text-texte-doux'
-                }`}
-              >
-                {lien.label}
-              </Link>
-            );
-          })}
+        <nav aria-label="Navigation principale" className="hidden items-center gap-x-7 text-lg lg:flex">
+          {NAVIGATION_ORDINATEUR.map(lien => (
+            <Link
+              key={lien.href}
+              href={lien.href}
+              aria-current={courant(lien.href)}
+              className={`border-b-2 pb-0.5 ${estActif(lien.href) ? 'border-decor' : 'border-transparent hover:border-lien-sur-sombre'}`}
+            >
+              {lien.label}
+            </Link>
+          ))}
         </nav>
 
-        {/* Espace Compte / Auth Desktop */}
-        <div className="hidden lg:flex items-center gap-x-4 text-sm">
+        <div className="hidden items-center gap-x-5 lg:flex">
           {!isPending && (session ? (
-            <div className="flex items-center gap-x-4">
+            <>
               {session.user.role === 'admin' && (
-                <Link
-                  href="/admin"
-                  className="rounded-full bg-pastel-chaud px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-texte"
-                >
-                  Admin
-                </Link>
+                <Link href="/admin" className="rounded-full bg-pastel px-3 py-1 text-xs font-bold uppercase tracking-wider text-texte">Admin</Link>
               )}
-              <Link
-                href="/compte"
-                className={`text-texte-doux hover:text-texte ${
-                  estActif('/compte') ? 'font-semibold text-texte' : ''
-                }`}
-              >
-                Mon compte
-              </Link>
-              <button
-                type="button"
-                onClick={deconnecter}
-                className="text-texte-doux hover:text-texte cursor-pointer"
-              >
-                Déconnexion
-              </button>
-            </div>
+              <Link href="/compte" aria-current={courant('/compte')} className="hover:underline">Mon compte</Link>
+              <button type="button" onClick={deconnecter} className="text-lien-sur-sombre hover:underline">Déconnexion</button>
+            </>
           ) : (
-            <div className="flex items-center gap-x-3">
-              <Link
-                href="/connexion"
-                className="text-texte-doux hover:text-texte font-medium"
-              >
-                Connexion
-              </Link>
-              <Link
-                href="/inscription"
-                className="rounded-full bg-primaire px-4 py-2 text-xs font-semibold tracking-wide text-sur-primaire hover:bg-primaire-fort"
-              >
-                Créer un compte
-              </Link>
-            </div>
+            <>
+              <Link href="/connexion" className="hover:underline">Connexion</Link>
+              <Link href="/inscription" className="rounded-full bg-primaire px-5 py-2 font-bold text-sur-primaire hover:bg-primaire-fort">Créer un compte</Link>
+            </>
           ))}
         </div>
 
-        {/* Bouton Menu Burger Mobile */}
         <button
           type="button"
           onClick={() => setMenuOuvert(!menuOuvert)}
-          className="lg:hidden flex h-10 w-10 items-center justify-center rounded-lg border border-bordure-forte text-texte-doux hover:bg-fond"
+          className="-mr-2 p-1 lg:hidden"
           aria-label={menuOuvert ? 'Fermer le menu' : 'Ouvrir le menu'}
           aria-expanded={menuOuvert}
+          aria-controls="menu-mobile"
         >
-          {menuOuvert ? (
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
+          <Icone nom={menuOuvert ? 'croix' : 'burger'} taille={48} />
         </button>
       </div>
 
-      {/* Menu Déroulant Mobile */}
       {menuOuvert && (
-        <div className="lg:hidden border-t border-bordure bg-fond px-6 py-6 shadow-xl">
-          <nav className="flex flex-col gap-y-4 text-base font-medium">
-            {liensNavigation.map((lien) => {
-              const actif = estActif(lien.href);
-              return (
-                <Link
-                  key={lien.href}
-                  href={lien.href}
-                  onClick={() => setMenuOuvert(false)}
-                  aria-current={actif ? 'page' : undefined}
-                  className={`py-1 ${
-                    actif
-                      ? 'font-bold text-accent border-l-4 border-accent pl-3 -ml-4'
-                      : 'text-texte-doux hover:text-texte'
-                  }`}
-                >
+        <nav id="menu-mobile" aria-label="Menu" className="fixed inset-x-0 bottom-0 top-20 overflow-y-auto bg-fond-sombre px-8 pb-12 pt-10 lg:hidden">
+          <ul className="grid gap-1">
+            {PRINCIPAUX.map(lien => (
+              <li key={lien.href}>
+                <Link href={lien.href} onClick={fermer} aria-current={courant(lien.href)} className={`text-5xl min-[380px]:text-6xl ${estActif(lien.href) ? 'underline decoration-decor decoration-2 underline-offset-8' : ''}`}>
                   {lien.label}
                 </Link>
-              );
-            })}
-
-            {/* Auth Mobile */}
-            <div className="mt-4 border-t border-bordure-forte pt-4 flex flex-col gap-y-3 text-sm">
-              {!isPending && (session ? (
-                <>
-                  {session.user.role === 'admin' && (
-                    <Link
-                      href="/admin"
-                      onClick={() => setMenuOuvert(false)}
-                      className="text-accent font-semibold"
-                    >
-                      Interface Administration
-                    </Link>
-                  )}
-                  <Link
-                    href="/compte"
-                    onClick={() => setMenuOuvert(false)}
-                    className="text-texte-doux hover:text-texte font-medium"
-                  >
-                    Mon compte ({session.user.name || session.user.email})
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={deconnecter}
-                    className="text-left text-erreur font-medium"
-                  >
-                    Déconnexion
-                  </button>
-                </>
-              ) : (
-                <div className="flex flex-col gap-y-2 pt-2">
-                  <Link
-                    href="/connexion"
-                    onClick={() => setMenuOuvert(false)}
-                    className="text-texte-doux hover:text-texte font-medium py-1"
-                  >
-                    Connexion
-                  </Link>
-                  <Link
-                    href="/inscription"
-                    onClick={() => setMenuOuvert(false)}
-                    className="rounded-xl bg-primaire py-2.5 text-center font-semibold text-sur-primaire hover:bg-primaire-fort"
-                  >
-                    Créer un compte
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </nav>
-        </div>
+              </li>
+            ))}
+          </ul>
+          <ul className="mt-10 grid gap-3 text-xl">
+            {SECONDAIRES.map(lien => (
+              <li key={lien.href}><Link href={lien.href} onClick={fermer} aria-current={courant(lien.href)}>{lien.label}</Link></li>
+            ))}
+          </ul>
+          <div className="mt-10 grid gap-3 border-t border-sur-fond-sombre/30 pt-6 text-lg text-lien-sur-sombre">
+            {!isPending && (session ? (
+              <>
+                {session.user.role === 'admin' && <Link href="/admin" onClick={fermer}>Administration</Link>}
+                <Link href="/compte" onClick={fermer}>Mon compte</Link>
+                <button type="button" onClick={deconnecter} className="text-left">Déconnexion</button>
+              </>
+            ) : (
+              <>
+                <Link href="/connexion" onClick={fermer}>Connexion</Link>
+                <Link href="/inscription" onClick={fermer}>Créer un compte</Link>
+              </>
+            ))}
+          </div>
+        </nav>
       )}
     </header>
   );
