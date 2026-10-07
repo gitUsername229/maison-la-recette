@@ -57,7 +57,7 @@ export default function Article({ article, textes }: { article: ArticleComplet; 
         </Markdown>
       </div>
       {article.appelDevis && (
-        <AppelDevis experienceId={article.experiences[0]?.id} textes={{ titre: textes.entreprisesTitre, texte: textes.entreprisesTexte, bouton: textes.entreprisesBouton }} />
+        <AppelDevis experience={article.experiences[0]?.slug} textes={{ titre: textes.entreprisesTitre, texte: textes.entreprisesTexte, bouton: textes.entreprisesBouton }} />
       )}
       {article.episode && <BlocEpisode episode={article.episode} textes={{ titre: textes.episodeTitre, bouton: textes.episodeBouton, lien: textes.episodeLien }} />}
       <BlocExperiences experiences={article.experiences} textes={{ titre: textes.experiencesTitre, texte: textes.experiencesTexte, bouton: textes.experiencesBouton }} />

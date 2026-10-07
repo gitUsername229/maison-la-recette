@@ -56,7 +56,7 @@ export function BlocExperiences({ experiences, textes }: { experiences: Experien
                   <Link href={`/experiences/${experience.slug}`} className={classeLien}>Voir les dates et réserver →</Link>
                 </>
               ) : (
-                <Link href={`/contact?experience=${experience.id}`} className={classeLien}>Sur devis : demander une date →</Link>
+                <Link href={`/contact?experience=${experience.slug}`} className={classeLien}>Sur devis : demander une date →</Link>
               )}
             </li>
           ))}
@@ -69,13 +69,13 @@ export function BlocExperiences({ experiences, textes }: { experiences: Experien
 
 type TextesDevis = { titre: string; texte: string; bouton: string };
 
-/** Encadré des articles pour les entreprises : vers le formulaire de devis, l'expérience liée déjà choisie. */
-export function AppelDevis({ experienceId, textes }: { experienceId?: number; textes: TextesDevis }) {
+/** Encadré des articles pour les entreprises : vers le formulaire de devis, l'expérience liée (son slug) déjà choisie. */
+export function AppelDevis({ experience, textes }: { experience?: string; textes: TextesDevis }) {
   return (
     <section className="mt-12 rounded-2xl bg-primaire p-6 text-sur-primaire sm:p-8" aria-labelledby="bloc-devis">
       <h2 id="bloc-devis" className="font-serif text-2xl">{textes.titre}</h2>
       <p className="mt-3 whitespace-pre-line leading-relaxed text-sur-primaire">{textes.texte}</p>
-      <Link href={experienceId ? `/contact?experience=${experienceId}` : '/contact'} className="mt-5 inline-flex rounded-full bg-fond px-5 py-3 font-medium text-texte hover:bg-surface">
+      <Link href={experience ? `/contact?experience=${experience}` : '/contact'} className="mt-5 inline-flex rounded-full bg-fond px-5 py-3 font-medium text-texte hover:bg-surface">
         {textes.bouton}
       </Link>
     </section>

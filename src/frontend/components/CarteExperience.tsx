@@ -16,7 +16,7 @@ const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
  * prochaine date ; en bas, « En savoir plus » et l'inscription, ou la demande de devis s'il n'y a pas de date ouverte.
  */
 export default function CarteExperience({ experience }: { experience: CarteExperienceDonnees }) {
-  const { id, slug, type, titre, image, imageAlt, prochaineDate, autresDates } = experience;
+  const { slug, type, titre, image, imageAlt, prochaineDate, autresDates } = experience;
   return (
     <article className="group relative isolate flex aspect-[362/509] flex-col justify-between overflow-hidden rounded-xl bg-fond-doux text-sur-fond-sombre">
       {image && (
@@ -42,7 +42,7 @@ export default function CarteExperience({ experience }: { experience: CarteExper
           En savoir plus<span className="sr-only"> : {titre}</span>
         </Link>
         <Link
-          href={prochaineDate ? `/experiences/${slug}#reserver` : `/contact?experience=${id}`}
+          href={prochaineDate ? `/experiences/${slug}#reserver` : `/contact?experience=${slug}`}
           className="flex min-h-[51px] items-center gap-2.5 whitespace-nowrap rounded-full bg-primaire px-5 text-lg font-bold text-sur-primaire hover:bg-primaire-fort"
         >
           {prochaineDate ? 'Inscriptions' : 'Demander un devis'}

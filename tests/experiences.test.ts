@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
 import { preparerBaseDeTest, requete } from './outils';
@@ -56,3 +58,16 @@ test('l’adresse « entreprises » est réservée à l’onglet Entreprises', a
   assert.equal(reponse.status, 400);
   assert.deepEqual((await reponse.json() as { details: { champ: string }[] }).details.map(d => d.champ), ['slug']);
 });
+
+test('les liens « Demander un devis » passent le slug de l’expérience, celui qu’attend /contact', async () => {
+  const fichiers = (await readdir('src/frontend', { recursive: true })).filter(f => f.endsWith('.tsx'));
+  let liens = 0;
+  for (const fichier of fichiers) {
+    for (const [, valeur] of (await readFile(join('src/frontend', fichier), 'utf8')).matchAll(/\/contact\?experience=\$\{([^}]+)\}/g)) {
+      liens += 1;
+      assert.match(valeur, /slug$|^experience$/, `${fichier} : /contact?experience=\${${valeur}}`);
+    }
+  }
+  assert.ok(liens >= 5);
+});
+
