@@ -58,11 +58,6 @@ export default function Experience({ experience }: { experience: ExperienceDetai
               <h2 className="font-serif text-2xl">Réserver</h2>
               <p className="mb-6 mt-1 text-sm text-texte-doux">Paiement sécurisé par Stripe.</p>
               <ReservationForm sessions={experience.sessions} />
-              {process.env.NODE_ENV !== 'production' && (
-                <p className="mt-5 rounded-lg bg-fond px-3 py-2 text-sm leading-relaxed text-texte-doux">
-                  Mode test : carte <strong>4242 4242 4242 4242</strong>, date d’expiration future, CVC au choix.
-                </p>
-              )}
             </>
           ) : (
             <>

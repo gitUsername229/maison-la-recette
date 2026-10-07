@@ -115,7 +115,6 @@ Le formulaire est affiché sur `/experiences/[slug]` (accessible depuis l'accuei
 | `src/frontend/pages/experience.tsx` | Détail + `ReservationForm` (date, participants, nom, e-mail, téléphone facultatif, case de consentement ; sans compte), ou « Demander un devis » si `reservableEnLigne = false` |
 
 Les données sont chargées dans `src/app` car ESLint interdit à `src/frontend` d'importer le backend.
-En développement, la page rappelle la carte de test `4242 4242 4242 4242` sous le bouton de paiement.
 
 Les pages `/reservation/succes` et `/reservation/annule` renvoient vers la liste `/experiences`.
 
