@@ -33,14 +33,17 @@ Les commandes Prisma et Next.js chargent toutes deux le fichier `.env.local`.
 
 Dans `.env.local`, avant le seed :
 - `BETTER_AUTH_SECRET` : une longue chaîne aléatoire (`openssl rand -base64 32`), qui signe les sessions ;
-- `ADMIN_EMAIL` et `ADMIN_PASSWORD` (8 caractères minimum) : le seed crée le compte admin avec ces identifiants.
-  Ils ne sont jamais écrits dans le code ; le seed ne remplace pas le mot de passe d'un compte existant ;
+- `ADMIN_EMAIL` et `ADMIN_PASSWORD` (8 caractères minimum) : le seed crée le compte admin avec ces identifiants
+  (connexion sur `/admin/connexion`). Ils ne sont jamais écrits dans le code ; le seed ne remplace pas le mot de passe
+  d'un compte existant ;
 - les clés Stripe sandbox pour tester le paiement (voir [docs/stripe.md](docs/stripe.md)) ;
 - les e-mails : `SMTP_HOST`/`SMTP_PORT` (Mailpit en local, voir plus bas) et `MAIL_ADMIN_TO`, la boîte de Julie
   qui reçoit les devis et les réservations (**adresse fictive en démo**, ex : `julie@exemple.fr`).
 
 Après un `git pull` qui ajoute une migration : `npx prisma migrate dev`, puis `npx prisma db seed`, puis
 **redémarrer `npm run dev`** (sinon le serveur garde l'ancien client Prisma et répond « Un problème technique est survenu »).
+La migration `suppression_comptes_clients` supprime les comptes clients (seuls les admins restent) ; leurs réservations
+et demandes de devis sont conservées, avec le nom, l'e-mail et le téléphone saisis.
 Tests automatiques : `npm test` (base SQLite jetable, n'utilise pas `dev.db`).
 
 ## Séparation front / back
@@ -66,8 +69,10 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 **En place :**
 - Next.js, React, TypeScript, Tailwind, Prisma (SQLite) ; seed de trois expériences avec sessions, du compte admin,
   des textes des pages (textes d'origine) et de trois articles de démonstration du blog (à remplacer).
-- **Comptes** ([Better Auth](https://www.better-auth.com)) : inscription, connexion, déconnexion (`/inscription`, `/connexion`),
-  mots de passe hachés en argon2id, session en cookie httpOnly. Rôles `client` et `admin`.
+- **Pas de compte pour les visiteurs** : on réserve, on paie et on demande un devis sans se connecter. Seule l'équipe
+  (rôle admin) se connecte, sur `/admin/connexion`, une page qu'aucun lien du site public n'affiche
+  ([Better Auth](https://www.better-auth.com) : inscription désactivée, mots de passe argon2id, session de 30 jours
+  prolongée à chaque visite, cookie httpOnly).
 - **Site public sans compte**, alimenté par l'admin (un changement apparaît aussitôt) : accueil (avis, galerie,
   newsletter), `/experiences` et `/experiences/[slug]` (couverture, galerie, dates et places restantes),
   `/a-propos` (partenaires, avis, galerie), `/blog` (voir ci-dessous), `/podcast`, `/studio`.
@@ -77,17 +82,23 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
   un encadré « Demander un devis ».
 - **Référencement** : titre, description, adresse canonique et balises de partage (Open Graph, X) avec la couverture
   pour chaque article ; `/sitemap.xml` et `/robots.txt` (`src/backend/seo.ts`).
-- **Réservation et paiement Stripe Checkout (sandbox)**, réservés aux comptes connectés
-  (voir [docs/stripe.md](docs/stripe.md) et [docs/ateliers-stripe.md](docs/ateliers-stripe.md)).
-- **Demande de devis** (`/contact`), réservée aux comptes connectés : nom, e-mail et téléphone repris du compte.
-- **Espace `/compte`** : les réservations et les demandes de devis du client connecté, et uniquement les siennes.
+- **Réservation et paiement Stripe Checkout (sandbox), sans compte** : nom, e-mail, téléphone (facultatif) et nombre de
+  participants saisis sur la page de l'expérience (voir [docs/stripe.md](docs/stripe.md) et [docs/ateliers-stripe.md](docs/ateliers-stripe.md)).
+  La page de succès ne montre la réservation que si la session Stripe existe et la désigne.
+- **Demande de devis** (`/contact`), sans compte : nom, entreprise, e-mail, téléphone et le projet.
+- **Anti-spam des formulaires publics** (devis, réservation, newsletter) : champ piège pour les robots, limite d'envois
+  par adresse IP (réglable dans `.env.local`), case de consentement obligatoire dont la date est enregistrée
+  (`src/backend/anti-spam.ts`).
+- **Mentions légales et politique de confidentialité** (`/mentions-legales`, `/confidentialite`, liens dans le pied de
+  page) : texte de base à compléter, modifiable dans `/admin/textes`.
 - **Administration `/admin`** (rôle admin) : Julie gère tout le site seule (voir plus bas), avec des règles qui
   protègent l'historique : on masque une expérience, on ferme une session, on annule une réservation.
-- **Newsletter** : inscription sur l'accueil (sans compte), liste des inscrits dans `/admin/newsletter`.
-- **E-mails** (Nodemailer, Mailpit en local) : confirmation de réservation au client et information à Julie
-  (une seule fois par paiement), demande de devis à Julie et accusé de réception au client, mot de passe oublié
-  (`/mot-de-passe-oublie`) et vérification de l'adresse à l'inscription (non bloquante, rappel dans `/compte`).
-  Envoyés après la réponse ; un échec est journalisé sans rien annuler (`src/backend/mails/`).
+- **Newsletter** : inscription sur l'accueil (sans compte, case de consentement), liste des inscrits dans `/admin/newsletter`.
+- **E-mails** (Nodemailer, Mailpit en local) : confirmation de réservation au client (tout le récapitulatif) et
+  information à Julie (une seule fois par paiement), demande de devis à Julie et accusé de réception au client ; la
+  réponse du client à ces e-mails arrive à Julie (`Reply-To` : `MAIL_ADMIN_TO`). Pour l'équipe : mot de passe oublié
+  (`/admin/mot-de-passe-oublie`) et invitation d'un nouvel admin. Envoyés après la réponse ; un échec est journalisé
+  sans rien annuler (`src/backend/mails/`).
 - **Podcast** (`/podcast`) : les 101 épisodes de « la recette » importés depuis le flux Ausha (bouton dans
   `/admin/episodes`), classés en épisodes complets (affichés par défaut), extraits et replays, une saison à la fois
   (liste déroulante), avec le **lecteur sur mesure** de la maquette : il lit le fichier audio du flux (`Episode.audioUrl`).
@@ -104,7 +115,10 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
    provisoires (voir « Thème (maquette Figma) et images provisoires ») : à remplacer. Les épisodes, eux, viennent d'Ausha.
 2. En production : `NEXT_PUBLIC_BASE_URL` = la vraie adresse du site (sitemap, adresses canoniques, aperçus de partage),
    puis déclarer `/sitemap.xml` dans Google Search Console.
-3. **Questions à Romain (maquette)** : « Événements » ou « Expériences » ; écran d'accueil sans texte (Frame 16) ;
+3. **Mentions légales et politique de confidentialité** : compléter les éléments entre crochets (forme juridique,
+   SIRET, hébergeur, prestataires, durées de conservation), faire valider le texte par la cliente, puis vider le
+   bandeau « Texte de base, à compléter… » dans `/admin/textes`.
+4. **Questions à Romain (maquette)** : « Événements » ou « Expériences » ; écran d'accueil sans texte (Frame 16) ;
    cartes grises inclinées et icône globe de la page podcast ; logo définitif ; versions ordinateur. Les e-mails
    gardent pour l'instant leurs propres couleurs (`src/backend/mails/modeles.ts`).
 
@@ -124,19 +138,45 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 > (CLI Prisma, plugin ESLint de Next), sans version corrigée disponible ; ce « correctif » rétrograderait
 > `eslint-config-next` en v14 et `prisma` en 6.12 et casserait le projet.
 
-### Sécurité des comptes
+### Sécurité
 
-- Un seul contrôle d'accès, `verifierAcces` (`src/backend/auth/acces.ts`), utilisé par toutes les routes API
-  (`401` non connecté, `403` rôle insuffisant) et par les pages `/compte`, `/contact` et `/admin` (redirection
-  vers `/connexion` ou `/acces-refuse`). Il est appelé dans chaque page et route, pas seulement dans un layout.
-- `/api/checkout` et `/api/devis` prennent le compte dans la session : un `userId` ou un e-mail envoyé par le front est refusé.
-- Un client ne voit que ses propres réservations et demandes (`404` pour celles des autres).
-- Le rôle ne se choisit pas à l'inscription ; seul un admin le modifie.
-- Mot de passe oublié : même réponse qu'un compte existe ou non (aucune adresse révélée), lien valable 1 h
+- **Les visiteurs n'ont pas de compte.** Seule l'équipe se connecte, sur `/admin/connexion` : aucun lien du site public
+  n'y mène, et tout `/admin` est en `noindex`, interdit dans `robots.txt` et absent du sitemap. Cacher l'adresse ne
+  protège rien : la protection reste la connexion et le rôle admin vérifiés côté serveur.
+- Un seul contrôle d'accès, `verifierAcces` (`src/backend/auth/acces.ts`, rôle admin par défaut), appelé dans chaque
+  route admin (`401` non connecté, `403` rôle insuffisant) et dans chaque page de `/admin` (`exigerAdminPage`, pas
+  seulement dans un layout). `/admin` sans connexion redirige vers `/admin/connexion` ; un compte sans le rôle admin
+  n'a aucun droit (« Accès refusé »).
+- Aucune inscription possible : la route d'inscription de Better Auth est désactivée (`/api/auth/sign-up/email`
+  répond `400`). Les admins sont créés par le seed ou ajoutés par un admin dans `/admin/utilisateurs` ; le rôle ne se
+  choisit jamais par une route Better Auth.
+- Session de 30 jours, prolongée à chaque visite (au plus une écriture en base par jour).
+- Mot de passe oublié : même réponse que l'adresse ait un accès ou non (aucune adresse révélée), lien valable 1 h
   et à usage unique, autres connexions fermées après le changement.
+- Page de succès et `GET /api/reservations?session_id=` : la réservation n'est montrée que si Stripe confirme que
+  la session de paiement existe et la désigne ; ni nom, ni e-mail, ni téléphone.
+- Formulaires publics : champ piège, limite d'envois par IP et consentement (voir « Anti-spam » ci-dessous).
 - Les e-mails échappent tout texte saisi (nom, message) : impossible d'y injecter du HTML.
 - Le header `x-admin-key` (`ADMIN_KEY`) remplace la session admin **en développement uniquement**,
   pour les tests curl ([docs/curl-admin.md](docs/curl-admin.md)) ; il est refusé en production (`npm start`).
+
+### Anti-spam des formulaires publics
+
+| Protection | Devis (`/api/devis`) | Réservation (`/api/checkout`) | Newsletter (`/api/newsletter`) |
+|---|---|---|---|
+| Champ piège `siteWeb` rempli (robot) | `201` comme d'habitude, rien d'enregistré ni d'envoyé | `400` (aucune place bloquée) | `201`, rien d'enregistré |
+| Limite d'envois par IP (`429`) | 5 / 10 min | 10 / 10 min | 5 / 10 min |
+| Case de consentement (lien vers `/confidentialite`) | obligatoire, date en base (`consentementLe`) | obligatoire, date en base | obligatoire, date en base |
+
+- Les limites ci-dessus valent en production ; en développement (`npm run dev`), elles sont **20 fois plus larges**
+  (essais et démonstrations depuis la même adresse). Pour les changer : `LIMITE_DEVIS`, `LIMITE_CHECKOUT`,
+  `LIMITE_NEWSLETTER` et `LIMITE_PERIODE_MINUTES` dans `.env.local` (voir `.env.example`), puis redémarrer.
+- Les compteurs sont en mémoire : remis à zéro au redémarrage et propres à un serveur (suffisant pour un seul
+  serveur ; avec plusieurs, il faudrait un stockage partagé comme Redis).
+- Adresse IP : `x-forwarded-for` n'est cru que derrière un proxy de confiance (`PROXY_DE_CONFIANCE`, nombre de proxys,
+  ex : `1` derrière nginx). Sans proxy, l'en-tête envoyé par le visiteur est retiré au démarrage du serveur
+  (`src/instrumentation.ts`) et Next.js y écrit l'IP de connexion.
+- L'ajout d'une adresse à la newsletter depuis l'admin n'est pas concerné (pas de case : la date reste vide).
 
 Commandes complémentaires : `npm run lint`, `npm run typecheck`, `npm run build`
 et `npm start` (après compilation).
@@ -162,7 +202,8 @@ sans écraser le type, le résumé, l'invité ni les liens modifiés dans l'admi
 - **SEO de base** :
   - chaque page a un titre (`<title>`) et une meta description (via `metadata` de Next.js) ; les articles et les
     catégories du blog ont aussi une adresse canonique et des balises de partage (`metadonnees()` dans `src/backend/seo.ts`) ;
-  - `/sitemap.xml` liste les pages publiques, et `/robots.txt` écarte les pages privées (admin, compte, connexion, API) ;
+  - `/sitemap.xml` liste les pages publiques, et `/robots.txt` écarte les pages privées (`/admin` et sa page de connexion,
+    réservation, API) ;
   - toutes les images ont un texte alternatif (`alt`), obligatoire en base (`imageAlt`, `photoAlt`, `alt`) ;
   - des URLs lisibles grâce aux slugs (`/experiences/atelier-cuisine-anti-gaspi`, `/blog/cuisiner-les-epluchures`).
 
@@ -223,9 +264,9 @@ Tout tourne en local sur `http://localhost:3000`.
 | Base de données | **SQLite + Prisma** | Un simple fichier, rien à installer, même structure pour toute l'équipe |
 | Images | **Dossier `public/images/`** + chemins stockés en base (table `Image` pour les galeries) | Pas d'hébergement externe, les images sont servies par Next.js |
 | Paiement | **Stripe Checkout (sandbox)** | Paiement simulé, gratuit, carte de test `4242 4242 4242 4242`. Seulement pour les expériences réservables en ligne |
-| E-mails | **Nodemailer + Mailpit** | Réservations, devis, mot de passe oublié, vérification d'adresse ; en local, Mailpit capture les e-mails sans rien envoyer. En production, il suffit de changer `SMTP_*` |
+| E-mails | **Nodemailer + Mailpit** | Réservations, devis, mot de passe oublié et invitation des admins ; en local, Mailpit capture les e-mails sans rien envoyer. En production, il suffit de changer `SMTP_*` |
 | Podcast | **Flux RSS Ausha** importé dans la table `Episode` + lecteur sur mesure (fichier audio du flux), ou lecteur intégré Ausha au choix | Pas de double saisie : les audios restent chez Ausha, seuls les liens et métadonnées sont en base |
-| Comptes | **Better Auth** + argon2id (`@node-rs/argon2`) | Librairie reconnue : inscription, connexion, sessions en base et cookie httpOnly, sans authentification faite maison |
+| Comptes | **Better Auth** + argon2id (`@node-rs/argon2`) | Connexion de l'équipe seulement (pas de compte visiteur, inscription désactivée) : librairie reconnue, sessions en base et cookie httpOnly, sans authentification faite maison |
 | Admin | **Interface `/admin` réservée au rôle admin** + clé `x-admin-key` pour les devs (développement uniquement) | Julie gère le site seule, sans toucher au code (voir plus bas) |
 
 ## Pages du site
@@ -237,16 +278,15 @@ Tout tourne en local sur `http://localhost:3000`.
 | Offre podcast | Studio de production pour d'autres marques, sponsoring du podcast | B2B | `POST /api/devis` |
 | Expériences (`/experiences`) | Onglet Particuliers : une carte par expérience (prochaine date, places restantes, autres dates, ou « Sur devis ») | B2C | `GET /api/experiences` |
 | Expériences entreprises (`/experiences/entreprises`) | Onglet Entreprises : sur-mesure, formats en photos, déroulé, avis, « Obtenir un devis » | B2B | `POST /api/devis` |
-| Ateliers / Good tours / Immersions | 1 page par expérience, galerie photos. Ateliers et good tours : sessions réservables en ligne. Immersions (surtout B2B) : sur devis uniquement | B2C et B2B | `GET /api/experiences/[slug]`, `GET /api/sessions`, `POST /api/devis` |
+| Ateliers / Good tours / Immersions | 1 page par expérience, galerie photos. Ateliers et good tours : sessions réservables et payables en ligne, sans compte (nom, e-mail, téléphone facultatif). Immersions (surtout B2B) : sur devis uniquement | B2C et B2B | `GET /api/experiences/[slug]`, `GET /api/sessions`, `POST /api/checkout`, `POST /api/devis` |
 | Blog (`/blog`) | Articles publiés, onglets par catégorie | Tous | `GET /api/articles` |
 | Catégorie (`/blog/categorie/[categorie]`) | Les articles d'une catégorie, avec son titre et sa description | Tous (« Pour les entreprises » : B2B) | `GET /api/articles?categorie=` |
 | Article (`/blog/[slug]`) | Un article mis en forme en Markdown, puis l'épisode lié, les expériences liées et leurs prochaines dates, l'encadré devis pour les entreprises | Tous | `GET /api/articles/[slug]` |
 | À propos | Mission, histoire, Julie Van Ossel, partenaires, avis, galerie photos | Tous | `GET /api/partenaires`, `GET /api/avis` |
-| Contact (`/contact`) | Demande de devis (B2B : expérience, sponsoring, studio, événement ; réponse sous 48h). Compte requis | B2B | `POST /api/devis` |
-| Réservation (succès / annulée) | Confirmation après le paiement (succès : propriétaire de la réservation uniquement) | B2C | `GET /api/reservations?session_id=` |
-| Connexion / Inscription | `/connexion` et `/inscription` ; un compte est requis pour réserver et demander un devis | Tous | `/api/auth/*` |
-| Mon compte (`/compte`) | Mes réservations et mes demandes de devis | Clients | `GET /api/compte` |
-| Admin (`/admin`) | Interface de gestion protégée par mot de passe (voir ci-dessous) | Julie | routes admin |
+| Contact (`/contact`) | Demande de devis sans compte (B2B : expérience, sponsoring, studio, événement ; réponse sous 48h) : nom, entreprise, e-mail, téléphone | B2B | `POST /api/devis` |
+| Réservation (succès / annulée) | Confirmation après le paiement (succès : seulement si la session Stripe existe et désigne la réservation) | B2C | `GET /api/reservations?session_id=` |
+| Mentions légales (`/mentions-legales`), Confidentialité (`/confidentialite`) | Texte de base à compléter, modifiable dans `/admin/textes` | Tous | — |
+| Admin (`/admin`) | Interface de gestion ; connexion sur `/admin/connexion`, sans lien depuis le site (voir ci-dessous) | Julie | routes admin, `/api/auth/*` |
 
 Chaque page peut afficher une galerie de photos : `GET /api/images?page=<chemin de la page>`.
 Pas de logos clients : la crédibilité passe par les avis et les partenaires (affichés seulement après leur accord).
@@ -254,9 +294,10 @@ Pas de logos clients : la crédibilité passe par les avis et les partenaires (a
 ## Interface d'administration (`/admin`)
 
 Julie gère le site seule et n'est pas technique : tout se fait avec des formulaires dans `/admin`.
-L'accès est réservé aux comptes au rôle **admin** : Julie se connecte sur `/connexion` avec le compte créé par le seed
-(`ADMIN_EMAIL` / `ADMIN_PASSWORD`), puis le lien « Administration » apparaît dans l'en-tête. Elle peut donner le rôle
-admin à un autre compte dans `/admin/utilisateurs`. Un client qui ouvre `/admin` est redirigé vers « Accès refusé ».
+L'accès est réservé aux comptes au rôle **admin** : Julie se connecte sur **`/admin/connexion`** avec le compte créé
+par le seed (`ADMIN_EMAIL` / `ADMIN_PASSWORD`). Aucun lien du site public n'y mène : elle garde l'adresse en favori.
+`/admin` ouvert sans connexion y redirige ; la connexion dure 30 jours, prolongée à chaque visite. « Voir le site » et
+« Déconnexion » sont dans la navigation de l'admin. Mot de passe oublié : lien sur la page de connexion.
 
 | Page admin | Ce que Julie peut y faire |
 |---|---|
@@ -264,14 +305,14 @@ admin à un autre compte dans `/admin/utilisateurs`. Un client qui ouvre `/admin
 | `/admin/devis` | Voir la fiche d'une demande, changer son statut, ajouter une note interne (jamais vue par le client), la supprimer |
 | `/admin/experiences` | Créer, modifier, masquer ou afficher une expérience, choisir « réservable en ligne » ou « sur devis ». Une expérience qui a des sessions ne se supprime pas : l'admin propose de la masquer |
 | `/admin/sessions` | Ajouter des dates, les modifier, fermer ou rouvrir une session. Une session réservée ne se supprime pas (l'admin propose de la fermer) et ses places ne descendent pas sous les places réservées |
-| `/admin/textes` | Modifier les titres, paragraphes et boutons de l'accueil, d'« À propos », du studio, des expériences et du blog (filtre par page), ou remettre le texte d'origine. Les liens et la mise en page restent fixes |
+| `/admin/textes` | Modifier les titres, paragraphes et boutons de l'accueil, d'« À propos », du studio, des expériences et du blog, et le texte des mentions légales et de la confidentialité (filtre par page), ou remettre le texte d'origine. Les liens et la mise en page restent fixes |
 | `/admin/photos` | Envoyer, modifier ou supprimer une photo (le fichier est effacé du disque), choisir sa page dans une liste, sa description et son ordre |
 | `/admin/episodes` | Importer depuis Ausha, changer le type (complet, extrait, replay), modifier le résumé, l'invité et les liens, supprimer (un épisode supprimé revient au prochain import) |
 | `/admin/articles` | Écrire (mise en forme Markdown), publier ou dépublier, supprimer un article du blog ; choisir sa catégorie, l'épisode lié (du plus récent au plus ancien) et les expériences liées (cases à cocher) ; filtrer par catégorie |
 | `/admin/avis` | Ajouter, modifier, afficher ou masquer, supprimer un avis client |
 | `/admin/partenaires` | Ajouter, modifier, supprimer un partenaire ; l'afficher une fois son accord obtenu |
-| `/admin/utilisateurs` | Voir les comptes, modifier un nom, un téléphone ou un rôle, supprimer un compte (ses réservations sont gardées). Les comptes se créent sur `/inscription` ; le dernier admin ne peut être ni rétrogradé ni supprimé |
-| `/admin/newsletter` | Voir les inscrits, ajouter, corriger ou désinscrire une adresse |
+| `/admin/utilisateurs` | « Administrateurs » : ajouter un admin (nom, e-mail ; il reçoit un lien valable 1 h pour choisir son mot de passe, ensuite « Mot de passe oublié »), voir s'il l'a choisi, supprimer un accès. Le dernier admin ne peut pas être supprimé |
+| `/admin/newsletter` | Voir les inscrits et la date de leur consentement, ajouter, corriger ou désinscrire une adresse |
 
 Pour que Julie s'en serve sans aide :
 - chaque suppression demande une confirmation qui nomme l'élément (« Supprimer l'atelier « … » ? Cette action est définitive. ») ;
@@ -280,7 +321,7 @@ Pour que Julie s'en serve sans aide :
 - les champs obligatoires sont marqués d'un astérisque, les prix se saisissent en euros (`45` ou `45,50`) ;
 - une photo ou une couverture remplacée ou supprimée est effacée du disque, sauf si elle sert encore ailleurs.
 
-Toutes les rubriques utilisent la même page (`src/app/admin/[ressource]`), décrite dans `src/frontend/admin/ressources.ts` :
+Toutes les rubriques utilisent la même page (`src/app/admin/(espace)/[ressource]`), décrite dans `src/frontend/admin/ressources.ts` :
 ajouter une rubrique revient à y décrire ses colonnes et ses champs. Les formulaires appellent les mêmes routes API
 que les exemples de [docs/curl-admin.md](docs/curl-admin.md).
 
@@ -311,6 +352,13 @@ MAIL_FROM="Maison La recette <site@maison-la-recette.local>"
 MAIL_ADMIN_TO=julie@exemple.fr   # boîte de Julie (devis, réservations) : adresse fictive en démo
 
 AUSHA_RSS_URL=https://feed.ausha.co/Zg75JI109Rlm   # flux du podcast « la recette » (import des épisodes)
+
+# Facultatif : anti-spam (valeurs par défaut en production, 20 fois plus larges en développement)
+# LIMITE_PERIODE_MINUTES=10
+# LIMITE_DEVIS=5
+# LIMITE_CHECKOUT=10
+# LIMITE_NEWSLETTER=5
+# PROXY_DE_CONFIANCE=0                              # nombre de proxys devant le site (x-forwarded-for)
 ```
 
 Exclusions déjà configurées dans `.gitignore` :

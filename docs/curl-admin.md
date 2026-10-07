@@ -2,14 +2,15 @@
 
 Ces exemples sont pour les devs. Julie, elle, passe par l'interface `/admin`, dont les formulaires appellent ces mêmes routes.
 
-Ces routes exigent un **compte admin connecté** (cookie de session) :
+Ces routes exigent un **compte admin connecté** (cookie de session). Les visiteurs n'ont pas de compte ; seule
+l'équipe se connecte, sur `/admin/connexion`.
 
-- sans session : `401` avec `{ "error": "Connectez-vous pour continuer." }` ;
-- connecté avec un compte client : `403` avec `{ "error": "Accès réservé à l’administration." }`.
+- sans session : `401` avec `{ "error": "Connectez-vous à l’administration pour continuer." }` ;
+- connecté avec un compte sans le rôle admin : `403` avec `{ "error": "Accès réservé à l’administration." }`.
 
 **Uniquement en développement** (`npm run dev`, tests), le header `x-admin-key` (valeur de `ADMIN_KEY`
 dans `.env.local`) remplace la session admin pour ces exemples. Il est **refusé en production**
-(`NODE_ENV=production`, donc avec `npm start`) et ne permet jamais de réserver ni de demander un devis.
+(`NODE_ENV=production`, donc avec `npm start`).
 
 ```bash
 export BASE=http://localhost:3000
@@ -19,7 +20,8 @@ export ADMIN_KEY=ma-cle-secrete
 ## Admin : se connecter avec le compte admin
 
 Le compte admin est créé par le seed à partir de `ADMIN_EMAIL` et `ADMIN_PASSWORD` (`.env.local`).
-C'est ce que fait le formulaire de `/connexion`.
+C'est ce que fait le formulaire de `/admin/connexion`. La session dure 30 jours, prolongée à chaque visite
+(au plus une fois par jour).
 
 ```bash
 curl -X POST "$BASE/api/auth/sign-in/email" \
@@ -34,11 +36,37 @@ Le cookie remplace alors la clé dans tous les exemples ci-dessous :
 curl "$BASE/api/devis" -b admin.txt
 ```
 
+**Session en cours** (`null` si personne n'est connecté ; la lire prolonge la session)
+
+```bash
+curl "$BASE/api/auth/get-session" -b admin.txt
+```
+
 **Se déconnecter**
 
 ```bash
 curl -X POST "$BASE/api/auth/sign-out" -H "Origin: $BASE" -b admin.txt -c admin.txt
 ```
+
+**Mot de passe oublié** (page `/admin/mot-de-passe-oublie` ; l'e-mail arrive dans Mailpit en local : http://localhost:8025)
+
+```bash
+curl -X POST "$BASE/api/auth/request-password-reset" \
+  -H "Content-Type: application/json" -H "Origin: $BASE" \
+  -d '{ "email": "admin@exemple.fr", "redirectTo": "/admin/reinitialiser-mot-de-passe" }'
+```
+
+Réponse `200` identique, que l'adresse ait un accès ou non. Le lien de l'e-mail mène à
+`/admin/reinitialiser-mot-de-passe?token=…` (valable 1 h, usage unique), qui appelle :
+
+```bash
+curl -X POST "$BASE/api/auth/reset-password" \
+  -H "Content-Type: application/json" -H "Origin: $BASE" \
+  -d '{ "newPassword": "un-nouveau-mot-de-passe", "token": "JETON_DU_LIEN" }'
+```
+
+Les autres connexions sont fermées. Lien expiré ou déjà utilisé : `400` (`INVALID_TOKEN`).
+Mauvais identifiants à la connexion : `401` avec `{ "code": "INVALID_EMAIL_OR_PASSWORD" }`.
 
 ## Admin : réservations
 
@@ -67,7 +95,7 @@ curl -X PATCH "$BASE/api/reservations/7" \
   -d '{ "statut": "annulee" }'
 ```
 
-Sans session admin (ni clé en développement) : `401`. Avec un compte client : `403`.
+Sans session admin (ni clé en développement) : `401`. Avec un compte sans le rôle admin : `403`.
 
 ## Admin : devis
 
@@ -464,7 +492,8 @@ curl -X DELETE "$BASE/api/images/2" -H "x-admin-key: $ADMIN_KEY"
 
 ## Admin : textes des pages
 
-Les emplacements (titre, paragraphes, boutons de l'accueil, d'À propos, du studio et du blog) sont fixés dans
+Les emplacements (titre, paragraphes, boutons de l'accueil, d'À propos, du studio, des expériences et du blog, texte
+des pages Confidentialité et Mentions légales) sont fixés dans
 `src/backend/contenus/textes-par-defaut.ts` : on modifie leur texte, on ne les crée ni ne les supprime.
 
 **Voir les textes** (avec l'accès admin, les emplacements absents de la base y sont créés avec leur texte d'origine)
@@ -483,9 +512,11 @@ curl -X PUT "$BASE/api/textes/2" \
 ```
 
 Règles : un titre ou un bouton tient sur une ligne (les retours à la ligne deviennent des espaces), un paragraphe
-garde les siens. Longueur maximale : 120 caractères pour un titre, 1000 pour un paragraphe, 40 pour un bouton.
-Texte vide : `400` avec `{ "champ": "texte", "message": "Champ obligatoire." }` dans `details`, sauf pour un texte
-facultatif (la mention en bas de l'accueil), qui n'est alors plus affiché.
+et un texte de page (format `long`) gardent les leurs ; dans un texte de page, une ligne commençant par `## ` est un
+intertitre. Longueur maximale : 120 caractères pour un titre, 1000 pour un paragraphe, 40 pour un bouton, 20 000 pour
+un texte de page. Texte vide : `400` avec `{ "champ": "texte", "message": "Champ obligatoire." }` dans `details`, sauf
+pour un texte facultatif (la mention en bas de l'accueil, le bandeau « texte à valider » des pages légales), qui
+n'est alors plus affiché.
 
 **Remettre le texte d'origine** : renvoyer `texteOrigine`, lu dans la liste.
 
@@ -497,10 +528,11 @@ facultatif (la mention en bas de l'accueil), qui n'est alors plus affiché.
 curl "$BASE/api/newsletter" -H "x-admin-key: $ADMIN_KEY"
 ```
 
-**Ajouter une adresse**
+**Ajouter une adresse** (depuis l'admin : ni case de consentement, ni limite d'envois ; la date de consentement reste vide)
 
 ```bash
 curl -X POST "$BASE/api/newsletter" \
+  -H "x-admin-key: $ADMIN_KEY" \
   -H "Content-Type: application/json" \
   -d '{ "email": "lectrice@example.com" }'
 ```
@@ -522,28 +554,39 @@ Adresse déjà inscrite : `409` avec, sous le champ `email`, « Déjà utilisé 
 curl -X DELETE "$BASE/api/newsletter/4" -H "x-admin-key: $ADMIN_KEY"
 ```
 
-## Admin : utilisateurs
+## Admin : administrateurs (`/admin/utilisateurs`)
 
-**Lister les comptes** (sans aucune donnée d'authentification ; nombre de réservations et de devis inclus)
+**Lister les admins** (sans aucune donnée d'authentification ; `motDePasseChoisi` : `false` tant que l'admin ajouté
+n'a pas utilisé le lien reçu par e-mail)
 
 ```bash
 curl "$BASE/api/utilisateurs" -H "x-admin-key: $ADMIN_KEY"
 ```
 
-**Modifier un compte** (`nom`, `telephone` ou `role` : `client` ou `admin`)
+Réponse `200` :
 
-```bash
-curl -X PATCH "$BASE/api/utilisateurs/ID_DU_COMPTE" \
-  -H "x-admin-key: $ADMIN_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{ "role": "admin" }'
+```json
+[{ "id": "…", "nom": "Administration", "email": "admin@exemple.fr", "createdAt": "…", "motDePasseChoisi": true }]
 ```
 
-**Supprimer un compte** (ses réservations et demandes de devis sont conservées, détachées du compte)
+**Ajouter un admin** (`nom`, `email`) : le compte est créé sans mot de passe, avec le rôle admin ; il reçoit un
+e-mail avec un lien valable 1 h pour choisir le sien (ensuite : « Mot de passe oublié » sur `/admin/connexion`).
+
+```bash
+curl -X POST "$BASE/api/utilisateurs" \
+  -H "x-admin-key: $ADMIN_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "nom": "Marc", "email": "marc@exemple.fr" }'
+```
+
+Réponse `201` : `{ "id": "…", "nom": "Marc", "email": "marc@exemple.fr" }`. Adresse déjà utilisée : `409` ;
+un champ `role` (ou tout autre champ) est refusé : `400`.
+
+**Retirer un admin** (ses connexions ouvertes sont fermées)
 
 ```bash
 curl -X DELETE "$BASE/api/utilisateurs/ID_DU_COMPTE" -H "x-admin-key: $ADMIN_KEY"
 ```
 
-Le **dernier compte admin** ne peut être ni rétrogradé en `client` ni supprimé, y compris par lui-même :
-`409` avec `{ "error": "Impossible : c’est le dernier compte administrateur. Donnez d’abord le rôle admin à un autre compte." }`.
+Le **dernier admin** ne peut pas être supprimé, y compris par lui-même :
+`409` avec `{ "error": "Impossible : c’est le dernier compte administrateur. Ajoutez d’abord un autre admin." }`.

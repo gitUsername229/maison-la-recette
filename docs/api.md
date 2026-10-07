@@ -11,16 +11,19 @@ Conventions :
 - Les prix sont en **centimes** (`7000` = 70,00 €).
 - Les dates sont au format ISO 8601 (`2026-11-14T10:00:00.000Z`).
 - **Accès** (contrôle unique : `src/backend/auth/acces.ts`) :
-  - **Public** : sans compte ;
-  - **Connecté** : cookie de session d'un compte (client ou admin). Le `userId`, le nom et l'e-mail
-    viennent toujours de la session, jamais du corps de la requête ;
-  - **Admin** : cookie de session d'un compte au rôle `admin`. En développement seulement, le header
-    `x-admin-key` (valeur dans `.env.local`) le remplace pour les tests curl ; il est refusé en production.
+  - **Public** : sans compte. Les visiteurs n'ont pas de compte : réservation, devis et newsletter sont publics ;
+  - **Admin** : cookie de session d'un compte au rôle `admin` (connexion sur `/admin/connexion`). Un compte sans ce
+    rôle n'a aucun droit (`403`). En développement seulement, le header `x-admin-key` (valeur dans `.env.local`) le
+    remplace pour les tests curl ; il est refusé en production.
+- **Formulaires publics** (`POST /api/devis`, `/api/checkout`, `/api/newsletter`) : case de consentement obligatoire
+  (`"consentement": true`, date enregistrée), champ piège `siteWeb` (rempli : réponse habituelle sans rien enregistrer
+  pour le devis et la newsletter, `400` pour la réservation) et limite d'envois par adresse IP (`429`, voir le README).
 - Les GET publics ne renvoient que le contenu visible (`actif`, `visible` ou `publie` à `true`). Avec l'accès admin, ils renvoient tout (brouillons, contenus masqués, sessions passées).
 - Toutes les entrées sont validées (zod) ; un champ inconnu est refusé.
 - Erreurs : `400` (données invalides, avec `details` : champs en cause), `401` (non connecté), `403` (rôle insuffisant),
-  `404` (introuvable, ou réservation d'un autre client), `409` (plus de places, conflit, suppression refusée, dernier admin),
-  `500` (problème technique, détail seulement dans le journal du serveur).
+  `404` (introuvable), `409` (plus de places, conflit, suppression refusée, dernier admin), `429` (trop d'envois depuis
+  la même adresse IP), `500` (problème technique, détail seulement dans le journal du serveur),
+  `503` (Stripe injoignable pendant une vérification).
 - Corps d'une erreur : `{ "error": "…", "details": [{ "champ": "prixCents", "message": "Champ obligatoire." }], "suggestion": "masquer" }`.
   `error` et `details` sont en français simple, prêts à afficher ; l'admin place chaque message sous son champ.
   `suggestion` (`masquer` ou `fermer`) indique l'action à proposer quand une suppression est refusée.
@@ -31,15 +34,12 @@ Conventions :
 
 | Méthode | Route | Rôle | Accès |
 |---|---|---|---|
-| POST | `/api/auth/sign-up/email` | Créer un compte (rôle `client`) | Public |
-| POST | `/api/auth/sign-in/email` | Se connecter | Public |
-| POST | `/api/auth/sign-out` | Se déconnecter | Connecté |
-| GET | `/api/auth/get-session` | Session en cours | Public |
-| POST | `/api/auth/request-password-reset` | Mot de passe oublié : envoie le lien par e-mail (même réponse qu'un compte existe ou non) | Public |
+| POST | `/api/auth/sign-up/email` | Inscription **désactivée** : répond toujours `400` | — |
+| POST | `/api/auth/sign-in/email` | Connexion de l'équipe (page `/admin/connexion`) | Public |
+| POST | `/api/auth/sign-out` | Se déconnecter | Admin |
+| GET | `/api/auth/get-session` | Session en cours (la prolonge à 30 jours, au plus une fois par jour) | Public |
+| POST | `/api/auth/request-password-reset` | Mot de passe oublié : envoie le lien par e-mail (même réponse que l'adresse ait un accès ou non) | Public |
 | POST | `/api/auth/reset-password` | Nouveau mot de passe avec le jeton du lien (valable 1 h, usage unique) | Public |
-| GET | `/api/auth/verify-email?token=` | Lien de vérification de l'adresse (envoyé à l'inscription) | Public |
-| POST | `/api/auth/send-verification-email` | Renvoyer le lien de vérification | Public |
-| GET | `/api/compte` | Mon compte, mes réservations et mes demandes de devis | Connecté |
 | GET | `/api/experiences` | Liste des expériences (`?type=`) | Public |
 | GET | `/api/experiences/[slug]` | Une expérience avec galerie et sessions | Public |
 | GET | `/api/sessions` | Sessions disponibles (`?experience=`, `?disponible=true`) | Public |
@@ -50,11 +50,11 @@ Conventions :
 | GET | `/api/articles/[slug]` | Un article du blog | Public |
 | GET | `/api/blog/categories` | Les 4 catégories du blog dans l'ordre (`valeur`, `libelle`, `description`) | Public |
 | GET | `/api/images?page=` | Galerie photos d'une page | Public |
-| GET | `/api/textes?page=` | Textes fixes d'une page (`accueil`, `a-propos`, `studio`, `experiences`, `blog`), avec leur texte d'origine | Public |
-| POST | `/api/checkout` | Réserver et payer (expériences réservables en ligne) | Connecté |
-| GET | `/api/reservations?session_id=` | Réservation après paiement | Connecté (propriétaire) |
+| GET | `/api/textes?page=` | Textes fixes d'une page (`accueil`, `a-propos`, `studio`, `experiences`, `blog`, `confidentialite`, `mentions-legales`), avec leur texte d'origine | Public |
+| POST | `/api/checkout` | Réserver et payer (expériences réservables en ligne) : `sessionId`, `nbPersonnes`, `nom`, `email`, `telephone` (facultatif), `consentement` | Public |
+| GET | `/api/reservations?session_id=` | Réservation après paiement, seulement si la session Stripe existe et la désigne (`404` sinon, `503` si Stripe est injoignable) ; sans nom, e-mail ni téléphone | Public |
 | POST | `/api/webhook` | Confirmation de paiement Stripe | Stripe |
-| POST | `/api/devis` | Demande de devis | Connecté |
+| POST | `/api/devis` | Demande de devis : `nom`, `entreprise`, `email`, `telephone`, `typeDemande`, `message`, champs facultatifs, `consentement`. Répond `{ "message": "…" }` | Public |
 | GET | `/api/reservations` | Toutes les réservations (`?statut=`) | Admin |
 | PATCH | `/api/reservations/[id]` | Annuler une réservation | Admin |
 | GET | `/api/devis` | Toutes les demandes de devis (`?statut=`) | Admin |
@@ -83,14 +83,14 @@ Conventions :
 | POST | `/api/images` | Ajouter une photo à la galerie d'une page | Admin |
 | PUT | `/api/images/[id]` | Modifier le texte alternatif, la page ou l'ordre | Admin |
 | DELETE | `/api/images/[id]` | Retirer une photo de galerie (le fichier est effacé du disque) | Admin |
-| POST | `/api/newsletter` | S'inscrire à la newsletter (même réponse si l'adresse était déjà inscrite) | Public |
+| POST | `/api/newsletter` | S'inscrire à la newsletter : `email`, `consentement` (même réponse si l'adresse était déjà inscrite). Depuis l'admin : `email` seul | Public |
 | PUT | `/api/textes/[id]` | Modifier un texte des pages (`{ "texte": "…" }` ; longueur et caractère obligatoire selon l'emplacement) | Admin |
 | GET | `/api/newsletter` | Lister les inscrits | Admin |
 | PUT | `/api/newsletter/[id]` | Corriger une adresse | Admin |
 | DELETE | `/api/newsletter/[id]` | Désinscrire une adresse | Admin |
-| GET | `/api/utilisateurs` | Lister les comptes | Admin |
-| PATCH | `/api/utilisateurs/[id]` | Modifier le nom, le téléphone ou le rôle d'un compte | Admin |
-| DELETE | `/api/utilisateurs/[id]` | Supprimer un compte (réservations et devis conservés) | Admin |
+| GET | `/api/utilisateurs` | Lister les admins (`motDePasseChoisi` : lien d'invitation utilisé ou non) | Admin |
+| POST | `/api/utilisateurs` | Ajouter un admin (`nom`, `email`) : il reçoit un lien valable 1 h pour choisir son mot de passe | Admin |
+| DELETE | `/api/utilisateurs/[id]` | Retirer un admin (ses connexions sont fermées) | Admin |
 
 **Règles de suppression** (pour ne jamais casser l'historique) :
 - une expérience qui a des sessions ne se supprime pas : on la masque ;
@@ -99,13 +99,14 @@ Conventions :
 - une réservation ne se supprime jamais (historique, comptabilité) : on l'annule ;
 - un fichier envoyé (photo, couverture d'expérience ou d'article, photo de partenaire) est effacé du disque quand
   il est remplacé ou que son contenu est supprimé, sauf s'il sert encore ailleurs sur le site ;
-- le dernier compte admin ne peut être ni rétrogradé ni supprimé (`409`).
+- le dernier compte admin ne peut pas être supprimé (`409`).
 
-**E-mails envoyés** (après la réponse, voir `src/backend/mails/`) : confirmation de réservation et information à Julie
-après le webhook de paiement, détail du devis à Julie et accusé au client après `POST /api/devis`, lien de mot de passe
-oublié, lien de vérification à l'inscription.
+**E-mails envoyés** (après la réponse, voir `src/backend/mails/`) : confirmation de réservation (tout le récapitulatif)
+et information à Julie après le paiement, détail du devis à Julie et accusé au client après `POST /api/devis` ; la
+réponse du client à ces e-mails arrive à Julie (`Reply-To` : `MAIL_ADMIN_TO`). Lien de mot de passe oublié et invitation
+d'un nouvel admin.
 
 **Référencement** : `/sitemap.xml` (pages publiques, expériences visibles, articles publiés et catégories qui en ont,
-recalculé à chaque demande) et `/robots.txt` (exclut `/admin`, `/compte`, `/connexion`, `/inscription`, les pages de mot de
-passe et de réservation, et `/api/`). Chaque article a son titre, sa description (l'extrait), son adresse canonique et ses
+recalculé à chaque demande) et `/robots.txt` (exclut `/admin`, qui contient la connexion et les pages de mot de passe,
+les pages de réservation et `/api/`). Tout `/admin` est aussi en `noindex`. Chaque article a son titre, sa description (l'extrait), son adresse canonique et ses
 balises de partage (Open Graph, X) avec la couverture.

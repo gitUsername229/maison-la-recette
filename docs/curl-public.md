@@ -6,91 +6,29 @@
 export BASE=http://localhost:3000
 ```
 
-Tout le site se consulte sans compte. Un compte est obligatoire pour **réserver**, **demander un devis**
-et consulter **son espace** : ces routes répondent `401` sans cookie de session.
+Tout le site s'utilise **sans compte** : réserver, demander un devis et s'inscrire à la newsletter sont ouverts
+à tous. Seule l'équipe se connecte, pour l'administration (voir [curl-admin.md](curl-admin.md)).
 
-## Comptes (Better Auth)
+Les trois formulaires publics (`/api/checkout`, `/api/devis`, `/api/newsletter`) demandent :
+- `"consentement": true` (case « politique de confidentialité » cochée ; sa date est enregistrée). Absent ou `false` :
+  `400` avec `{ "champ": "consentement", "message": "Cochez la case pour accepter la politique de confidentialité." }` ;
+- de laisser vide le champ piège `siteWeb` (caché aux visiteurs). Rempli, on suppose un robot : le devis et la newsletter
+  répondent comme d'habitude sans rien enregistrer ni envoyer, la réservation répond `400` ;
+- de ne pas dépasser la limite d'envois par adresse IP (en production : 5 devis, 10 réservations et 5 inscriptions
+  par 10 minutes ; 20 fois plus en développement). Au-delà : `429` avec
+  `{ "error": "Trop d’envois en peu de temps depuis votre connexion. Réessayez dans 10 minutes." }`.
 
-Les routes `/api/auth/*` sont fournies par Better Auth. Le cookie de session (`better-auth.session_token`,
-httpOnly) est gardé dans `cookies.txt` puis renvoyé avec `-b cookies.txt`. Better Auth vérifie l'origine
-des requêtes : ajouter `-H "Origin: $BASE"`.
+## Pas d'inscription
 
-**Créer un compte** (connecte aussitôt ; `telephone` facultatif ; mot de passe de 8 caractères minimum)
+L'inscription est désactivée : la route de Better Auth répond `400`, et aucun compte n'est créé.
 
 ```bash
 curl -X POST "$BASE/api/auth/sign-up/email" \
   -H "Content-Type: application/json" -H "Origin: $BASE" \
-  -c cookies.txt \
-  -d '{ "name": "Camille Martin", "email": "camille@example.com", "password": "un-mot-de-passe", "telephone": "0600000000" }'
+  -d '{ "name": "Camille Martin", "email": "camille@example.com", "password": "un-mot-de-passe" }'
 ```
 
-Le rôle est toujours `client` : un champ `role` envoyé ici est ignoré. E-mail déjà utilisé : `422`.
-
-**Se connecter**
-
-```bash
-curl -X POST "$BASE/api/auth/sign-in/email" \
-  -H "Content-Type: application/json" -H "Origin: $BASE" \
-  -c cookies.txt \
-  -d '{ "email": "camille@example.com", "password": "un-mot-de-passe" }'
-```
-
-Mauvais identifiants : `401` avec `{ "code": "INVALID_EMAIL_OR_PASSWORD" }`.
-
-**Mot de passe oublié** (l'e-mail arrive dans Mailpit en local : http://localhost:8025)
-
-```bash
-curl -X POST "$BASE/api/auth/request-password-reset" \
-  -H "Content-Type: application/json" -H "Origin: $BASE" \
-  -d '{ "email": "camille@example.com", "redirectTo": "/reinitialiser-mot-de-passe" }'
-```
-
-Réponse `200` identique, que l'adresse ait un compte ou non. Le lien de l'e-mail mène à
-`/reinitialiser-mot-de-passe?token=…` (valable 1 h, usage unique), qui appelle :
-
-```bash
-curl -X POST "$BASE/api/auth/reset-password" \
-  -H "Content-Type: application/json" -H "Origin: $BASE" \
-  -d '{ "newPassword": "un-nouveau-mot-de-passe", "token": "JETON_DU_LIEN" }'
-```
-
-Les autres connexions du compte sont fermées. Lien expiré ou déjà utilisé : `400` (`INVALID_TOKEN`).
-
-**Vérification de l'adresse** : un lien est envoyé à l'inscription (valable 24 h). Pour le renvoyer :
-
-```bash
-curl -X POST "$BASE/api/auth/send-verification-email" \
-  -H "Content-Type: application/json" -H "Origin: $BASE" \
-  -d '{ "email": "camille@example.com", "callbackURL": "/compte" }'
-```
-
-**Session en cours** (`null` si personne n'est connecté)
-
-```bash
-curl "$BASE/api/auth/get-session" -b cookies.txt
-```
-
-**Se déconnecter**
-
-```bash
-curl -X POST "$BASE/api/auth/sign-out" -H "Origin: $BASE" -b cookies.txt -c cookies.txt
-```
-
-**Mon espace** : le compte, ses réservations et ses demandes de devis (jamais celles d'un autre client)
-
-```bash
-curl "$BASE/api/compte" -b cookies.txt
-```
-
-Réponse `200` :
-
-```json
-{
-  "utilisateur": { "id": "…", "nom": "Camille Martin", "email": "camille@example.com", "telephone": "0600000000", "role": "client" },
-  "reservations": [{ "id": 7, "nbPersonnes": 2, "montantCents": 9000, "statut": "payee", "session": { "dateDebut": "…", "lieu": "La Rochelle", "experience": { "titre": "…", "slug": "…" } } }],
-  "demandesDevis": [{ "id": 3, "typeDemande": "studio", "entreprise": "Marque Exemple", "statut": "nouvelle" }]
-}
-```
+Réponse `400` : `{ "code": "EMAIL_PASSWORD_SIGN_UP_DISABLED", "message": "Email and password sign up is not enabled" }`.
 
 ## Expériences
 
@@ -412,7 +350,8 @@ Réponse `200` (triée par `ordre`) :
 
 ## Textes des pages
 
-**Textes d'une page** (`accueil`, `a-propos`, `studio`, `experiences` ou `blog`), dans l'ordre de la page
+**Textes d'une page** (`accueil`, `a-propos`, `studio`, `experiences`, `blog`, `confidentialite` ou `mentions-legales`),
+dans l'ordre de la page
 
 ```bash
 curl "$BASE/api/textes?page=studio"
@@ -430,17 +369,20 @@ Réponse `200` (extrait) :
 ]
 ```
 
-Page inconnue : `400` avec `{ "error": "Page inconnue : accueil, a-propos, studio, experiences, blog." }`.
+Page inconnue : `400` avec `{ "error": "Page inconnue : accueil, a-propos, studio, experiences, blog, confidentialite, mentions-legales." }`.
+Chaque ligne a aussi un `apercu` (les 300 premiers caractères, pour la liste de l'admin). Le texte des pages
+Confidentialité et Mentions légales (format `long`) garde ses retours à la ligne ; une ligne commençant par `## ` y est
+un intertitre.
 Les pages du site lisent ces textes directement côté serveur ; un texte absent de la base affiche son texte d'origine.
 
 ## Newsletter
 
-**S'inscrire** (sans compte ; l'adresse est enregistrée en minuscules, sans espaces)
+**S'inscrire** (sans compte ; l'adresse est enregistrée en minuscules, sans espaces, avec la date du consentement)
 
 ```bash
 curl -X POST "$BASE/api/newsletter" \
   -H "Content-Type: application/json" \
-  -d '{ "email": "lectrice@example.com" }'
+  -d '{ "email": "lectrice@example.com", "consentement": true }'
 ```
 
 Réponse `201`, identique si l'adresse était déjà inscrite (on ne révèle pas qui est abonné) :
@@ -454,17 +396,16 @@ La liste des inscrits est réservée à l'admin (voir [curl-admin.md](curl-admin
 
 ## Réserver et payer (B2C)
 
-Seulement pour les expériences réservables en ligne (`reservableEnLigne: true`), avec un compte connecté.
-Le nom, l'e-mail et le téléphone de la réservation sont ceux du compte : ils ne s'envoient pas.
+Seulement pour les expériences réservables en ligne (`reservableEnLigne: true`). Sans compte : le nom, l'e-mail
+(qui reçoit la confirmation) et le téléphone (facultatif) sont ceux saisis dans le formulaire.
 
 **Créer la réservation et la session de paiement Stripe**
 
 ```bash
 curl -X POST "$BASE/api/checkout" \
-  -b cookies.txt \
   -H "Idempotency-Key: 9e205ddd-e3a2-4a1b-81d6-8d505c126998" \
   -H "Content-Type: application/json" \
-  -d '{ "sessionId": 4, "nbPersonnes": 2 }'
+  -d '{ "sessionId": 4, "nbPersonnes": 2, "nom": "Camille Martin", "email": "camille@example.com", "telephone": "0600000000", "consentement": true }'
 ```
 
 Réponse `200` :
@@ -480,15 +421,11 @@ Réponse `200` :
 Le front redirige vers `checkoutUrl`. Sur la page Stripe, payer avec `4242 4242 4242 4242`.
 
 Remplacer l'UUID de l'exemple pour chaque nouvelle réservation. En cas de timeout,
-réutiliser le même UUID et les mêmes données. Les places sont bloquées tant que le
-paiement Checkout peut aboutir (35 min + 2 min de marge), puis libérées ; voir [le guide](ateliers-stripe.md).
+réutiliser le même UUID et les mêmes données (même date, même nombre de places, même nom et même e-mail ; sinon `409`).
+Les places sont bloquées tant que le paiement Checkout peut aboutir (35 min + 2 min de marge), puis libérées ;
+voir [le guide](ateliers-stripe.md).
 
 Erreurs possibles :
-
-```json
-{ "error": "Connectez-vous pour continuer." }
-```
-(code `401`, sans cookie de session)
 
 ```json
 { "error": "Il ne reste que 1 place" }
@@ -496,21 +433,23 @@ Erreurs possibles :
 (code `409`)
 
 ```json
-{ "error": "nbPersonnes doit être supérieur à 0" }
+{ "error": "Vérifiez les champs signalés.", "details": [{ "champ": "email", "message": "Adresse e-mail invalide." }] }
 ```
-(code `400`)
+(code `400` : nom ou e-mail manquant, téléphone trop court, case de consentement non cochée…)
 
 ```json
-{ "error": "Cette expérience se réserve uniquement sur devis" }
+{ "error": "Cette expérience se réserve sur devis" }
 ```
 (code `400`)
 
 **Retrouver la réservation après le paiement** (page `/reservation/succes?session_id=cs_test_...`)
 
-Réservé au compte qui a réservé (ou à un admin) : sans cookie `401`, avec le compte d'un autre client `404`.
+Sans compte, c'est l'identifiant de session Stripe de l'adresse de retour qui donne accès à la réservation. Le serveur
+interroge Stripe : la session doit exister et désigner cette réservation (`metadata.reservationId`). Sinon `404` ;
+Stripe injoignable : `503`. La réponse ne contient ni nom, ni e-mail, ni téléphone.
 
 ```bash
-curl "$BASE/api/reservations?session_id=cs_test_a1B2c3" -b cookies.txt
+curl "$BASE/api/reservations?session_id=cs_test_a1B2c3"
 ```
 
 Réponse `200` :
@@ -518,7 +457,6 @@ Réponse `200` :
 ```json
 {
   "id": 7,
-  "nom": "Camille Martin",
   "nbPersonnes": 2,
   "montantCents": 14000,
   "statut": "payee",
@@ -529,6 +467,8 @@ Réponse `200` :
   }
 }
 ```
+
+Si Stripe confirme un paiement que le webhook n'a pas encore signalé, il est enregistré à ce moment (une seule fois).
 
 ## Webhook Stripe
 
@@ -550,26 +490,27 @@ Quand l'événement `checkout.session.completed` arrive : la réservation passe 
 
 ## Demande de devis (B2B)
 
-Avec un compte connecté. `contactNom`, `email` et `telephone` sont repris du compte : ils ne s'envoient pas
-(un `userId` ou un `email` envoyé est refusé, `400`). Si le compte n'a pas de téléphone, envoyer `telephone` :
-il est obligatoire (Julie rappelle d'abord) et complète le compte.
-
-`typeDemande` : `experience`, `sponsoring`, `studio` ou `evenement`. Seule une demande `experience` peut viser une expérience (`experienceId`).
+Sans compte : `nom`, `entreprise`, `email` et `telephone` sont obligatoires (Julie rappelle avant de répondre).
+`typeDemande` : `experience`, `sponsoring`, `studio` ou `evenement`. Seule une demande `experience` peut viser une
+expérience (`experienceId`).
 
 **Devis pour une expérience en entreprise**
 
 ```bash
 curl -X POST "$BASE/api/devis" \
-  -b cookies.txt \
   -H "Content-Type: application/json" \
   -d '{
+    "nom": "Sophie Durand",
     "entreprise": "Entreprise Exemple",
+    "email": "sophie@example.com",
+    "telephone": "0600000000",
     "typeDemande": "experience",
     "experienceId": 3,
     "nbParticipants": 25,
     "dateSouhaitee": "2027-01-20",
     "lieuSouhaite": "dans_les_locaux",
-    "message": "Nous cherchons un team building autour de l'\''alimentation durable."
+    "message": "Nous cherchons un team building autour de l'\''alimentation durable.",
+    "consentement": true
   }'
 ```
 
@@ -579,26 +520,28 @@ curl -X POST "$BASE/api/devis" \
 
 ```bash
 curl -X POST "$BASE/api/devis" \
-  -b cookies.txt \
   -H "Content-Type: application/json" \
   -d '{
+    "nom": "Sophie Durand",
     "entreprise": "Marque Exemple",
+    "email": "sophie@example.com",
+    "telephone": "0600000000",
     "typeDemande": "studio",
-    "message": "Nous voulons lancer un podcast de marque."
+    "message": "Nous voulons lancer un podcast de marque.",
+    "consentement": true
   }'
 ```
 
 Les demandes `sponsoring` (sponsoriser le podcast) et `evenement` s'envoient de la même façon.
 
-Réponse `201` :
+Réponse `201` (aucun identifiant interne n'est renvoyé) :
 
 ```json
-{ "id": 3, "statut": "nouvelle" }
+{ "message": "Merci ! Julie vous rappelle sous 48 h pour en parler." }
 ```
 
-La demande apparaît dans `/admin/devis` et dans l'espace `/compte` du client. Julie (`MAIL_ADMIN_TO`) reçoit le
-détail par e-mail (« répondre à » écrit directement au client) et le client un accusé de réception. En local, les
-deux e-mails arrivent dans Mailpit : http://localhost:8025.
+La demande apparaît dans `/admin/devis`. Julie (`MAIL_ADMIN_TO`) reçoit le détail par e-mail (« répondre à » écrit
+directement au client) et le client un accusé de réception qui récapitule sa demande (sa réponse arrive à Julie).
+En local, les deux e-mails arrivent dans Mailpit : http://localhost:8025.
 
-Sans cookie : `401`. Compte sans téléphone et `telephone` absent : `400` avec
-`{ "error": "Indiquez un numéro de téléphone : Julie vous rappelle avant de répondre." }`.
+Téléphone ou e-mail manquant, champ inconnu (un ancien `userId` par exemple) : `400` avec les champs en cause dans `details`.

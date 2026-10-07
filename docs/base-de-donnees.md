@@ -14,8 +14,8 @@
 | `Partenaire` | Un producteur ou artisan partenaire |
 | `Image` | Une photo de galerie, rattachée à une page du site |
 | `Newsletter` | Un e-mail inscrit à la newsletter |
-| `TextePage` | Un texte fixe de l'accueil, d'À propos, du studio ou du blog (titre, paragraphe, bouton), modifiable par Julie |
-| `User` | Un compte (client ou admin) |
+| `TextePage` | Un texte fixe de l'accueil, d'À propos, du studio, des expériences, du blog ou des pages légales (titre, paragraphe, bouton, texte de page), modifiable par Julie |
+| `User` | Un compte d'administration (les visiteurs n'ont pas de compte) |
 | `AuthSession`, `AuthAccount`, `AuthVerification` | Tables techniques de Better Auth : sessions de connexion, mot de passe haché, jetons |
 
 Relations :
@@ -25,11 +25,12 @@ Experience 1 ──── n Session 1 ──── n Reservation
 Experience 1 ──── n DemandeDevis   (optionnel)
 Article    n ──── n Experience     (expériences liées à un article)
 Episode    1 ──── n Article        (episodeId, optionnel)
-User       1 ──── n Reservation    (userId, vide pour les réservations faites avant les comptes)
-User       1 ──── n DemandeDevis   (userId, idem)
 User       1 ──── n AuthSession / AuthAccount  (supprimés avec le compte)
 Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé étrangère
 ```
+
+Les réservations et les demandes de devis ne sont liées à aucun compte : le nom, l'e-mail et le téléphone saisis
+dans le formulaire sont enregistrés avec elles.
 
 ## `Experience`
 
@@ -72,16 +73,16 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 |---|---|---|
 | `id` | Int | Clé primaire |
 | `sessionId` | Int | Clé étrangère vers `Session` |
-| `userId` | String? | Clé étrangère vers `User`, renseignée par le serveur depuis la session (jamais par le front). Mise à vide si le compte est supprimé |
-| `nom` | String | Copié du compte au moment de la réservation |
-| `email` | String | Copié du compte au moment de la réservation |
-| `telephone` | String? | Copié du compte au moment de la réservation |
+| `nom` | String | Saisi dans le formulaire de réservation |
+| `email` | String | Saisi dans le formulaire (en minuscules) ; reçoit la confirmation |
+| `telephone` | String? | Saisi dans le formulaire, facultatif |
 | `nbPersonnes` | Int | |
 | `montantCents` | Int | Total payé |
 | `statut` | String | `en_attente`, `payee` ou `annulee` |
 | `stripeSessionId` | String? | Unique, ex : `cs_test_...` |
 | `checkoutKey` | String? | UUID unique de la demande ; évite les doubles réservations |
 | `checkoutPayload` | String? | Paramètres Stripe figés pour rejouer une création après timeout, jamais exposés par l'API |
+| `consentementLe` | DateTime? | Date à laquelle la case « politique de confidentialité » a été cochée (vide pour les réservations plus anciennes) |
 | `createdAt` | DateTime | |
 
 ## `DemandeDevis`
@@ -89,11 +90,10 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
-| `userId` | String? | Clé étrangère vers `User`, renseignée par le serveur depuis la session. Mise à vide si le compte est supprimé |
-| `entreprise` | String | |
-| `contactNom` | String | Nom du compte |
-| `email` | String | E-mail du compte |
-| `telephone` | String? | Téléphone du compte (ou saisi dans le formulaire si le compte n'en a pas) : Julie rappelle avant de répondre |
+| `entreprise` | String | Saisie dans le formulaire |
+| `contactNom` | String | Nom saisi dans le formulaire (champ `nom` de l'API) |
+| `email` | String | Saisi dans le formulaire (en minuscules) ; reçoit l'accusé de réception |
+| `telephone` | String? | Saisi dans le formulaire, obligatoire pour une nouvelle demande : Julie rappelle avant de répondre (vide pour d'anciennes demandes) |
 | `typeDemande` | String | `experience`, `sponsoring`, `studio` ou `evenement` |
 | `experienceId` | Int? | Clé étrangère vers `Experience`, optionnelle |
 | `nbParticipants` | Int? | |
@@ -102,6 +102,7 @@ Image  ──── une page du site, par son chemin (ex : /a-propos), sans clé
 | `message` | String | |
 | `statut` | String | `nouvelle`, `en_cours` ou `traitee` |
 | `noteInterne` | String? | Note de Julie (ex : « Rappeler jeudi »), modifiable dans `/admin/devis`. Jamais montrée au client |
+| `consentementLe` | DateTime? | Date à laquelle la case « politique de confidentialité » a été cochée (vide pour les demandes plus anciennes) |
 | `createdAt` | DateTime | |
 
 ## `Episode`
@@ -191,6 +192,7 @@ du disque quand plus aucune ligne n'y fait référence (`Image.url`, `Experience
 |---|---|---|
 | `id` | Int | Clé primaire |
 | `email` | String | Unique, enregistré en minuscules. Inscription depuis l'accueil, gestion dans `/admin/newsletter` |
+| `consentementLe` | DateTime? | Date à laquelle la case « politique de confidentialité » a été cochée sur le site ; vide pour une adresse ajoutée dans l'admin |
 | `createdAt` | DateTime | Date d'inscription |
 
 ## `TextePage`
@@ -198,44 +200,58 @@ du disque quand plus aucune ligne n'y fait référence (`Image.url`, `Experience
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
-| `page` | String | `accueil`, `a-propos`, `studio`, `experiences` ou `blog` |
+| `page` | String | `accueil`, `a-propos`, `studio`, `experiences`, `blog`, `confidentialite` ou `mentions-legales` |
 | `cle` | String | Emplacement dans la page, ex : `titre`, `introduction`, `bouton`. Unique avec `page` |
 | `texte` | String | Texte affiché, modifiable dans `/admin/textes` |
 | `updatedAt` | DateTime | Dernière modification |
 
-Les emplacements, leur libellé, leur forme (titre, paragraphe, bouton) et leur texte d'origine sont définis dans
+Les emplacements, leur libellé, leur forme (titre, paragraphe, bouton, texte de page) et leur texte d'origine sont définis dans
 `src/backend/contenus/textes-par-defaut.ts`. Le seed crée les textes absents sans jamais remplacer un texte modifié ;
 une page affiche le texte d'origine d'un emplacement qui n'est pas encore en base.
 
 ## `User`
 
-Un compte, créé par l'inscription (`/inscription`) ou par le seed pour l'admin.
+Un compte d'administration : les visiteurs n'en ont pas (aucune inscription possible). Créé par le seed pour Julie,
+ou ajouté par un admin dans `/admin/utilisateurs`.
 
 | Colonne | Type | Détail |
 |---|---|---|
-| `id` | String | Clé primaire (générée par Better Auth) |
+| `id` | String | Clé primaire |
 | `nom` | String | Champ `name` de Better Auth, stocké dans la colonne `nom` |
 | `email` | String | Unique, en minuscules |
-| `emailVerified` | Boolean | `true` après un clic sur le lien envoyé à l'inscription (non bloquant pour réserver) |
+| `emailVerified` | Boolean | Exigé par Better Auth ; `true` pour les admins créés par le seed ou dans l'admin |
 | `image` | String? | Champ de Better Auth, non utilisé |
-| `telephone` | String? | Optionnel |
-| `role` | String | `client` (par défaut) ou `admin`. Impossible à choisir à l'inscription : seul un admin peut le changer |
+| `role` | String | `admin` pour tous les comptes. La valeur par défaut reste `client`, sans aucun droit : un compte créé par erreur n'aurait accès à rien. Vérifié à chaque accès (`verifierAcces`) ; aucune route Better Auth ne permet de le changer |
 | `createdAt` | DateTime | |
 | `updatedAt` | DateTime | |
 
 Le **mot de passe** n'est pas dans `User` : Better Auth le range, haché en **argon2id**, dans `AuthAccount`
 (`providerId = "credential"`, `accountId` = id du compte). Le seed crée le compte admin à partir de
 `ADMIN_EMAIL` et `ADMIN_PASSWORD` (`.env.local`) et ne remplace jamais le mot de passe d'un compte existant.
+Un admin ajouté dans `/admin/utilisateurs` n'a pas encore d'`AuthAccount` : il est créé quand il choisit son mot de
+passe avec le lien reçu par e-mail.
 
-Le dernier compte `admin` ne peut être ni supprimé ni rétrogradé.
+Le dernier compte `admin` ne peut pas être supprimé.
 
 ## Tables techniques de Better Auth
 
 | Table | Rôle |
 |---|---|
-| `AuthSession` | Une connexion active : `token` (dans le cookie httpOnly), `expiresAt`, `ipAddress`, `userAgent`, `userId` |
+| `AuthSession` | Une connexion active : `token` (dans le cookie httpOnly), `expiresAt` (30 jours, repoussé à chaque visite, au plus une fois par jour), `ipAddress`, `userAgent`, `userId` |
 | `AuthAccount` | Une méthode de connexion d'un compte : `providerId` (`credential`), `password` (haché), jetons OAuth inutilisés |
-| `AuthVerification` | Jetons temporaires : réinitialisation du mot de passe (1 h, usage unique) |
+| `AuthVerification` | Jetons temporaires : choix ou réinitialisation du mot de passe (1 h, usage unique) |
 
 Elles s'appellent `Auth…` pour ne pas entrer en conflit avec `Session` (les dates des expériences).
 Ne pas les modifier à la main : elles suivent le format imposé par Better Auth.
+
+## Migration `suppression_comptes_clients`
+
+Les visiteurs n'ont plus de compte. Cette migration :
+1. supprime les sessions, mots de passe et liens de réinitialisation en attente des comptes non admin ;
+2. met à vide le lien vers le compte des réservations et des demandes de devis de ces clients, puis supprime leurs
+   comptes : réservations et devis sont **conservés**, avec le nom, l'e-mail et le téléphone qui y étaient déjà copiés ;
+3. retire les colonnes devenues inutiles : `Reservation.userId`, `DemandeDevis.userId` et `User.telephone`.
+
+La migration suivante, `consentements`, ajoute `consentementLe` à `Reservation`, `DemandeDevis` et `Newsletter`.
+Après les avoir appliquées (`npx prisma migrate dev`), redémarrer `npm run dev`.
+

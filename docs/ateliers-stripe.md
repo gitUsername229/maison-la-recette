@@ -16,12 +16,12 @@ exposent les routes Next.js, sans logique métier côté frontend.
 | `POST /api/sessions` | Admin | Créer une session future |
 | `PUT /api/sessions/:id` | Admin | Modifier une session, avec contrôle des places |
 | `DELETE /api/sessions/:id` | Admin | Supprimer une session sans réservations |
-| `POST /api/checkout` | Connecté | Bloquer les places et ouvrir Stripe Checkout (nom, e-mail, téléphone et `userId` pris du compte) |
+| `POST /api/checkout` | Public (sans compte) | Bloquer les places et ouvrir Stripe Checkout (nom, e-mail, téléphone facultatif et consentement saisis dans le formulaire ; champ piège, limite par IP) |
 | `POST /api/webhook` | Signature Stripe | Confirmer un paiement ou libérer une expiration |
-| `GET /api/reservations?session_id=cs_test_...` | Connecté (propriétaire) | Résumé sans e-mail ni téléphone ; `404` pour un autre client |
+| `GET /api/reservations?session_id=cs_test_...` | Public | Résumé sans nom, e-mail ni téléphone, seulement si Stripe confirme que la session existe et désigne la réservation (`404` sinon) |
 | `GET /api/reservations?statut=payee` | Admin | Liste des réservations |
 | `PATCH /api/reservations/:id` | Admin | Annuler après expiration ou remboursement intégral |
-| `POST /api/devis` | Connecté | Demande B2B (contact repris du compte) |
+| `POST /api/devis` | Public (sans compte) | Demande B2B (nom, entreprise, e-mail, téléphone saisis ; champ piège, limite par IP, consentement) |
 | `GET /api/devis` et `PATCH /api/devis/:id` | Admin | Gestion des demandes B2B |
 
 Les routes admin exigent un compte au rôle `admin` (en développement seulement, `x-admin-key` contre `ADMIN_KEY`
@@ -58,7 +58,7 @@ const bookingKey = crypto.randomUUID();
 const response = await fetch('/api/checkout', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json', 'Idempotency-Key': bookingKey },
-  body: JSON.stringify({ sessionId: 1, nbPersonnes: 2 }), // compte connecté : cookie envoyé automatiquement
+  body: JSON.stringify({ sessionId: 1, nbPersonnes: 2, nom: 'Camille Martin', email: 'camille@example.com', consentement: true }),
 });
 const result = await response.json();
 if (!response.ok) throw new Error(result.error);
@@ -67,7 +67,7 @@ window.location.assign(result.checkoutUrl);
 
 Réponse : `{ reservationId, montantCents, checkoutUrl }`. Le paiement est en EUR,
 par carte, avec les montants issus de SQLite. Ne pas envoyer de montant depuis le
-navigateur. Une clé réutilisée avec des coordonnées ou quantités différentes
+navigateur. Une clé réutilisée pour une autre demande (autre date, autre quantité, autre nom ou autre e-mail)
 retourne `409`. Une erreur réseau Stripe retourne `502` : réessayer avec le même UUID.
 
 Le dépôt fournit désormais `/reservation/succes` et `/reservation/annule`.
