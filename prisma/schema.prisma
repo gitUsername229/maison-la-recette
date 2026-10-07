@@ -103,6 +103,7 @@ model Episode {
   dureeMin        Int
   image           String
   embedUrl        String
+  audioUrl        String? // fichier audio du flux Ausha (lecteur sur mesure de /podcast)
   spotifyUrl      String?
   deezerUrl       String?
   appleUrl        String?

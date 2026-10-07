@@ -17,6 +17,7 @@ export type EpisodeDuFlux = {
   dureeMin: number;
   image: string;
   embedUrl: string;
+  audioUrl: string;
 };
 
 const parseur = new XMLParser({
@@ -61,7 +62,7 @@ export function texteDepuisHtml(html: string) {
 export function resumeDepuisDescription(description: string) {
   let position = 0;
   for (const ligne of description.split('\n')) {
-    const debut = ligne.replace(/^[^\p{L}\p{N}]+/u, ''); // ignore les émojis en début de ligne (🎧, 💚…)
+    const debut = ligne.replace(/^[^\p{L}\p{N}]+/u, ''); // ignore les émojis en début de ligne
     if (DEBUTS_TEXTE_COMMUN.some(rx => rx.exec(debut)?.index === 0)) return description.slice(0, position).trim();
     position += ligne.length + 1;
   }
@@ -100,6 +101,7 @@ function episodeDepuisItem(item: Item, imageParDefaut: string): EpisodeDuFlux | 
     dureeMin: dureeEnMinutes(item['itunes:duration']),
     image: item['itunes:image']?.href ?? imageParDefaut,
     embedUrl: lecteurAusha(idAudio),
+    audioUrl: item.enclosure.url,
   };
 }
 

@@ -1,115 +1,73 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import LecteurAusha from '@/frontend/components/LecteurAusha';
-import Pastille from '@/frontend/components/Pastille';
-import TexteRepliable from '@/frontend/components/TexteRepliable';
-import { formatDate, libelle, TYPES_EPISODE } from '@/frontend/format';
+import ChoixSaison from '@/frontend/components/ChoixSaison';
+import LecteurPodcast, { type EpisodeLecteur } from '@/frontend/components/LecteurPodcast';
 
 export type FiltreEpisodes = 'complet' | 'extrait' | 'replay' | 'tous';
 
-export type EpisodeAffiche = {
-  id: number;
-  titre: string;
-  resume: string;
-  type: string;
-  saison: number;
-  numero: number;
-  datePublication: Date;
-  dureeMin: number;
-  image: string;
-  embedUrl: string;
-  invite: string | null;
-};
-
 type Props = {
-  episodes: EpisodeAffiche[];
+  episodes: EpisodeLecteur[];                 // la saison choisie, la plus récente d'abord
+  saisons: number[];
+  saison: number | null;
   filtre: FiltreEpisodes;
   compteurs: Record<Exclude<FiltreEpisodes, 'tous'>, number>;
   liens: readonly { plateforme: string; url: string }[];
+  lecteur: 'sur-mesure' | 'ausha';
 };
 
-const ONGLETS: { filtre: FiltreEpisodes; texte: string; href: string }[] = [
-  { filtre: 'complet', texte: 'Épisodes complets', href: '/podcast' },
-  { filtre: 'extrait', texte: 'Extraits', href: '/podcast?type=extrait' },
-  { filtre: 'replay', texte: 'Replays', href: '/podcast?type=replay' },
-  { filtre: 'tous', texte: 'Tout', href: '/podcast?type=tous' },
+const ONGLETS: { filtre: FiltreEpisodes; texte: string; parametre?: string }[] = [
+  { filtre: 'complet', texte: 'Épisodes complets' },
+  { filtre: 'extrait', texte: 'Extraits', parametre: 'extrait' },
+  { filtre: 'replay', texte: 'Replays', parametre: 'replay' },
+  { filtre: 'tous', texte: 'Tout', parametre: 'tous' },
 ];
 
-/** Épisodes regroupés par saison, la plus récente d'abord (l'ordre de la liste est conservé). */
-function parSaison(episodes: EpisodeAffiche[]) {
-  const saisons = new Map<number, EpisodeAffiche[]>();
-  for (const episode of episodes) saisons.set(episode.saison, [...(saisons.get(episode.saison) ?? []), episode]);
-  return [...saisons.entries()].sort(([a], [b]) => b - a);
-}
-
-function Episode({ episode, afficherType }: { episode: EpisodeAffiche; afficherType: boolean }) {
-  const repere = [episode.numero > 0 && `Épisode ${episode.numero}`, formatDate(episode.datePublication), `${episode.dureeMin} min`].filter(Boolean).join(' · ');
-  return (
-    <li className="grid gap-4 border-t border-bordure-forte py-6 sm:grid-cols-[112px_1fr]">
-      <Image src={episode.image} alt="" width={112} height={112} className="h-28 w-28 rounded-xl object-cover" />
-      <div className="grid min-w-0 gap-3">
-        <div>
-          <p className="flex flex-wrap items-center gap-2 text-sm text-texte-doux">
-            {repere}
-            {afficherType && episode.type !== 'complet' && <Pastille statut="neutre" texte={libelle(TYPES_EPISODE, episode.type)} />}
-          </p>
-          <h3 className="mt-1 font-serif text-xl leading-snug">{episode.titre}</h3>
-          {episode.invite && <p className="text-sm text-texte-doux">Avec {episode.invite}</p>}
-        </div>
-        {episode.resume && <TexteRepliable texte={episode.resume} />}
-        <LecteurAusha url={episode.embedUrl} titre={episode.titre} />
-      </div>
-    </li>
-  );
-}
-
-export default function Podcast({ episodes, filtre, compteurs, liens }: Props) {
+/** /podcast (maquette « Frame 15 ») : logo, plateformes, type d'épisodes et saison, lecteur sur mesure et liste. */
+export default function Podcast({ episodes, saisons, saison, filtre, compteurs, liens, lecteur }: Props) {
   const total = compteurs.complet + compteurs.extrait + compteurs.replay;
   const nombre = (onglet: FiltreEpisodes) => (onglet === 'tous' ? total : compteurs[onglet]);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12 sm:py-16">
-      <p className="text-sm uppercase tracking-widest text-texte-doux">Le podcast</p>
-      <h1 className="mt-3 font-serif text-5xl sm:text-6xl">la recette</h1>
-      <p className="mt-5 max-w-2xl text-lg leading-relaxed">
+    <main className="mx-auto max-w-3xl px-5 py-8 lg:py-12">
+      <h1 className="sr-only">Le podcast la recette</h1>
+      <Image src="/images/podcast/logo-la-recette.png" alt="la recette, le podcast" width={224} height={224} priority className="mx-auto h-[224px] w-[224px]" />
+      <p className="mx-auto mt-6 max-w-2xl text-center text-lg">
         Julie Van Ossel part à la rencontre de celles et ceux qui façonnent l’alimentation de demain : chefs, productrices,
         artisans et entrepreneuses qui réinventent notre façon de manger.
       </p>
-
-      <ul className="mt-6 flex flex-wrap gap-2" aria-label="Écouter sur">
+      <ul className="mt-5 flex flex-wrap justify-center gap-2" aria-label="Écouter sur">
         {liens.map(lien => (
           <li key={lien.url}>
-            <a href={lien.url} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-full px-4 py-2 text-sm ring-1 ring-bordure-forte hover:bg-surface">
+            <a href={lien.url} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-full px-4 py-2 text-sm ring-1 ring-bordure-forte hover:bg-fond-doux">
               {lien.plateforme}
             </a>
           </li>
         ))}
       </ul>
 
-      <nav aria-label="Type d’épisodes" className="mt-10 flex flex-wrap gap-2">
-        {ONGLETS.map(onglet => (
-          <Link
-            key={onglet.filtre}
-            href={onglet.href}
-            aria-current={filtre === onglet.filtre ? 'page' : undefined}
-            className={`rounded-full px-4 py-2 text-sm ${filtre === onglet.filtre ? 'bg-primaire text-sur-primaire' : 'text-texte-doux ring-1 ring-bordure hover:bg-surface'}`}
-          >
-            {onglet.texte} <span className="opacity-70">({nombre(onglet.filtre)})</span>
-          </Link>
-        ))}
-      </nav>
+      <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+        <nav aria-label="Type d’épisodes" className="flex flex-wrap gap-2">
+          {ONGLETS.map(onglet => (
+            <Link
+              key={onglet.filtre}
+              href={onglet.parametre ? `/podcast?type=${onglet.parametre}` : '/podcast'}
+              aria-current={filtre === onglet.filtre ? 'page' : undefined}
+              className={`rounded-full px-4 py-2 text-sm ${filtre === onglet.filtre ? 'bg-primaire font-bold text-sur-primaire' : 'ring-1 ring-bordure hover:bg-fond-doux'}`}
+            >
+              {onglet.texte} <span className={filtre === onglet.filtre ? '' : 'text-texte-doux'}>({nombre(onglet.filtre)})</span>
+            </Link>
+          ))}
+        </nav>
+        {saison !== null && saisons.length > 1 && <ChoixSaison saisons={saisons} saison={saison} />}
+      </div>
 
       {episodes.length === 0 ? (
         <p className="mt-10 text-texte-doux">Aucun épisode pour l’instant.</p>
       ) : (
-        parSaison(episodes).map(([saison, liste]) => (
-          <section key={saison} className="mt-10">
-            <h2 className="font-serif text-2xl">Saison {saison}</h2>
-            <ul className="mt-2">
-              {liste.map(episode => <Episode key={episode.id} episode={episode} afficherType={filtre === 'tous'} />)}
-            </ul>
-          </section>
-        ))
+        <div className="mt-8">
+          {/* Une nouvelle liste (saison ou type) repart de son premier épisode. */}
+          <LecteurPodcast key={`${filtre}-${saison}`} episodes={episodes} lecteur={lecteur} />
+        </div>
       )}
     </main>
   );

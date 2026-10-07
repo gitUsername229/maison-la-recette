@@ -108,6 +108,49 @@
   }
 }
 
+/*
+ * Barre de progression du lecteur podcast (maquette : trait corail, partie restante en corail clair, curseur rond).
+ * La part écoulée vient de la variable --progression, posée par le lecteur.
+ */
+@layer components {
+  .curseur-lecture {
+    appearance: none;
+    height: 20px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .curseur-lecture::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--color-primaire) var(--progression, 0%), color-mix(in srgb, var(--color-primaire) 25%, #ffffff) var(--progression, 0%));
+  }
+  .curseur-lecture::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-top: -5.5px;
+    border-radius: 9999px;
+    background: var(--color-primaire);
+  }
+  .curseur-lecture::-moz-range-track {
+    height: 3px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--color-primaire) 25%, #ffffff);
+  }
+  .curseur-lecture::-moz-range-progress {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--color-primaire);
+  }
+  .curseur-lecture::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 9999px;
+    background: var(--color-primaire);
+  }
+}
+
 /* Le seul effet du site (zoom des photos au survol des cartes) et tout défilement animé disparaissent si l'utilisateur le demande. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

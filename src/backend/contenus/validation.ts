@@ -61,13 +61,13 @@ const episode = z.object({
   saison: z.number().int().min(1).max(100), numero: z.number().int().min(0).max(10_000),
   titre: texte(), description: texte(20_000), resume: z.string().trim().max(5000), type: z.enum(TYPES_EPISODE), invite: texte(200).nullable(),
   datePublication: date, dureeMin: z.number().int().min(1).max(1000),
-  image: z.union([lien, cheminImage]), embedUrl: lien,
+  image: z.union([lien, cheminImage]), embedUrl: lien, audioUrl: lien.nullable(),
   spotifyUrl: lien.nullable(), deezerUrl: lien.nullable(), appleUrl: lien.nullable(), youtubeUrl: lien.nullable(),
 }).strict();
 export const episodeSchemas = {
   creation: episode.extend({
     saison: z.number().int().min(1).max(100).default(1), resume: z.string().trim().max(5000).default(''), type: z.enum(TYPES_EPISODE).default('complet'),
-    invite: episode.shape.invite.optional(), spotifyUrl: lien.nullable().optional(), deezerUrl: lien.nullable().optional(),
+    invite: episode.shape.invite.optional(), audioUrl: lien.nullable().optional(), spotifyUrl: lien.nullable().optional(), deezerUrl: lien.nullable().optional(),
     appleUrl: lien.nullable().optional(), youtubeUrl: lien.nullable().optional(),
   }),
   modification: episode.partial(),

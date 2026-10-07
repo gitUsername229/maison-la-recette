@@ -15,6 +15,12 @@ export const LIENS_EMISSION = [
   { plateforme: 'YouTube', url: 'https://www.youtube.com/@Larecettepodcast' },
 ] as const;
 
+/**
+ * Lecteur de la page /podcast : « sur-mesure » (maquette : le site lit le fichier audio du flux) ou « ausha »
+ * (lecteur intégré d'Ausha, si la cliente préfère ses statistiques d'écoute). C'est le seul réglage à changer.
+ */
+export const LECTEUR_PODCAST: 'sur-mesure' | 'ausha' = 'sur-mesure';
+
 /** Lecteur Ausha intégrable d'un épisode (l'identifiant est le nom du fichier audio dans le flux). */
 export const lecteurAusha = (idAudio: string) =>
   `https://player.ausha.co/?podcastId=${encodeURIComponent(idAudio)}&display=horizontal&v=2`;

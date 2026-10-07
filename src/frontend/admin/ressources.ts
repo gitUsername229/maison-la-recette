@@ -323,6 +323,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { nom: 'description', libelle: 'Description complète', type: 'texteLong', requis: true },
       { nom: 'image', libelle: 'Visuel (lien)', type: 'texte', requis: true, aide: 'Lien du visuel Ausha, ou /images/… pour une photo envoyée.' },
       { nom: 'embedUrl', libelle: 'Lien du lecteur Ausha', type: 'texte', requis: true },
+      { nom: 'audioUrl', libelle: 'Lien du fichier audio (MP3)', type: 'texte', nullable: true, aide: 'Rempli à l’import depuis Ausha. Vide : le lecteur Ausha remplace le lecteur du site.' },
       { nom: 'spotifyUrl', libelle: 'Lien Spotify', type: 'texte', nullable: true },
       { nom: 'deezerUrl', libelle: 'Lien Deezer', type: 'texte', nullable: true },
       { nom: 'appleUrl', libelle: 'Lien Apple Podcasts', type: 'texte', nullable: true },

@@ -41,6 +41,7 @@ test('le flux : type détecté depuis le titre, texte commun retiré, durée, sa
   assert.match(complet.description, /Hébergé par Ausha/); // la description complète est gardée
   assert.deepEqual([complet.saison, complet.numero, complet.dureeMin], [3, 25, 53]);
   assert.equal(complet.embedUrl, 'https://player.ausha.co/?podcastId=lDLw5U6GYgxw&display=horizontal&v=2');
+  assert.equal(complet.audioUrl, 'https://audio.ausha.co/lDLw5U6GYgxw.mp3?t=1'); // fichier lu par le lecteur sur mesure
   assert.equal(complet.image, 'https://image.ausha.co/pedron_1400x1400.jpeg?t=2');
 
   assert.equal(parGuid['guid-extrait'].resume, 'Dans cet extrait, Jean-Marie parle des algues.');
@@ -65,6 +66,17 @@ test('l’import ne crée pas de doublon et n’écrase jamais ce que l’admin 
   const episode = await prisma.episode.findUniqueOrThrow({ where: { guid: 'guid-complet' } });
   assert.match(episode.titre, /: le goût des algues$/, 'le titre suit Ausha');
   assert.deepEqual({ resume: episode.resume, type: episode.type, invite: episode.invite, spotifyUrl: episode.spotifyUrl }, saisieAdmin);
+});
+
+test('saisons proposées dans la liste déroulante : celles qui ont des épisodes du type choisi, la plus récente d’abord', async () => {
+  const toutes = await contenus.saisonsDisponibles();
+  assert.deepEqual(toutes, [...toutes].sort((a, b) => b - a));
+  assert.equal(new Set(toutes).size, toutes.length);
+  for (const saison of await contenus.saisonsDisponibles('extrait')) {
+    assert.ok(await prisma.episode.count({ where: { saison, type: 'extrait' } }) > 0);
+  }
+  const episode = await prisma.episode.findFirstOrThrow({ where: { guid: 'guid-complet' } });
+  assert.ok(episode.audioUrl?.startsWith('https://audio.ausha.co/'), 'adresse audio enregistrée à l’import');
 });
 
 test('l’API filtre par type et refuse un type inconnu', async () => {
