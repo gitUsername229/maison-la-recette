@@ -1,13 +1,13 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import Galerie, { type PhotoGalerie } from '@/frontend/components/Galerie';
+import Icone from '@/frontend/components/Icone';
 import InscriptionNewsletter from '@/frontend/components/InscriptionNewsletter';
 import ListeAvis, { type AvisAffiche } from '@/frontend/components/ListeAvis';
-import { classeBouton } from '@/frontend/styles/classes';
 
 /** Textes de l'accueil, modifiables dans /admin/textes. */
 export type TextesAccueil = Record<
-  | 'surtitre' | 'titre' | 'introduction' | 'bouton'
+  | 'surtitre' | 'titre' | 'introduction' | 'bouton' | 'boutonPodcast'
   | 'podcastTitre' | 'podcastTexte' | 'experiencesTitre' | 'experiencesTexte' | 'studioTitre' | 'studioTexte'
   | 'avisTitre' | 'galerieTitre' | 'newsletterTitre' | 'newsletterTexte' | 'newsletterBouton' | 'mention',
   string
@@ -16,44 +16,44 @@ export type TextesAccueil = Record<
 type Props = { textes: TextesAccueil; avis: AvisAffiche[]; photos: PhotoGalerie[] };
 
 /**
- * Textes, avis et photos de l'accueil : gérés dans /admin/textes, /admin/avis et /admin/photos (page « / »).
- * La première photo de la galerie (ordre le plus petit) sert d'image principale.
+ * Accueil (maquette « Frame 11 ») : photo plein écran floutée, titre, bouton vers le podcast et lien vers les expériences.
+ * La première photo de la galerie (ordre le plus petit, /admin/photos) sert de fond ; les textes sont dans /admin/textes.
  */
 export default function Home({ textes, avis, photos }: Props) {
   const [principale, ...autresPhotos] = photos;
-  // Trois univers, trois aplats de couleur différents.
   const univers = [
     { id: 'podcast', titre: textes.podcastTitre, description: textes.podcastTexte, href: '/podcast', fond: 'bg-pastel' },
-    { id: 'experiences', titre: textes.experiencesTitre, description: textes.experiencesTexte, href: '/experiences', fond: 'bg-pastel-chaud' },
-    { id: 'studio', titre: textes.studioTitre, description: textes.studioTexte, href: '/studio', fond: 'bg-surface ring-1 ring-bordure' },
+    { id: 'experiences', titre: textes.experiencesTitre, description: textes.experiencesTexte, href: '/experiences', fond: 'bg-fond-doux' },
+    { id: 'studio', titre: textes.studioTitre, description: textes.studioTexte, href: '/studio', fond: 'bg-pastel-chaud' },
   ];
   return (
     <main>
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-10 lg:grid-cols-[1.1fr_1fr] lg:pt-16">
-        <div>
-          <p className="w-fit rounded-full bg-pastel-chaud px-4 py-1.5 text-sm font-medium">{textes.surtitre}</p>
-          <h1 className="mt-6 font-serif text-5xl leading-[1.05] sm:text-7xl">{textes.titre}</h1>
-          <p className="mt-6 max-w-xl whitespace-pre-line text-lg leading-relaxed text-texte-doux">{textes.introduction}</p>
-          <Link href="/experiences" className={`${classeBouton} mt-8 inline-flex w-fit`}>{textes.bouton}</Link>
-        </div>
+      <section className="relative isolate flex min-h-[calc(100svh-5rem)] flex-col items-center justify-center overflow-hidden bg-fond-sombre px-6 py-16 text-center text-sur-fond-sombre">
         {principale && (
-          <div className="relative mr-4 mb-4">
-            <div aria-hidden="true" className="absolute inset-0 translate-x-4 translate-y-4 rounded-[2rem] bg-pastel" />
-            <Image src={principale.url} alt={principale.alt} width={1200} height={900} priority sizes="(min-width: 1024px) 45vw, 100vw" className="relative aspect-[4/3] w-full rounded-[2rem] object-cover" />
-          </div>
+          <Image src={principale.url} alt="" fill priority sizes="100vw" className="-z-20 scale-110 object-cover blur-[8px]" />
         )}
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-voile/45" />
+        <p className="text-lg tracking-wide">{textes.surtitre}</p>
+        <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-[0.04em] sm:text-7xl">{textes.titre}</h1>
+        <p className="mt-4 max-w-xl whitespace-pre-line text-lg tracking-[0.04em]">{textes.introduction}</p>
+        <Link href="/podcast" className="mt-14 flex h-[51px] w-full max-w-[334px] items-center justify-center rounded-full bg-primaire text-lg tracking-[0.04em] text-sur-primaire hover:bg-primaire-fort">
+          {textes.boutonPodcast}
+        </Link>
+        <Link href="/experiences" className="mt-5 text-lg font-bold hover:underline">{textes.bouton}</Link>
+        <a href="#suite" aria-label="Voir la suite" className="absolute bottom-8 p-2">
+          <Icone nom="fleche-bas" taille={24} />
+        </a>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-5 px-6 sm:grid-cols-3">
-        {univers.map(({ id, titre, description, href, fond }) => (
-          <Link key={id} href={href} className={`group grid content-start gap-3 rounded-3xl p-7 ${fond}`}>
-            <h2 className="font-serif text-3xl group-hover:underline">{titre} <span aria-hidden="true">→</span></h2>
-            <p className="whitespace-pre-line leading-relaxed">{description}</p>
-          </Link>
-        ))}
-      </section>
-
-      <div className="mx-auto max-w-6xl px-6">
+      <div id="suite" className="mx-auto max-w-6xl scroll-mt-20 px-5 pt-16 lg:px-6">
+        <section className="grid gap-5 sm:grid-cols-3">
+          {univers.map(({ id, titre, description, href, fond }) => (
+            <Link key={id} href={href} className={`group grid content-start gap-3 rounded-xl p-7 ${fond}`}>
+              <h2 className="text-3xl group-hover:underline">{titre} <span aria-hidden="true">→</span></h2>
+              <p className="whitespace-pre-line">{description}</p>
+            </Link>
+          ))}
+        </section>
         <ListeAvis avis={avis} titre={textes.avisTitre} />
         <Galerie photos={autresPhotos} titre={textes.galerieTitre} />
         <InscriptionNewsletter titre={textes.newsletterTitre} texte={textes.newsletterTexte} bouton={textes.newsletterBouton} />
