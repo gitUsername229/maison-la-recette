@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Champ, { ChampListe, ChampTexte } from '@/frontend/components/Champ';
+import { useState } from 'react';
+import Champ, { ChampCases, ChampListe, ChampTexte } from '@/frontend/components/Champ';
 import type { Libelles } from '@/frontend/format';
 import { classeBouton, classeErreur } from '@/frontend/styles/classes';
 import { appelerApi } from './api';
 import ChampImage from './ChampImage';
+import { useOptionsApi } from './options';
 import { champsDe, type ChampAdmin, type RessourceAdmin } from './ressources';
 import Valeur from './Valeur';
 import { corpsFormulaire, valeurInitiale, type Ligne } from './valeurs';
@@ -19,33 +20,15 @@ type Props = {
 
 const majuscule = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
 
-type ExperienceListe = { id: number; titre: string; slug: string };
-
-/** Liste des expériences (celle d'une session, la page d'une photo), chargée seulement si nécessaire. */
-function useExperiences(necessaire: boolean) {
-  const [experiences, setExperiences] = useState<ExperienceListe[]>([]);
-  useEffect(() => {
-    if (!necessaire) return;
-    appelerApi<ExperienceListe[]>('/api/experiences').then(resultat => {
-      if (resultat.ok) setExperiences(resultat.donnees);
-    });
-  }, [necessaire]);
-  return experiences;
+/** Une valeur déjà enregistrée mais absente des options reste proposée, pour ne jamais la changer sans le vouloir. */
+function avecValeurActuelle(options: Libelles, actuelle: string): Libelles {
+  return actuelle && !Object.hasOwn(options, actuelle) ? { ...options, [actuelle]: actuelle } : options;
 }
 
-/** Pages du site qui affichent une galerie ; une page déjà enregistrée hors de cette liste reste proposée. */
-function pagesAvecGalerie(experiences: ExperienceListe[], actuelle: string): Libelles {
-  const pages: Libelles = {
-    '/': 'Accueil',
-    '/a-propos': 'À propos',
-    ...Object.fromEntries(experiences.map(e => [`/experiences/${e.slug}`, `Expérience : ${e.titre}`])),
-  };
-  return actuelle && !(actuelle in pages) ? { ...pages, [actuelle]: actuelle } : pages;
-}
+// `options` : celles du champ, ou lues dans l'API (null tant qu'elles se chargent).
+type ProprietesChamp = { champ: ChampAdmin; ligne: Ligne | null; options: Libelles | null; erreur?: string };
 
-type ProprietesChamp = { champ: ChampAdmin; ligne: Ligne | null; experiences: ExperienceListe[]; erreur?: string };
-
-function ChampFormulaire({ champ, ligne, experiences, erreur }: ProprietesChamp) {
+function ChampFormulaire({ champ, ligne, options, erreur }: ProprietesChamp) {
   const initiale = valeurInitiale(champ, ligne);
   const commun = { libelle: champ.libelle, aide: champ.aide, erreur, name: champ.nom, required: champ.requis, disabled: champ.creationSeulement && ligne !== null };
   switch (champ.type) {
@@ -58,9 +41,13 @@ function ChampFormulaire({ champ, ligne, experiences, erreur }: ProprietesChamp)
       );
     case 'texteLong': return <ChampTexte {...commun} maxLength={champ.longueurMax} defaultValue={String(initiale)} />;
     case 'image': return <ChampImage nom={champ.nom} libelle={champ.libelle} requis={champ.requis} aide={champ.aide} erreur={erreur} valeurInitiale={String(initiale)} />;
-    case 'liste': return <ChampListe {...commun} options={champ.options ?? {}} vide={champ.requis ? undefined : '—'} defaultValue={String(initiale)} />;
-    case 'experience': return <ChampListe key={experiences.length} {...commun} options={Object.fromEntries(experiences.map(e => [String(e.id), e.titre]))} vide="Choisir…" defaultValue={String(initiale)} />;
-    case 'pageGalerie': return <ChampListe key={experiences.length} {...commun} options={pagesAvecGalerie(experiences, String(initiale))} vide="Choisir…" defaultValue={String(initiale)} />;
+    // Remonté une fois les options chargées, pour présélectionner la valeur enregistrée.
+    case 'liste':
+      return options
+        ? <ChampListe key="pret" {...commun} options={avecValeurActuelle(options, String(initiale))} vide={champ.requis ? 'Choisir…' : '—'} defaultValue={String(initiale)} />
+        : <ChampListe key="attente" {...commun} options={{}} vide="Chargement…" disabled />;
+    case 'listeMultiple':
+      return <ChampCases key={options ? 'pret' : 'attente'} libelle={champ.libelle} aide={champ.aide} erreur={erreur} name={champ.nom} options={options ?? {}} valeurs={Array.isArray(initiale) ? initiale : []} />;
     case 'nombre': return <Champ {...commun} type="number" min={0} defaultValue={String(initiale)} />;
     // Prix en euros, virgule ou point acceptés (45 ; 45,50 ; 45.50).
     case 'prix': return <Champ {...commun} inputMode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" title="Un montant en euros, ex : 45 ou 45,50" placeholder="ex : 45,00" defaultValue={String(initiale)} />;
@@ -87,7 +74,8 @@ function Fiche({ ressource, ligne }: { ressource: RessourceAdmin; ligne: Ligne }
 export default function FormulaireRessource({ ressource, ligne, onEnregistre, onAnnule }: Props) {
   const champs = champsDe(ressource, ligne);
   const creation = ligne === null;
-  const experiences = useExperiences(champs.some(c => c.type === 'experience' || c.type === 'pageGalerie'));
+  const optionsApi = useOptionsApi(champs.map(c => c.source));
+  const optionsDe = (champ: ChampAdmin) => (champ.source ? optionsApi(champ.source) : champ.options ?? {});
   const [erreur, setErreur] = useState<string | null>(null);
   const [erreursChamps, setErreursChamps] = useState<Record<string, string>>({});
   const [envoi, setEnvoi] = useState(false);
@@ -128,8 +116,8 @@ export default function FormulaireRessource({ ressource, ligne, onEnregistre, on
           <p className="text-xs text-stone-500">Les champs marqués <span className="text-red-700">*</span> sont obligatoires.</p>
           <div className="grid gap-4 md:grid-cols-2">
             {champs.map(champ => (
-              <div key={champ.nom} className={champs.length === 1 || champ.type === 'texteLong' || champ.type === 'image' ? 'md:col-span-2' : undefined}>
-                <ChampFormulaire champ={champ} ligne={ligne} experiences={experiences} erreur={erreursChamps[champ.nom]} />
+              <div key={champ.nom} className={champs.length === 1 || ['texteLong', 'image', 'listeMultiple'].includes(champ.type) ? 'md:col-span-2' : undefined}>
+                <ChampFormulaire champ={champ} ligne={ligne} options={optionsDe(champ)} erreur={erreursChamps[champ.nom]} />
               </div>
             ))}
           </div>

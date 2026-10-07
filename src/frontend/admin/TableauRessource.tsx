@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { classeBouton, classeChamp, classeErreur } from '@/frontend/styles/classes';
 import { appelerApi } from './api';
 import FormulaireRessource from './FormulaireRessource';
+import { useOptionsApi } from './options';
 import { ressourceAdmin, type ActionLigne, type RessourceAdmin } from './ressources';
 import Valeur from './Valeur';
 import { lire, type Ligne } from './valeurs';
@@ -17,6 +18,10 @@ const actionsPossibles = (ressource: RessourceAdmin, ligne: Ligne) =>
 
 export default function TableauRessource({ cle }: { cle: string }) {
   const ressource = ressourceAdmin(cle)!;
+  // Libellés lus dans l'API pour le filtre et les colonnes (ex : catégories du blog).
+  const optionsApi = useOptionsApi([ressource.filtre?.source, ...ressource.colonnes.map(c => c.source)]);
+  const optionsFiltre = ressource.filtre?.source ? optionsApi(ressource.filtre.source) ?? {} : ressource.filtre?.options ?? {};
+  const colonnes = ressource.colonnes.map(c => (c.source ? { ...c, libelles: optionsApi(c.source) ?? {} } : c));
   const [lignes, setLignes] = useState<Ligne[] | null>(null);
   const [filtre, setFiltre] = useState('');
   const [edition, setEdition] = useState<Ligne | 'nouveau' | null>(null);
@@ -119,7 +124,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
           <span className="shrink-0">Afficher</span>
           <select className={classeChamp} value={filtre} onChange={e => setFiltre(e.target.value)}>
             <option value="">Tout</option>
-            {Object.entries(ressource.filtre.options).map(([valeur, texte]) => <option key={valeur} value={valeur}>{texte}</option>)}
+            {Object.entries(optionsFiltre).map(([valeur, texte]) => <option key={valeur} value={valeur}>{texte}</option>)}
           </select>
         </label>
       )}
@@ -133,7 +138,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-stone-200 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
               <tr>
-                {ressource.colonnes.map(c => <th key={c.chemin} className="px-4 py-3 font-medium">{c.libelle}</th>)}
+                {colonnes.map(c => <th key={c.chemin} className="px-4 py-3 font-medium">{c.libelle}</th>)}
                 {ressource.statut && <th className="px-4 py-3 font-medium">Statut</th>}
                 {avecActions && <th className="px-4 py-3"><span className="sr-only">Actions</span></th>}
               </tr>
@@ -141,7 +146,7 @@ export default function TableauRessource({ cle }: { cle: string }) {
             <tbody className="divide-y divide-stone-100">
               {lignes.map(ligne => (
                 <tr key={ligne.id} className="align-top">
-                  {ressource.colonnes.map(c => (
+                  {colonnes.map(c => (
                     <td key={c.chemin} className={`max-w-xs px-4 py-3 ${c.format && c.format !== 'texte' ? 'whitespace-nowrap' : 'whitespace-pre-line'}`}>
                       <Valeur colonne={c} ligne={ligne} />
                     </td>

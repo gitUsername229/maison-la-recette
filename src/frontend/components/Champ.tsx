@@ -48,3 +48,23 @@ export function ChampTexte({ libelle, aide, erreur, ...attributs }: Habillage & 
     </Libelle>
   );
 }
+
+/** Cases à cocher : plusieurs valeurs pour un même champ (`name` répété dans le formulaire). */
+export function ChampCases({ libelle, aide, erreur, name, options, valeurs }: Habillage & { name: string; options: Libelles; valeurs: string[] }) {
+  const choix = Object.entries(options);
+  return (
+    <fieldset className={classeLibelle}>
+      <legend className="mb-1 text-sm font-medium">{libelle}</legend>
+      <div className={`grid max-h-56 gap-2 overflow-y-auto rounded-lg border bg-white p-3 ${erreur ? 'border-red-600' : 'border-stone-300'}`}>
+        {choix.length === 0 && <span className="text-sm text-stone-500">Aucun choix pour l’instant.</span>}
+        {choix.map(([valeur, texte]) => (
+          <label key={valeur} className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name={name} value={valeur} defaultChecked={valeurs.includes(valeur)} className="mt-0.5 h-4 w-4 shrink-0 accent-stone-800" />
+            {texte}
+          </label>
+        ))}
+      </div>
+      {erreur ? <span className="text-xs font-medium text-red-700">{erreur}</span> : aide && <span className="text-xs text-stone-500">{aide}</span>}
+    </fieldset>
+  );
+}

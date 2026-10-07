@@ -13,8 +13,12 @@ function versDateHeureLocale(iso: string) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }
 
-/** Valeur en base → valeur initiale du champ de formulaire. */
-export function valeurInitiale(champ: ChampAdmin, ligne: Ligne | null): string | boolean {
+/** Valeur en base → valeur initiale du champ de formulaire (liste des valeurs cochées pour « listeMultiple »). */
+export function valeurInitiale(champ: ChampAdmin, ligne: Ligne | null): string | boolean | string[] {
+  if (champ.type === 'listeMultiple') {
+    const valeurs = ligne?.[champ.nom];
+    return Array.isArray(valeurs) ? valeurs.map(String) : [];
+  }
   if (!ligne) return champ.defaut ?? (champ.type === 'booleen' ? false : '');
   const valeur = ligne[champ.nom];
   if (champ.type === 'booleen') return Boolean(valeur);
@@ -28,6 +32,10 @@ export function valeurInitiale(champ: ChampAdmin, ligne: Ligne | null): string |
 /** Champ du formulaire → valeur envoyée à l'API (undefined = champ non envoyé). */
 function valeurEnvoyee(champ: ChampAdmin, formulaire: FormData): unknown {
   if (champ.type === 'booleen') return formulaire.has(champ.nom);
+  if (champ.type === 'listeMultiple') {
+    const valeurs = formulaire.getAll(champ.nom).map(String);
+    return champ.entier ? valeurs.map(Number) : valeurs;
+  }
   const texte = String(formulaire.get(champ.nom) ?? '').trim();
   if (!texte) {
     if (champ.nullable) return null;
@@ -35,10 +43,10 @@ function valeurEnvoyee(champ: ChampAdmin, formulaire: FormData): unknown {
     return ['texte', 'texteLong', 'image'].includes(champ.type) ? '' : undefined;
   }
   switch (champ.type) {
-    case 'nombre': case 'experience': return Number(texte);
+    case 'nombre': return Number(texte);
     case 'prix': return Math.round(Number(texte.replace(',', '.')) * 100);
     case 'dateHeure': return new Date(texte).toISOString();
-    default: return texte;
+    default: return champ.entier ? Number(texte) : texte;
   }
 }
 

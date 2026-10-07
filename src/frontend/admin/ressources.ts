@@ -6,7 +6,18 @@ import { lire, type Ligne } from './valeurs';
 // Description des écrans d'administration : une entrée par ressource, affichée par
 // TableauRessource (liste + actions) et FormulaireRessource (création / modification).
 
-export type TypeChamp = 'texte' | 'texteLong' | 'nombre' | 'prix' | 'booleen' | 'date' | 'dateHeure' | 'liste' | 'image' | 'experience' | 'pageGalerie';
+export type TypeChamp = 'texte' | 'texteLong' | 'nombre' | 'prix' | 'booleen' | 'date' | 'dateHeure' | 'liste' | 'listeMultiple' | 'image';
+
+/** Un élément renvoyé par une route /api (expérience, épisode, catégorie…). */
+export type ElementApi = Record<string, unknown>;
+
+/** Options lues dans une route /api : une option par élément renvoyé, après d'éventuelles options fixes. */
+export type SourceOptions = {
+  api: string;
+  valeur: (element: ElementApi) => string;
+  libelle: (element: ElementApi) => string;
+  fixes?: Libelles;            // proposées avant celles de l'API (ex : Accueil, À propos)
+};
 
 export type ChampAdmin = {
   nom: string;
@@ -14,7 +25,9 @@ export type ChampAdmin = {
   type: TypeChamp;
   requis?: boolean;
   aide?: string;
-  options?: Libelles;          // type « liste »
+  options?: Libelles;          // types « liste » et « listeMultiple » : options fixes…
+  source?: SourceOptions;      // … ou lues dans l'API
+  entier?: boolean;            // valeur(s) envoyée(s) comme nombre(s) : identifiants
   defaut?: string | boolean;   // valeur proposée à la création
   nullable?: boolean;          // laissé vide → effacé (null)
   creationSeulement?: boolean; // non modifiable ensuite
@@ -27,7 +40,8 @@ export type ColonneAdmin = {
   libelle: string;
   chemin: string;              // ex : « session.experience.titre »
   format?: FormatColonne;
-  libelles?: Libelles;         // valeur en base → texte affiché
+  libelles?: Libelles;         // valeur en base → texte affiché…
+  source?: SourceOptions;      // … ou libellés lus dans l'API
   complements?: string[];      // autres valeurs affichées en petit dessous (ex : e-mail, téléphone)
 };
 
@@ -56,7 +70,7 @@ export type RessourceAdmin = {
   methodeModification?: 'PUT' | 'PATCH';
   suppression?: boolean;
   statut?: { champ: string; options: Libelles };        // statut modifiable dans la liste
-  filtre?: { parametre: string; options: Libelles };    // filtre de la liste (?statut=…)
+  filtre?: { parametre: string; options?: Libelles; source?: SourceOptions }; // filtre de la liste (?statut=…)
   fiche?: ColonneAdmin[];      // fiche détaillée (lecture seule) ouverte par « Voir » ou en tête du formulaire
   actions?: ActionLigne[];
   actionGlobale?: { libelle: string; api: string };     // bouton de rubrique (ex : import Ausha), POST sur `api`
@@ -77,6 +91,14 @@ function visibilite(champ: string, textes: { masquer: string; afficher: string; 
 }
 
 const ARTICLES_EXPERIENCE: Libelles = { atelier: 'l’atelier', good_tour: 'le good tour', immersion: 'l’immersion' };
+
+const SOURCE_EXPERIENCES: SourceOptions = { api: '/api/experiences', valeur: e => String(e.id), libelle: e => String(e.titre) };
+
+/** Pages qui affichent une galerie photos : accueil, à propos et la page de chaque expérience. */
+const PAGES_AVEC_GALERIE: SourceOptions = {
+  api: '/api/experiences', valeur: e => `/experiences/${String(e.slug)}`, libelle: e => `Expérience : ${String(e.titre)}`,
+  fixes: { '/': 'Accueil', '/a-propos': 'À propos' },
+};
 
 // Pages dont les textes sont modifiables (emplacements : src/backend/contenus/textes-par-defaut.ts).
 const PAGES_TEXTES: Libelles = { accueil: 'Accueil', 'a-propos': 'À propos', studio: 'Studio' };
@@ -200,7 +222,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
       { libelle: 'Statut', chemin: 'statut', format: 'statut', libelles: STATUTS_SESSION },
     ],
     champs: [
-      { nom: 'experienceId', libelle: 'Expérience', type: 'experience', requis: true, creationSeulement: true },
+      { nom: 'experienceId', libelle: 'Expérience', type: 'liste', source: SOURCE_EXPERIENCES, entier: true, requis: true, creationSeulement: true },
       { nom: 'dateDebut', libelle: 'Début', type: 'dateHeure', requis: true },
       { nom: 'dateFin', libelle: 'Fin', type: 'dateHeure', requis: true },
       { nom: 'lieu', libelle: 'Lieu', type: 'texte', requis: true },
@@ -266,7 +288,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     champs: [
       { nom: 'url', libelle: 'Photo', type: 'image', requis: true },
       { nom: 'alt', libelle: 'Description de la photo', type: 'texte', requis: true, aide: 'Lue aux personnes malvoyantes.' },
-      { nom: 'page', libelle: 'Page qui affiche la photo', type: 'pageGalerie', requis: true },
+      { nom: 'page', libelle: 'Page qui affiche la photo', type: 'liste', source: PAGES_AVEC_GALERIE, requis: true },
       { nom: 'ordre', libelle: 'Ordre dans la galerie', type: 'nombre', defaut: '0' },
     ],
     methodeModification: 'PUT', suppression: true,

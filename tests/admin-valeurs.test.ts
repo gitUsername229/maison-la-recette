@@ -6,7 +6,7 @@ import { corpsFormulaire, valeurInitiale } from '../src/frontend/admin/valeurs';
 const champ = (nom: string, type: ChampAdmin['type'], options: Partial<ChampAdmin> = {}): ChampAdmin => ({ nom, libelle: nom, type, ...options });
 
 const CHAMPS = [
-  champ('experienceId', 'experience', { creationSeulement: true }),
+  champ('experienceId', 'liste', { creationSeulement: true, entier: true }),
   champ('prixCents', 'prix', { nullable: true }),
   champ('placesTotal', 'nombre'),
   champ('dateDebut', 'dateHeure'),
@@ -43,4 +43,16 @@ test('les valeurs en base sont préremplies au format des champs, sans décalage
   const affichee = String(valeurInitiale(CHAMPS[3], ligne));
   assert.equal(corpsFormulaire([CHAMPS[3]], formulaire({ dateDebut: affichee }), false).dateDebut, ligne.dateDebut);
   assert.equal(valeurInitiale(champ('visible', 'booleen', { defaut: true }), null), true);
+});
+
+test('cases à cocher : valeurs cochées préremplies, identifiants renvoyés en nombres, aucune case = liste vide', () => {
+  const experiences = champ('experienceIds', 'listeMultiple', { entier: true });
+  assert.deepEqual(valeurInitiale(experiences, { id: 1, experienceIds: [2, 5] }), ['2', '5']);
+  assert.deepEqual(valeurInitiale(experiences, null), []);
+
+  const donnees = formulaire({});
+  donnees.append('experienceIds', '2');
+  donnees.append('experienceIds', '7');
+  assert.deepEqual(corpsFormulaire([experiences], donnees, false), { experienceIds: [2, 7] });
+  assert.deepEqual(corpsFormulaire([experiences], formulaire({}), false), { experienceIds: [] });
 });
