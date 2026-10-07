@@ -1,4 +1,4 @@
-import { articleParSlug, articles } from '@/backend/contenus/contenus';
+import { articleParSlug, articles } from '@/backend/contenus/articles';
 
 export const runtime = 'nodejs';
 // GET par slug (public), PUT et DELETE par id (admin).

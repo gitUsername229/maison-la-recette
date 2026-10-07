@@ -52,6 +52,22 @@ export const TEXTES_PAR_DEFAUT = {
     projetTexte: { libelle: 'Encadré : texte', format: 'paragraphe', texte: 'De l’écriture au mixage en passant par les interviews de vos équipes ou producteurs partenaires.' },
     bouton: { libelle: 'Encadré : bouton (vers la demande de devis)', format: 'bouton', texte: 'Demander un devis studio' },
   },
+  blog: {
+    surtitre: { libelle: 'Surtitre, au-dessus du titre', format: 'titre', texte: 'Blog & Conseils' },
+    titre: { libelle: 'Titre principal', format: 'titre', texte: 'Le Blog' },
+    introduction: { libelle: 'Présentation', format: 'paragraphe', texte: 'Retrouvez ici nos articles, idées de recettes anti-gaspi et réflexions sur l’alimentation durable.' },
+    tousLesArticles: { libelle: 'Onglet et lien « tous les articles »', format: 'bouton', texte: 'Tous les articles' },
+    aucunArticle: { libelle: 'Message quand il n’y a pas encore d’article', format: 'paragraphe', texte: 'Les articles du blog sont en cours de rédaction.' },
+    episodeTitre: { libelle: 'Article : titre du bloc de l’épisode', format: 'titre', texte: 'Écouter l’épisode' },
+    episodeBouton: { libelle: 'Article : bouton du lecteur', format: 'bouton', texte: 'Lancer la lecture' },
+    episodeLien: { libelle: 'Article : lien vers le podcast', format: 'bouton', texte: 'Tous les épisodes' },
+    experiencesTitre: { libelle: 'Article : titre du bloc des expériences', format: 'titre', texte: 'Envie d’aller plus loin ?' },
+    experiencesTexte: { libelle: 'Article : texte du bloc quand aucune expérience n’est liée', format: 'paragraphe', texte: 'Ateliers, good tours et immersions : découvrez nos expériences autour de l’alimentation.' },
+    experiencesBouton: { libelle: 'Article : lien vers toutes les expériences', format: 'bouton', texte: 'Voir toutes les expériences' },
+    entreprisesTitre: { libelle: 'Article « Pour les entreprises » : titre de l’encadré', format: 'titre', texte: 'Une expérience pour votre équipe ?' },
+    entreprisesTexte: { libelle: 'Article « Pour les entreprises » : texte de l’encadré', format: 'paragraphe', texte: 'Ateliers, good tours ou immersions : décrivez-nous votre projet, nous vous répondons avec une proposition adaptée.' },
+    entreprisesBouton: { libelle: 'Article « Pour les entreprises » : bouton (vers la demande de devis)', format: 'bouton', texte: 'Demander un devis' },
+  },
 } as const satisfies Record<string, Record<string, Definition>>;
 
 export type PageTextes = keyof typeof TEXTES_PAR_DEFAUT;

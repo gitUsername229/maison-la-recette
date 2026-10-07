@@ -1,23 +1,12 @@
 import 'server-only';
-import { estAdmin } from '@/backend/auth/acces';
 import { prisma } from '@/backend/db/prisma';
-import { ApiError, endpoint, json, type RouteContext } from '@/backend/http';
+import { ApiError } from '@/backend/http';
 import { TYPES_EPISODE, type TypeEpisode } from '@/backend/podcast/emission';
 import { entierParametre, routesRessource } from './crud';
 import { supprimerFichierOrphelin } from './images';
-import { articleSchemas, avisSchemas, episodeSchemas, partenaireSchemas } from './validation';
+import { avisSchemas, episodeSchemas, partenaireSchemas } from './validation';
 
-// Lectures publiques (pages du site) ; `tout` (admin) inclut brouillons et contenus masqués.
-
-export function listerArticles({ tout = false, limite }: { tout?: boolean; limite?: number } = {}) {
-  return prisma.article.findMany({ where: tout ? {} : { publie: true }, orderBy: { datePublication: 'desc' }, take: limite });
-}
-
-/** Article publié (null pour un brouillon ou une adresse inconnue). */
-export async function articlePublie(slug: string) {
-  const article = await prisma.article.findUnique({ where: { slug } });
-  return article?.publie ? article : null;
-}
+// Lectures publiques (pages du site) ; `tout` (admin) inclut les contenus masqués. Articles du blog : articles.ts.
 
 export function listerAvis({ tout = false, limite }: { tout?: boolean; limite?: number } = {}) {
   return prisma.avis.findMany({ where: tout ? {} : { visible: true }, orderBy: { id: 'desc' }, take: limite });
@@ -26,27 +15,6 @@ export function listerAvis({ tout = false, limite }: { tout?: boolean; limite?: 
 export function listerPartenaires({ tout = false }: { tout?: boolean } = {}) {
   return prisma.partenaire.findMany({ where: tout ? {} : { visible: true }, orderBy: { nom: 'asc' } });
 }
-
-export const articles = routesRessource({
-  schemas: articleSchemas,
-  // ?limit=3 pour l'accueil
-  lister: (admin, params) => listerArticles({ tout: admin, limite: entierParametre(params, 'limit', 50) }),
-  creer: data => prisma.article.create({ data }),
-  modifier: async (id, data) => {
-    const avant = await prisma.article.findUniqueOrThrow({ where: { id }, select: { image: true } });
-    const article = await prisma.article.update({ where: { id }, data });
-    if (article.image !== avant.image) await supprimerFichierOrphelin(avant.image);
-    return article;
-  },
-  supprimer: async id => supprimerFichierOrphelin((await prisma.article.delete({ where: { id } })).image),
-});
-
-/** GET /api/articles/[slug] : un article publié (ou un brouillon pour l'admin). */
-export const articleParSlug = endpoint(async (request: Request, context: RouteContext) => {
-  const article = await prisma.article.findUnique({ where: { slug: (await context.params).id } });
-  if (!article || (!article.publie && !await estAdmin(request))) throw new ApiError(404, 'Article introuvable');
-  return json(article);
-});
 
 export const avis = routesRessource({
   schemas: avisSchemas,

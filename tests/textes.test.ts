@@ -73,7 +73,7 @@ test('modification : admin seulement, règles de l’emplacement, visible aussit
 test('liste : publique et filtrée par page ; l’admin y retrouve les emplacements manquants', async () => {
   const studio = await (await textes.lister(requete('/api/textes?page=studio'))).json() as Ligne[];
   assert.deepEqual(studio.map(t => t.cle), ['surtitre', 'titre', 'introduction', 'projetTitre', 'projetTexte', 'bouton']);
-  assert.equal((await textes.lister(requete('/api/textes?page=blog'))).status, 400);
+  assert.equal((await textes.lister(requete('/api/textes?page=inconnue'))).status, 400);
 
   await prisma.textePage.delete({ where: { id: await idDe('studio', 'projetTitre') } });
   assert.equal((await (await textes.lister(requete('/api/textes?page=studio'))).json() as Ligne[]).length, 5);

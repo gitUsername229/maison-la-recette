@@ -1,5 +1,5 @@
 import {
-  formatDateHeure, libelle, LIEUX_DEVIS, ROLES, STATUTS_DEVIS, STATUTS_RESERVATION, STATUTS_SESSION, TYPES_DEVIS, TYPES_EPISODE, TYPES_EXPERIENCE, type Libelles,
+  formatDate, formatDateHeure, libelle, LIEUX_DEVIS, ROLES, STATUTS_DEVIS, STATUTS_RESERVATION, STATUTS_SESSION, TYPES_DEVIS, TYPES_EPISODE, TYPES_EXPERIENCE, type Libelles,
 } from '@/frontend/format';
 import { lire, type Ligne } from './valeurs';
 
@@ -93,6 +93,9 @@ function visibilite(champ: string, textes: { masquer: string; afficher: string; 
 const ARTICLES_EXPERIENCE: Libelles = { atelier: 'l’atelier', good_tour: 'le good tour', immersion: 'l’immersion' };
 
 const SOURCE_EXPERIENCES: SourceOptions = { api: '/api/experiences', valeur: e => String(e.id), libelle: e => String(e.titre) };
+const SOURCE_CATEGORIES: SourceOptions = { api: '/api/blog/categories', valeur: c => String(c.valeur), libelle: c => String(c.libelle) };
+/** Épisodes du plus récent au plus ancien, avec leur date. */
+const SOURCE_EPISODES: SourceOptions = { api: '/api/episodes', valeur: e => String(e.id), libelle: e => `${formatDate(String(e.datePublication))} · ${String(e.titre)}` };
 
 /** Pages qui affichent une galerie photos : accueil, à propos et la page de chaque expérience. */
 const PAGES_AVEC_GALERIE: SourceOptions = {
@@ -101,7 +104,7 @@ const PAGES_AVEC_GALERIE: SourceOptions = {
 };
 
 // Pages dont les textes sont modifiables (emplacements : src/backend/contenus/textes-par-defaut.ts).
-const PAGES_TEXTES: Libelles = { accueil: 'Accueil', 'a-propos': 'À propos', studio: 'Studio' };
+const PAGES_TEXTES: Libelles = { accueil: 'Accueil', 'a-propos': 'À propos', studio: 'Studio', blog: 'Blog' };
 const designationTexte = (ligne: Ligne) => `« ${String(lire(ligne, 'libelle'))} » (${libelle(PAGES_TEXTES, String(lire(ligne, 'page')))})`;
 
 const visible = (aide: string, defaut: boolean): ChampAdmin => ({ nom: 'visible', libelle: 'Visible sur le site', type: 'booleen', aide, defaut });
@@ -244,7 +247,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     cle: 'textes', titre: 'Textes des pages', singulier: 'un texte', api: '/api/textes',
     textes: { enregistre: 'Texte enregistré : il est déjà en ligne.', supprime: 'Texte supprimé' },
     designation: designationTexte,
-    description: 'Les titres, paragraphes et boutons de l’accueil, de la page « À propos » et de la page studio. Un texte modifié change aussitôt sur le site ; « Remettre le texte d’origine » annule vos changements.',
+    description: 'Les titres, paragraphes et boutons de l’accueil, de la page « À propos », de la page studio et du blog. Un texte modifié change aussitôt sur le site ; « Remettre le texte d’origine » annule vos changements.',
     colonnes: [
       { libelle: 'Page', chemin: 'page', libelles: PAGES_TEXTES },
       { libelle: 'Emplacement', chemin: 'libelle' },
@@ -331,19 +334,25 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     cle: 'articles', titre: 'Articles du blog', singulier: 'un article', api: '/api/articles',
     textes: { enregistre: 'Article enregistré', supprime: 'Article supprimé' },
     designation: nommer('l’article', 'titre'),
-    description: 'Les articles du blog. Un article non publié reste un brouillon invisible sur le site.',
+    description: 'Les articles du blog, classés par catégorie. Un article non publié reste un brouillon invisible sur le site. Liez-le à un épisode et à des expériences : ils s’affichent sous l’article, avec les prochaines dates.',
     colonnes: [
       { libelle: 'Titre', chemin: 'titre' },
+      { libelle: 'Catégorie', chemin: 'categorie', source: SOURCE_CATEGORIES },
+      { libelle: 'Épisode lié', chemin: 'episode.titre' },
       { libelle: 'Date', chemin: 'datePublication', format: 'date' },
       { libelle: 'Publié', chemin: 'publie', format: 'booleen' },
     ],
+    filtre: { parametre: 'categorie', source: SOURCE_CATEGORIES },
     champs: [
       { nom: 'titre', libelle: 'Titre', type: 'texte', requis: true },
       { nom: 'slug', libelle: 'Adresse de la page', type: 'texte', requis: true, aide: 'Devient /blog/<adresse>. Minuscules, chiffres et tirets.' },
-      { nom: 'extrait', libelle: 'Extrait', type: 'texte', requis: true, aide: 'Résumé court, affiché dans la liste et sur les moteurs de recherche.' },
+      { nom: 'categorie', libelle: 'Catégorie', type: 'liste', source: SOURCE_CATEGORIES, requis: true },
+      { nom: 'extrait', libelle: 'Extrait', type: 'texte', requis: true, aide: 'Résumé affiché dans la liste et par Google : une ou deux phrases (160 caractères environ).' },
       { nom: 'contenu', libelle: 'Contenu', type: 'texteLong', requis: true, aide: 'Mise en forme Markdown : **gras**, ## Titre, - liste.' },
-      { nom: 'image', libelle: 'Photo de couverture', type: 'image' },
+      { nom: 'image', libelle: 'Photo de couverture', type: 'image', aide: 'Aussi montrée quand l’article est partagé sur les réseaux sociaux.' },
       { nom: 'imageAlt', libelle: 'Description de la photo', type: 'texte' },
+      { nom: 'episodeId', libelle: 'Épisode du podcast lié', type: 'liste', source: SOURCE_EPISODES, entier: true, nullable: true, aide: 'Facultatif : ajoute « Écouter l’épisode » sous l’article. Du plus récent au plus ancien.' },
+      { nom: 'experienceIds', libelle: 'Expériences liées', type: 'listeMultiple', source: SOURCE_EXPERIENCES, entier: true, aide: 'Facultatif : leurs prochaines dates s’affichent sous l’article. Sans expérience cochée, un lien vers toutes les expériences est proposé.' },
       { nom: 'datePublication', libelle: 'Date de publication', type: 'date' },
       { nom: 'publie', libelle: 'Publié', type: 'booleen', defaut: false },
     ],

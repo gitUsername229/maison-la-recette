@@ -1,14 +1,12 @@
 import 'server-only';
 import { formatDate, formatDateHeure, formatPrix, libelle, LIEUX_DEVIS, TYPES_DEVIS } from '@/frontend/format';
+import { urlDuSite } from '@/backend/site';
 import type { Mail } from './envoi';
 
 const ENTITES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
 /** Neutralise le HTML d'un texte (nom, message de devis…) avant de l'insérer dans un e-mail. */
 export const echapper = (texte: string) => texte.replace(/[&<>"']/g, c => ENTITES[c]);
-
-/** Adresse absolue d'une page du site, pour les liens des e-mails. */
-export const urlDuSite = (chemin: string) => new URL(chemin, process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000').toString();
 
 export type Contenu = {
   titre: string;

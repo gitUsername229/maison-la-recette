@@ -26,6 +26,7 @@ model Experience {
   createdAt           DateTime       @default(now())
   sessions            Session[]
   demandesDevis       DemandeDevis[]
+  articles            Article[]
 }
 
 model Session {
@@ -106,20 +107,27 @@ model Episode {
   deezerUrl       String?
   appleUrl        String?
   youtubeUrl      String?
+  articles        Article[]
 
   @@index([type, saison])
 }
 
 model Article {
-  id              Int      @id @default(autoincrement())
-  slug            String   @unique
+  id              Int          @id @default(autoincrement())
+  slug            String       @unique
   titre           String
   extrait         String
   contenu         String
   image           String
   imageAlt        String
-  datePublication DateTime @default(now())
-  publie          Boolean  @default(false)
+  categorie       String       @default("guides") // clés : src/backend/contenus/categories-blog.ts
+  episodeId       Int?
+  episode         Episode?     @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  experiences     Experience[]
+  datePublication DateTime     @default(now())
+  publie          Boolean      @default(false)
+
+  @@index([publie, categorie, datePublication])
 }
 
 model Avis {

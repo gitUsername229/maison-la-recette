@@ -14,12 +14,39 @@ export function listerExperiences(type?: string, inclureMasquees = false) {
   return prisma.experience.findMany({ where: { ...(inclureMasquees ? {} : { actif: true }), ...(type ? { type } : {}) }, orderBy: { id: 'asc' } });
 }
 
+/** Sessions à venir (hors annulées), avec les réservations qui bloquent encore des places. */
+const sessionsAVenir = () => ({
+  where: { dateDebut: { gt: new Date() }, statut: { not: 'annulee' } },
+  orderBy: { dateDebut: 'asc' },
+  include: { reservations: { where: reservationsBloquantes(), select: { nbPersonnes: true } } },
+}) satisfies Prisma.Experience$sessionsArgs;
+
+type SessionAVenir = Prisma.SessionGetPayload<{ include: { reservations: { select: { nbPersonnes: true } } } }>;
+
+/** Places restantes = places totales − vendues − en cours de paiement. */
+const avecPlacesRestantes = ({ reservations, ...session }: SessionAVenir) => ({
+  ...session,
+  placesRestantes: Math.max(0, session.placesTotal - session.placesPrises - reservations.reduce((n, r) => n + r.nbPersonnes, 0)),
+});
+
 export async function experiencePublique(slug: string) {
-  const result = await prisma.experience.findUnique({ where: { slug }, include: { sessions: { where: { dateDebut: { gt: new Date() }, statut: { not: 'annulee' } }, orderBy: { dateDebut: 'asc' }, include: { reservations: { where: reservationsBloquantes(), select: { nbPersonnes: true } } } } } });
+  const result = await prisma.experience.findUnique({ where: { slug }, include: { sessions: sessionsAVenir() } });
   if (!result?.actif) return null;
   // La galerie d'une expérience = les images de sa page.
   const images = await prisma.image.findMany({ where: { page: `/experiences/${slug}` }, orderBy: { ordre: 'asc' } });
-  return { ...result, images, sessions: result.sessions.map(({ reservations, ...s }) => ({ ...s, placesRestantes: Math.max(0, s.placesTotal - s.placesPrises - reservations.reduce((n, r) => n + r.nbPersonnes, 0)) })) };
+  return { ...result, images, sessions: result.sessions.map(avecPlacesRestantes) };
+}
+
+/** Expériences visibles avec leurs prochaines dates ouvertes où il reste de la place (blocs du blog). */
+export async function experiencesAvecProchainesDates(ids: number[], nombreDeDates = 3) {
+  const experiences = await prisma.experience.findMany({ where: { id: { in: ids }, actif: true }, include: { sessions: sessionsAVenir() }, orderBy: { id: 'asc' } });
+  return experiences.map(({ sessions, ...experience }) => ({
+    ...experience,
+    prochainesDates: sessions.map(avecPlacesRestantes)
+      .filter(s => s.statut === 'ouverte' && s.placesRestantes > 0)
+      .slice(0, nombreDeDates)
+      .map(s => ({ ...s, prixCents: s.prixCents ?? experience.prixCents })), // prix de la session, sinon de l'expérience
+  }));
 }
 
 export const listExperiences = endpoint(async (request: Request) => {

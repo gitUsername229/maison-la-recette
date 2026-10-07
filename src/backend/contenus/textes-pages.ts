@@ -23,7 +23,7 @@ export async function textesDePage<P extends PageTextes>(page: P): Promise<Texte
  */
 export const lister = endpoint(async (request: Request) => {
   const page = new URL(request.url).searchParams.get('page');
-  if (page && !estPageTextes(page)) throw new ApiError(400, 'Page inconnue : accueil, a-propos ou studio.');
+  if (page && !estPageTextes(page)) throw new ApiError(400, `Page inconnue : ${Object.keys(TEXTES_PAR_DEFAUT).join(', ')}.`);
   if (await estAdmin(request)) await creerTextesManquants(prisma);
 
   const enBase = new Map((await prisma.textePage.findMany({ where: page ? { page } : {} })).map(t => [`${t.page}/${t.cle}`, t]));

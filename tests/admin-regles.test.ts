@@ -14,6 +14,7 @@ let contenus: typeof import('../src/backend/contenus/contenus');
 let images: typeof import('../src/backend/contenus/images');
 let compte: typeof import('../src/backend/comptes/compte');
 let newsletter: typeof import('../src/backend/contenus/newsletter');
+let blog: typeof import('../src/backend/contenus/articles');
 
 before(async () => {
   nettoyer = await preparerBaseDeTest();
@@ -24,6 +25,7 @@ before(async () => {
   images = await import('../src/backend/contenus/images');
   compte = await import('../src/backend/comptes/compte');
   newsletter = await import('../src/backend/contenus/newsletter');
+  blog = await import('../src/backend/contenus/articles');
 });
 
 after(async () => {
@@ -76,8 +78,8 @@ test('les erreurs de saisie disent, en français, quel champ corriger', async ()
   assert.deepEqual((await manquant.json() as Erreur).details, [{ champ: 'citation', message: 'Champ obligatoire.' }]);
 
   const article = { titre: 'T', slug: 'meme-adresse', extrait: 'E', contenu: 'C', image: '', imageAlt: '' };
-  assert.equal((await contenus.articles.creer(admin('/api/articles', 'POST', article))).status, 201);
-  const doublon = await contenus.articles.creer(admin('/api/articles', 'POST', article));
+  assert.equal((await blog.articles.creer(admin('/api/articles', 'POST', article))).status, 201);
+  const doublon = await blog.articles.creer(admin('/api/articles', 'POST', article));
   assert.equal(doublon.status, 409);
   assert.deepEqual((await doublon.json() as Erreur).details?.map(d => d.champ), ['slug']);
 });

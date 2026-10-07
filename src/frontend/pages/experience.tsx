@@ -1,8 +1,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import Galerie, { type PhotoGalerie } from '@/frontend/components/Galerie';
+import ProchainesDates from '@/frontend/components/ProchainesDates';
 import ReservationForm, { type SessionDisponible } from '@/frontend/components/ReservationForm';
-import { formatDateHeure, formatDuree, formatPrix, libelleType } from '@/frontend/format';
+import { formatDuree, formatPrix, libelleType } from '@/frontend/format';
 import { classeBouton } from '@/frontend/styles/classes';
 
 export type ExperienceDetail = {
@@ -20,23 +21,6 @@ export type ExperienceDetail = {
   images: PhotoGalerie[];
   sessions: SessionDisponible[];
 };
-
-/** Dates ouvertes, visibles sans compte (le formulaire de réservation, lui, demande un compte). */
-function ProchainesDates({ sessions }: { sessions: SessionDisponible[] }) {
-  if (sessions.length === 0) return <p className="mb-5 text-sm text-stone-600">Aucune date ouverte pour le moment.</p>;
-  return (
-    <ul className="mb-5 grid gap-2 text-sm">
-      {sessions.map(s => (
-        <li key={s.id} className="rounded-lg bg-stone-50 px-3 py-2">
-          <span className="font-medium">{formatDateHeure(s.dateDebut)}</span>
-          <span className="block text-stone-500">
-            {s.lieu} · {s.placesRestantes > 0 ? `${s.placesRestantes} place${s.placesRestantes > 1 ? 's' : ''}` : 'Complet'} · {formatPrix(s.prixCents)}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 type Props = {
   experience: ExperienceDetail;
@@ -86,7 +70,7 @@ export default function Experience({ experience, utilisateur }: Props) {
                 <ReservationForm sessions={experience.sessions} utilisateur={utilisateur} />
               ) : (
                 <div className="grid gap-3">
-                  <ProchainesDates sessions={experience.sessions} />
+                  <ProchainesDates sessions={experience.sessions} className="mb-5" />
                   <p className="leading-relaxed text-stone-600">Un compte est nécessaire pour réserver : vous retrouverez ensuite vos réservations dans « Mon compte ».</p>
                   <Link href={`/connexion?retour=${retour}`} className={`text-center ${classeBouton}`}>Se connecter pour réserver</Link>
                   <Link href={`/inscription?retour=${retour}`} className="text-center text-sm underline">Créer un compte</Link>

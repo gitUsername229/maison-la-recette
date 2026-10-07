@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TYPES_EPISODE } from '@/backend/podcast/emission';
+import { CATEGORIE_PAR_DEFAUT, CLES_CATEGORIES } from './categories-blog';
 
 // Chaque ressource a un schéma de base SANS valeur par défaut :
 // - création = base + valeurs par défaut ;
@@ -17,12 +18,23 @@ export const cheminImage = z.string().max(500).refine(v => v === '' || (/^\/imag
 /** Chemin d'une page du site, ex : /a-propos ou /experiences/atelier-cuisine-anti-gaspi. */
 const page = z.string().max(200).regex(/^\/[\w/-]*$/, 'Chemin de page invalide (ex : /a-propos)');
 
+const identifiant = z.number().int().positive();
+
+// Un article peut renvoyer vers un épisode et vers des expériences (blocs en bas de l'article).
 const article = z.object({
-  slug, titre: texte(), extrait: texte(), contenu: texte(100_000),
+  slug: slug.refine(v => v !== 'categorie', 'Adresse réservée aux catégories du blog : choisissez-en une autre.'),
+  titre: texte(), extrait: texte(), contenu: texte(100_000),
   image: cheminImage, imageAlt: z.string().trim().max(500), datePublication: date, publie: z.boolean(),
+  categorie: z.enum(CLES_CATEGORIES),
+  episodeId: identifiant.nullable(),
+  experienceIds: z.array(identifiant).max(20).transform(ids => [...new Set(ids)]),
 }).strict();
 export const articleSchemas = {
-  creation: article.extend({ datePublication: date.optional(), publie: z.boolean().default(false) }),
+  creation: article.extend({
+    datePublication: date.optional(), publie: z.boolean().default(false),
+    categorie: article.shape.categorie.default(CATEGORIE_PAR_DEFAUT), episodeId: article.shape.episodeId.default(null),
+    experienceIds: article.shape.experienceIds.default([]),
+  }),
   modification: article.partial(),
 };
 
