@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Feuille from '@/frontend/components/Feuille';
+import Icone from '@/frontend/components/Icone';
 
 // Les deux colonnes de liens de la maquette. Le blog n'est que là (pas dans le menu) ; Instagram et LinkedIn
 // attendent leurs adresses.
@@ -23,9 +23,9 @@ export default function PiedDePage() {
   return (
     <footer className="border-t border-bordure bg-fond-doux text-texte">
       <div className="mx-auto flex max-w-6xl items-start justify-between gap-6 px-5 pb-8 pt-12 lg:px-6">
-        <Link href="/" className="flex shrink-0 flex-col items-start gap-3 text-2xl lowercase leading-none sm:text-3xl">
-          <Feuille className="h-14 w-14 sm:h-16 sm:w-16" />
-          <span>Maison<br />La recette</span>
+        <Link href="/" className="shrink-0 text-titre">
+          <Icone nom="logo" taille={128} />
+          <span className="sr-only">Maison La recette, accueil</span>
         </Link>
         <nav aria-label="Plan du site" className="grid grid-cols-2 gap-x-6 pt-1 sm:gap-x-20">
           {COLONNES.map(liens => (
