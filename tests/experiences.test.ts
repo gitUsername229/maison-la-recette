@@ -1,82 +1,72 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { after, before, test } from 'node:test';
-import type { PrismaClient } from '@prisma/client';
-import { preparerBaseDeTest } from './outils';
+import { before, beforeEach, test } from 'node:test';
 
-let nettoyer: () => Promise<void>;
-let prisma: PrismaClient;
 let catalogue: typeof import('../src/backend/ateliers/catalogue');
+let luma: typeof import('../src/backend/luma/client');
+let simulation: typeof import('../src/backend/luma/simulation');
+let contenu: typeof import('../src/contenu/experiences');
+let photos: typeof import('../src/contenu/photos');
 
 before(async () => {
-  nettoyer = await preparerBaseDeTest();
-  ({ prisma } = await import('../src/backend/db/prisma'));
+  process.env.NEXT_PUBLIC_BASE_URL = 'http://localhost:3000';
   catalogue = await import('../src/backend/ateliers/catalogue');
+  luma = await import('../src/backend/luma/client');
+  simulation = await import('../src/backend/luma/simulation');
+  contenu = await import('../src/contenu/experiences');
+  photos = await import('../src/contenu/photos');
 });
 
-after(async () => {
-  if (prisma) await prisma.$disconnect();
-  await nettoyer?.();
+beforeEach(() => luma.viderCacheLuma());
+
+const evenement = (etiquettes: string[]) => ({
+  id: 'evt-test', titre: 'Événement', debut: new Date(), fin: new Date(), lieu: null, prix: null,
+  placesRestantes: null, inscriptionOuverte: true, url: 'https://luma.com/x', etiquettes,
 });
 
-const JOUR = 86_400_000;
-const experience = (slug: string, autres: Record<string, unknown> = {}) => prisma.experience.create({
-  data: { slug, type: 'atelier', titre: slug, accroche: 'A', description: 'D', dureeMin: 120, prixCents: 4500, capaciteMax: 10, image: '', imageAlt: '', ...autres },
+test('contenu des expériences : slugs uniques et valides, étiquette Luma pour chaque expérience réservable, photos présentes', () => {
+  const slugs = contenu.EXPERIENCES.map(e => e.slug);
+  assert.equal(new Set(slugs).size, slugs.length);
+  for (const experience of contenu.EXPERIENCES) {
+    assert.match(experience.slug, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+    assert.notEqual(experience.slug, 'entreprises', 'adresse réservée à l’onglet Entreprises');
+    if (experience.reservation === 'luma') assert.ok(experience.etiquetteLuma, `${experience.slug} : etiquetteLuma`);
+    for (const photo of [{ url: experience.image }, ...(photos.GALERIES_EXPERIENCES[experience.slug] ?? [])]) {
+      assert.ok(existsSync(join('public', photo.url)), photo.url);
+    }
+  }
+  assert.ok(Object.keys(photos.GALERIES_EXPERIENCES).every(slug => slugs.includes(slug)));
 });
-const session = (experienceId: number, jours: number, autres: Record<string, unknown> = {}) => {
-  const debut = new Date(Date.now() + jours * JOUR);
-  return prisma.session.create({ data: { experienceId, dateDebut: debut, dateFin: new Date(debut.getTime() + 7_200_000), lieu: `J+${jours}`, placesTotal: 8, ...autres } });
-};
 
-test('cartes : prochaine date ouverte avec des places, autres dates comptées, « sur devis » sinon', async () => {
-  const atelier = await experience('carte-atelier');
-  await session(atelier.id, -1);                         // passée
-  await session(atelier.id, 2, { placesPrises: 8 });     // complète
-  await session(atelier.id, 3, { statut: 'complete' });  // fermée
-  await session(atelier.id, 5, { placesPrises: 3 });     // prochaine : 5 places restantes
-  await session(atelier.id, 9);
-  await session(atelier.id, 12);
-  await experience('carte-sans-date');
-  const surDevis = await experience('carte-sur-devis', { type: 'immersion', reservableEnLigne: false });
-  await session(surDevis.id, 4);
-  await experience('carte-masquee', { actif: false });
+test('un événement Luma rejoint l’expérience qui porte son étiquette (sans tenir compte des majuscules)', () => {
+  assert.equal(catalogue.experienceDe(evenement(['atelier']))?.slug, 'atelier-cuisine-anti-gaspi');
+  assert.equal(catalogue.experienceDe(evenement(['Autre', 'Food tour']))?.slug, 'good-tour-marche-producteurs');
+  assert.equal(catalogue.experienceDe(evenement([])), null);
+  const immersion = catalogue.experienceParSlug('immersion-producteur')!;
+  assert.deepEqual(catalogue.evenementsDe(immersion, [evenement(['Atelier'])]), [], 'sur devis : jamais d’événement');
+});
 
+test('cartes de l’accueil : chaque expérience avec sa prochaine date Luma (faux serveur), sur devis sans date', async t => {
+  t.mock.method(globalThis, 'fetch', async (entree: string | URL | Request, init?: RequestInit) =>
+    simulation.listeSimulee(new Request(String(entree), { headers: new Headers(init?.headers) })));
   const cartes = await catalogue.cartesExperiences();
-  const carte = (slug: string) => cartes.find(c => c.slug === slug);
-  assert.equal(carte('carte-atelier')?.prochaineDate?.lieu, 'J+5');
-  assert.equal(carte('carte-atelier')?.prochaineDate?.placesRestantes, 5);
-  assert.equal(carte('carte-atelier')?.autresDates, 2);
-  assert.deepEqual([carte('carte-sans-date')?.prochaineDate, carte('carte-sans-date')?.autresDates], [null, 0]);
-  assert.deepEqual([carte('carte-sur-devis')?.prochaineDate, carte('carte-sur-devis')?.autresDates], [null, 0]);
-  assert.equal(carte('carte-masquee'), undefined);
+  assert.deepEqual(cartes.map(c => c.slug), contenu.EXPERIENCES.map(e => e.slug));
+  const atelier = cartes.find(c => c.slug === 'atelier-cuisine-anti-gaspi')!;
+  assert.equal(atelier.prochaineDate?.prix?.centimes, 7000);
+  assert.ok(atelier.autresDates >= 1);
+  assert.equal(cartes.find(c => c.slug === 'immersion-producteur')!.prochaineDate, null);
 });
 
-test('expériences passées : sessions terminées des expériences visibles, hors annulées, la plus récente d’abord', async () => {
-  const atelier = await experience('passee-atelier');
-  const recente = await session(atelier.id, -2);
-  const ancienne = await session(atelier.id, -400);
-  await session(atelier.id, -3, { statut: 'annulee' });
-  await session(atelier.id, 6);
-  const masquee = await experience('passee-masquee', { actif: false });
-  await session(masquee.id, -5);
-
-  const passees = (await catalogue.sessionsPassees()).filter(s => s.experience.slug.startsWith('passee-'));
-  assert.deepEqual(passees.map(s => s.id), [recente.id, ancienne.id]);
-  assert.equal(passees[0].lieu, 'J+-2');
+test('mosaïque entreprises : galeries des expériences, puis leurs couvertures, sans doublon, 4 photos', () => {
+  const mosaique = catalogue.photosDesExperiences();
+  assert.equal(mosaique.length, 4);
+  assert.equal(new Set(mosaique.map(p => p.url)).size, 4);
+  assert.deepEqual(mosaique[0], photos.GALERIES_EXPERIENCES['atelier-cuisine-anti-gaspi'][0]);
 });
 
-test('mosaïque entreprises : galeries des expériences visibles (src/contenu/photos.ts), puis leurs couvertures, sans doublon', async () => {
-  const { GALERIES_EXPERIENCES } = await import('../src/contenu/photos');
-  const galerie = GALERIES_EXPERIENCES['atelier-cuisine-anti-gaspi'];
-  await experience('atelier-cuisine-anti-gaspi', { image: galerie[0].url, imageAlt: 'Même photo que la galerie' });
-  await experience('immersion-producteur', { actif: false, image: '/images/couverture-masquee.jpg', imageAlt: 'Masquée' });
-  await experience('mosaique-couverture', { image: '/images/couverture-a.jpg', imageAlt: 'Couverture A' });
-
-  assert.deepEqual(await catalogue.photosDesExperiences(10), [...galerie, { url: '/images/couverture-a.jpg', alt: 'Couverture A' }]);
-});
-
-test('année d’une session à l’heure de Paris', async () => {
+test('année d’une date à l’heure de Paris', async () => {
   const { anneeDe } = await import('../src/frontend/format');
   assert.equal(anneeDe('2026-12-31T23:30:00Z'), 2027); // 1er janvier, 0 h 30 à Paris
   assert.equal(anneeDe('2026-06-15T10:00:00Z'), 2026);
@@ -93,4 +83,3 @@ test('les liens « Demander un devis » passent le slug de l’expérience, celu
   }
   assert.ok(liens >= 4);
 });
-

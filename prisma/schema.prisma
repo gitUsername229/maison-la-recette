@@ -7,238 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Experience {
-  id                  Int            @id @default(autoincrement())
-  slug                String         @unique
-  type                String
-  titre               String
-  accroche            String
-  description         String
-  dureeMin            Int
-  prixCents           Int
-  prixEntrepriseCents Int?
-  capaciteMax         Int
-  lieu                String?
-  image               String
-  imageAlt            String
-  reservableEnLigne   Boolean        @default(true)
-  actif               Boolean        @default(true)
-  createdAt           DateTime       @default(now())
-  sessions            Session[]
-  demandesDevis       DemandeDevis[]
-  articles            Article[]
-}
+// La base ne garde que ce que les visiteurs envoient : demandes de devis et inscriptions à la newsletter
+// (chacune aussi envoyée par e-mail à Julie, MAIL_ADMIN_TO). Le reste du site est du contenu fixe (src/contenu/),
+// les événements viennent de Luma et les épisodes d'Ausha.
 
-model Session {
-  id           Int           @id @default(autoincrement())
-  experienceId Int
-  dateDebut    DateTime
-  dateFin      DateTime
-  lieu         String
-  placesTotal  Int
-  placesPrises Int           @default(0)
-  prixCents    Int?
-  statut       String        @default("ouverte")
-  experience   Experience    @relation(fields: [experienceId], references: [id], onDelete: Restrict)
-  reservations Reservation[]
-
-  @@index([experienceId, dateDebut])
-}
-
-model Reservation {
-  id              Int       @id @default(autoincrement())
-  sessionId       Int
-  nom             String
-  email           String
-  telephone       String?
-  nbPersonnes     Int
-  montantCents    Int
-  statut          String    @default("en_attente")
-  stripeSessionId String?   @unique
-  checkoutKey     String?   @unique
-  checkoutPayload String?
-  /// Case « politique de confidentialité » cochée (null : réservation antérieure à la case)
-  consentementLe  DateTime?
-  createdAt       DateTime  @default(now())
-  session         Session   @relation(fields: [sessionId], references: [id], onDelete: Restrict)
-
-  @@index([sessionId])
-}
-
+/// Demande de devis du formulaire /contact
 model DemandeDevis {
-  id             Int         @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   entreprise     String
   contactNom     String
   email          String
   telephone      String?
   typeDemande    String
-  experienceId   Int?
+  /// Slug de l'expérience visée (src/contenu/experiences.ts), pour une demande « expérience »
+  experience     String?
   nbParticipants Int?
   dateSouhaitee  DateTime?
   lieuSouhaite   String?
   message        String
-  statut         String      @default("nouvelle")
-  noteInterne    String?
   /// Case « politique de confidentialité » cochée (null : demande antérieure à la case)
-  consentementLe DateTime?
-  createdAt      DateTime    @default(now())
-  experience     Experience? @relation(fields: [experienceId], references: [id], onDelete: SetNull)
-
-  @@index([experienceId])
-}
-
-model Episode {
-  id              Int       @id @default(autoincrement())
-  guid            String?   @unique
-  saison          Int       @default(1)
-  numero          Int
-  titre           String
-  description     String
-  resume          String    @default("")
-  type            String    @default("complet")
-  invite          String?
-  datePublication DateTime
-  dureeMin        Int
-  image           String
-  embedUrl        String
-  audioUrl        String? // fichier audio du flux Ausha (lecteur sur mesure de /podcast)
-  spotifyUrl      String?
-  deezerUrl       String?
-  appleUrl        String?
-  youtubeUrl      String?
-  articles        Article[]
-
-  @@index([type, saison])
-}
-
-model Article {
-  id              Int          @id @default(autoincrement())
-  slug            String       @unique
-  titre           String
-  extrait         String
-  contenu         String
-  image           String
-  imageAlt        String
-  categorie       String       @default("guides") // clés : src/backend/contenus/categories-blog.ts
-  episodeId       Int?
-  episode         Episode?     @relation(fields: [episodeId], references: [id], onDelete: SetNull)
-  experiences     Experience[]
-  datePublication DateTime     @default(now())
-  publie          Boolean      @default(false)
-
-  @@index([publie, categorie, datePublication])
-}
-
-model Avis {
-  id       Int       @id @default(autoincrement())
-  nom      String
-  citation String
-  contexte String
-  note     Int?
-  /// Date de l'avis, affichée après le nom (« Claire, 52 ans • 27 juillet 2026 ») ; vide : le contexte à la place
-  date     DateTime?
-  /// Avis fictif créé par le seed pour la démo : à supprimer avant la mise en ligne
-  demo     Boolean   @default(false)
-  visible  Boolean   @default(true)
-}
-
-model Partenaire {
-  id          Int     @id @default(autoincrement())
-  nom         String
-  metier      String
-  photo       String
-  photoAlt    String
-  description String
-  visible     Boolean @default(false)
-}
-
-model Image {
-  id    Int    @id @default(autoincrement())
-  url   String
-  alt   String
-  page  String
-  ordre Int    @default(0)
-
-  @@index([page, ordre])
-}
-
-model Newsletter {
-  id             Int       @id @default(autoincrement())
-  email          String    @unique
-  /// Case « politique de confidentialité » cochée sur le site (null : adresse ajoutée dans l'admin, ou avant la case)
   consentementLe DateTime?
   createdAt      DateTime  @default(now())
 }
 
-/// Textes fixes des pages (accueil, à propos, studio), modifiables dans /admin/textes.
-/// Emplacements et textes d'origine : src/backend/contenus/textes-par-defaut.ts.
-model TextePage {
-  id        Int      @id @default(autoincrement())
-  page      String // accueil, a-propos ou studio
-  cle       String // emplacement dans la page, ex : titre, introduction
-  texte     String
-  updatedAt DateTime @updatedAt
-
-  @@unique([page, cle])
-}
-
-// Comptes d'administration (les visiteurs n'ont pas de compte) : tables imposées par Better Auth
-// (src/backend/auth/auth.ts). Les modèles Auth* ne s'appellent pas Session/Account pour ne pas
-// entrer en conflit avec Session (dates des expériences).
-
-model User {
-  id            String        @id
-  nom           String
-  email         String        @unique
-  emailVerified Boolean       @default(false)
-  image         String?
-  role          String        @default("client")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  sessions      AuthSession[]
-  comptes       AuthAccount[]
-}
-
-model AuthSession {
-  id        String   @id
-  token     String   @unique
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model AuthAccount {
-  id                    String    @id
-  accountId             String
-  providerId            String
-  userId                String
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model AuthVerification {
-  id         String   @id
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([identifier])
+/// Inscription à la newsletter (formulaire de l'accueil)
+model Newsletter {
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  /// Case « politique de confidentialité » cochée (null : adresse ajoutée avant la case)
+  consentementLe DateTime?
+  createdAt      DateTime  @default(now())
 }

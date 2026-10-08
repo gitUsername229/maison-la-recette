@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { adresseIp } from '@/backend/adresse-ip';
 import { ApiError } from '@/backend/http';
 
-// Formulaires publics (devis, réservation, newsletter), ouverts à tous sans compte : champ piège pour les
+// Formulaires publics (devis, newsletter), ouverts à tous sans compte : champ piège pour les
 // robots, limite d'envois par adresse IP et case de consentement obligatoire (date enregistrée).
 
 /** Champ piège : caché aux visiteurs, rempli par les robots qui remplissent tous les champs. */
@@ -21,12 +21,11 @@ export const consentement = z
   .literal(true, { error: 'Cochez la case pour accepter la politique de confidentialité.' })
   .transform(() => new Date());
 
-export type Formulaire = 'devis' | 'checkout' | 'newsletter';
+export type Formulaire = 'devis' | 'newsletter';
 
 // Envois acceptés par adresse IP et par période ; réglables dans .env.local (voir .env.example).
 const LIMITES: Record<Formulaire, { variable: string; defaut: number }> = {
   devis: { variable: 'LIMITE_DEVIS', defaut: 5 },
-  checkout: { variable: 'LIMITE_CHECKOUT', defaut: 10 },
   newsletter: { variable: 'LIMITE_NEWSLETTER', defaut: 5 },
 };
 const PERIODE_MINUTES_PAR_DEFAUT = 10;

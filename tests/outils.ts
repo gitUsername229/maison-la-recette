@@ -16,8 +16,6 @@ export async function preparerBaseDeTest() {
   await writeFile(join(dossier, 'test.db'), '');
   process.env.DATABASE_URL = `file:${join(dossier, 'test.db').replaceAll('\\', '/')}`;
   process.env.NEXT_PUBLIC_BASE_URL = 'http://localhost:3000';
-  process.env.STRIPE_SECRET_KEY = 'sk_test_local_unit_tests';
-  process.env.STRIPE_WEBHOOK_SECRET = 'whsec_local_unit_tests';
   process.env.MAIL_ADMIN_TO = 'julie@exemple.fr';
   const migration = spawnSync(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'deploy'], { env: process.env, encoding: 'utf8' });
   assert.equal(migration.status, 0, migration.stderr);

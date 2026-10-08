@@ -17,8 +17,7 @@ export const createDevis = endpoint(async (request: Request) => {
   if (robot) return json({ message: MERCI_DEVIS }, 201);
   const { nom, consentement: consentementLe, ...data } = devisSchema.parse(donnees);
   if (data.dateSouhaitee && data.dateSouhaitee < new Date()) throw new ApiError(400, 'La date souhaitée doit être future');
-  if (data.typeDemande !== 'experience' && data.experienceId) throw new ApiError(400, 'Seule une demande « expérience » peut viser une expérience');
-  if (data.experienceId && !await prisma.experience.findFirst({ where: { id: data.experienceId, actif: true } })) throw new ApiError(404, 'Expérience introuvable');
+  if (data.typeDemande !== 'experience' && data.experience) throw new ApiError(400, 'Seule une demande « expérience » peut viser une expérience');
   const devis = await prisma.demandeDevis.create({ data: { ...data, contactNom: nom, consentementLe }, select: { id: true } });
   enArrierePlan(envoyerMailsDevis(devis.id));
   return json({ message: MERCI_DEVIS }, 201);

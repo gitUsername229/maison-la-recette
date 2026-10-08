@@ -104,8 +104,10 @@ export const TEXTES = {
     ongletEntreprises: 'Entreprises',
     /** Particuliers : titre des expériences à venir */
     aVenirTitre: 'Expériences à venir',
-    /** Message quand aucune expérience n’est proposée */
-    aucuneExperience: 'Aucune expérience n’est proposée pour le moment.',
+    /** Particuliers : message quand Luma n’a aucun événement à venir (suivi du lien vers le calendrier Luma) */
+    aucuneDate: 'Prochaines dates bientôt.',
+    /** Particuliers : titre des expériences sur devis (immersions) */
+    surDevisTitre: 'Sur devis',
     /** Particuliers : titre des expériences passées (choix de l’année) */
     passeesTitre: 'Expériences passées',
     /** Particuliers : titre des avis */
@@ -160,22 +162,21 @@ Maison La recette, [forme juridique, adresse et numéro SIRET à compléter].
 Contact : larecette@ecomail.fr
 
 ## Quelles données, et pour quoi faire ?
-Réservation d’une expérience : nom, adresse e-mail, téléphone (facultatif) et nombre de participants, pour enregistrer votre réservation, vous envoyer sa confirmation et vous prévenir en cas d’imprévu.
 Demande de devis : nom, entreprise, adresse e-mail, téléphone et description de votre projet, pour vous rappeler et vous faire une proposition.
 Newsletter : adresse e-mail, pour vous envoyer la newsletter jusqu’à votre désinscription.
 Nous gardons aussi la date à laquelle vous avez accepté cette politique. Le site ne vous demande jamais de créer un compte.
 
-## Paiement
-Le paiement par carte est traité par Stripe. Maison La recette ne voit ni ne conserve vos numéros de carte.
+## Inscription aux expériences
+Les inscriptions et les paiements des ateliers et food tours se font sur Luma (luma.com), qui recueille alors vos coordonnées selon sa propre politique de confidentialité. Le site ne fait qu’afficher les dates publiées sur Luma ; il ne reçoit ni vos coordonnées d’inscription ni vos numéros de carte.
 
 ## Qui a accès à vos données ?
-L’équipe de Maison La recette uniquement, et ses prestataires techniques pour ce qui les concerne : hébergement du site [à compléter], envoi des e-mails [à compléter], paiement (Stripe). Vos données ne sont jamais vendues ni cédées.
+L’équipe de Maison La recette uniquement, et ses prestataires techniques pour ce qui les concerne : hébergement du site [à compléter], envoi des e-mails [à compléter]. Vos données ne sont jamais vendues ni cédées.
 
 ## Combien de temps sont-elles conservées ?
-[À compléter, par exemple : réservations et demandes de devis, 3 ans après le dernier contact ; pièces comptables, 10 ans ; newsletter, jusqu’à la désinscription.]
+[À compléter, par exemple : demandes de devis, 3 ans après le dernier contact ; newsletter, jusqu’à la désinscription.]
 
 ## Cookies
-Le site n’utilise ni cookie publicitaire ni mesure d’audience. Un cookie technique sert uniquement à la connexion de l’équipe à l’administration. [À vérifier : cookies déposés par le lecteur du podcast Ausha lorsqu’il est affiché.]
+Le site n’utilise ni cookie publicitaire ni mesure d’audience, et ne dépose aucun cookie. [À vérifier : cookies déposés par le lecteur du podcast Ausha lorsqu’il est affiché, et par Luma sur ses propres pages.]
 
 ## Vos droits
 Vous pouvez demander à consulter, corriger ou supprimer vos données, ou vous opposer à leur utilisation, en écrivant à larecette@ecomail.fr. Vous pouvez vous désinscrire de la newsletter à tout moment. En cas de difficulté, vous pouvez adresser une réclamation à la CNIL (www.cnil.fr).`,

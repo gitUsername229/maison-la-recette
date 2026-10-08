@@ -2,10 +2,10 @@
 
 export type Resultat<T> =
   | { ok: true; donnees: T }
-  // erreursChamps : message à afficher sous chaque champ ; suggestion : autre action proposée.
-  | { ok: false; message: string; erreursChamps: Record<string, string>; suggestion?: string };
+  // erreursChamps : message à afficher sous chaque champ.
+  | { ok: false; message: string; erreursChamps: Record<string, string> };
 
-type ErreurApi = { error?: string; details?: { champ: string; message: string }[]; suggestion?: string };
+type ErreurApi = { error?: string; details?: { champ: string; message: string }[] };
 
 const minuscule = (texte: string) => texte.charAt(0).toLowerCase() + texte.slice(1);
 
@@ -17,7 +17,7 @@ function echec(corps: ErreurApi, libelles: Record<string, string>): Resultat<nev
   const [premier] = details;
   const autres = details.length > 1 ? ` (et ${details.length - 1} autre${details.length > 2 ? 's' : ''} champ${details.length > 2 ? 's' : ''} à corriger)` : '';
   const message = premier && libelles[premier.champ] ? `« ${libelles[premier.champ]} » : ${minuscule(premier.message)}${autres}` : corps.error ?? 'Une erreur est survenue. Réessayez.';
-  return { ok: false, message, erreursChamps, suggestion: corps.suggestion };
+  return { ok: false, message, erreursChamps };
 }
 
 export async function appelerApi<T>(

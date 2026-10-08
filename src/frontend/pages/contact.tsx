@@ -8,8 +8,8 @@ import { LIEUX_DEVIS, TYPES_DEVIS } from '@/frontend/format';
 import { classeBouton, classeErreur } from '@/frontend/styles/classes';
 
 type Props = {
-  experiences: { id: number; titre: string }[];
-  experienceId?: number;
+  experiences: { slug: string; titre: string }[];
+  experience?: string;                        // slug de l'expérience déjà choisie
 };
 
 type Donnees = Record<string, string | number | boolean>;
@@ -17,7 +17,7 @@ type Donnees = Record<string, string | number | boolean>;
 // Noms des champs dans les messages d'erreur renvoyés par /api/devis.
 const LIBELLES = {
   nom: 'Nom et prénom', entreprise: 'Entreprise ou organisation', email: 'E-mail', telephone: 'Téléphone', typeDemande: 'Votre demande',
-  experienceId: 'Expérience', nbParticipants: 'Nombre de participants', dateSouhaitee: 'Date souhaitée', lieuSouhaite: 'Lieu souhaité', message: 'Votre projet',
+  experience: 'Expérience', nbParticipants: 'Nombre de participants', dateSouhaitee: 'Date souhaitée', lieuSouhaite: 'Lieu souhaité', message: 'Votre projet',
   consentement: 'Politique de confidentialité',
 };
 
@@ -27,14 +27,14 @@ function corpsDevis(formulaire: FormData): Donnees {
   for (const [cle, valeur] of formulaire.entries()) {
     const texte = String(valeur).trim();
     if (!texte || cle === 'consentement') continue;
-    corps[cle] = cle === 'experienceId' || cle === 'nbParticipants' ? Number(texte) : texte;
+    corps[cle] = cle === 'nbParticipants' ? Number(texte) : texte;
   }
   return corps;
 }
 
 /** Demande de devis, sans compte : coordonnées et projet saisis ici. */
-export default function Contact({ experiences, experienceId }: Props) {
-  const [typeDemande, setTypeDemande] = useState(experienceId ? 'experience' : '');
+export default function Contact({ experiences, experience }: Props) {
+  const [typeDemande, setTypeDemande] = useState(experience ? 'experience' : '');
   const [erreur, setErreur] = useState<string | null>(null);
   const [erreursChamps, setErreursChamps] = useState<Record<string, string>>({});
   const [envoi, setEnvoi] = useState(false);
@@ -65,7 +65,7 @@ export default function Contact({ experiences, experienceId }: Props) {
     );
   }
 
-  const optionsExperiences = Object.fromEntries(experiences.map(e => [String(e.id), e.titre]));
+  const optionsExperiences = Object.fromEntries(experiences.map(e => [e.slug, e.titre]));
   const avecLieu = typeDemande === 'experience' || typeDemande === 'evenement';
 
   return (
@@ -84,7 +84,7 @@ export default function Contact({ experiences, experienceId }: Props) {
         </div>
         <ChampListe libelle="Votre demande" name="typeDemande" options={TYPES_DEVIS} vide="Choisir…" required value={typeDemande} onChange={e => setTypeDemande(e.target.value)} erreur={erreursChamps.typeDemande} />
         {typeDemande === 'experience' && (
-          <ChampListe libelle="Expérience" name="experienceId" options={optionsExperiences} vide="Je ne sais pas encore" defaultValue={experienceId ? String(experienceId) : ''} erreur={erreursChamps.experienceId} />
+          <ChampListe libelle="Expérience" name="experience" options={optionsExperiences} vide="Je ne sais pas encore" defaultValue={experience ?? ''} erreur={erreursChamps.experience} />
         )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Champ libelle="Nombre de participants" name="nbParticipants" type="number" min={1} max={10000} erreur={erreursChamps.nbParticipants} />

@@ -18,7 +18,7 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{
-          group: ['@/backend', '@/backend/**', '**/backend/**', '@prisma/client', 'stripe'],
+          group: ['@/backend', '@/backend/**', '**/backend/**', '@prisma/client'],
           message: 'Le frontend accède au backend via les routes /api, jamais via les modules serveur.',
         }],
       }],

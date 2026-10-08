@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
 import nodemailer from 'nodemailer';
-import Stripe from 'stripe';
-import { BASE, preparerBaseDeTest, requete } from './outils';
+import { preparerBaseDeTest, requete } from './outils';
 
 type Envoye = { to: string; subject: string; html: string; text: string; replyTo?: string };
 
@@ -12,9 +11,7 @@ let nettoyer: () => Promise<void>;
 let envoi: typeof import('../src/backend/mails/envoi');
 let modeles: typeof import('../src/backend/mails/modeles');
 let prisma: PrismaClient;
-let handlers: typeof import('../src/backend/ateliers/payment-handlers');
 let devis: typeof import('../src/backend/ateliers/devis');
-let bookings: typeof import('../src/backend/ateliers/bookings');
 
 /** Transport Nodemailer en mémoire : les e-mails « envoyés » sont gardés dans `envoyes`. */
 function transportMemoire() {
@@ -33,9 +30,7 @@ before(async () => {
   envoi = await import('../src/backend/mails/envoi');
   modeles = await import('../src/backend/mails/modeles');
   ({ prisma } = await import('../src/backend/db/prisma'));
-  handlers = await import('../src/backend/ateliers/payment-handlers');
   devis = await import('../src/backend/ateliers/devis');
-  bookings = await import('../src/backend/ateliers/bookings');
   envoi.utiliserTransport(transportMemoire());
 });
 
@@ -68,38 +63,6 @@ test('un envoi en arrière-plan qui échoue est journalisé, sans erreur propag�
   assert.equal(journal.mock.callCount(), 1);
 });
 
-/** Réservation en attente + événement Stripe « paiement réussi » signé, comme l'enverrait Stripe. */
-async function paiementReussi(stripeSessionId: string) {
-  const experience = await prisma.experience.create({ data: { slug: stripeSessionId.replaceAll('_', '-').toLowerCase(), type: 'atelier', titre: 'Atelier pain perdu', accroche: 'A', description: 'D', dureeMin: 120, prixCents: 4500, capaciteMax: 10, image: '', imageAlt: '' } });
-  const session = await prisma.session.create({ data: { experienceId: experience.id, dateDebut: new Date('2027-03-06T09:00:00Z'), dateFin: new Date('2027-03-06T11:00:00Z'), lieu: 'La Rochelle', placesTotal: 10 } });
-  const reservation = await prisma.reservation.create({ data: { sessionId: session.id, nom: 'Camille', email: 'camille@example.com', nbPersonnes: 2, montantCents: 9000, stripeSessionId } });
-  const paye = { id: stripeSessionId, mode: 'payment', status: 'complete', payment_status: 'paid', amount_total: 9000, currency: 'eur', livemode: false, client_reference_id: null, metadata: { reservationId: String(reservation.id) } };
-  const corps = JSON.stringify({ id: `evt_${stripeSessionId}`, type: 'checkout.session.completed', livemode: false, data: { object: paye } });
-  const signature = Stripe.webhooks.generateTestHeaderString({ payload: corps, secret: process.env.STRIPE_WEBHOOK_SECRET! });
-  const envoyer = () => handlers.webhook(new Request(`${BASE}/api/webhook`, { method: 'POST', body: corps, headers: { 'stripe-signature': signature } }));
-  return { reservation, paye, envoyer };
-}
-
-test('un paiement confirmé envoie la confirmation au client et l’information à Julie, une seule fois', async () => {
-  const { envoyer } = await paiementReussi('cs_test_mail_unique');
-  assert.equal((await envoyer()).status, 200);
-  assert.equal((await envoyer()).status, 200); // Stripe renvoie le même événement
-  await envoi.attendreLesEnvois();
-
-  assert.deepEqual(envoyes.map(m => m.to).sort(), ['camille@example.com', 'julie@exemple.fr']);
-  const client = envoyes.find(m => m.to === 'camille@example.com')!;
-  assert.match(client.subject, /Réservation confirmée : Atelier pain perdu/);
-  assert.match(client.text, /Participants : 2/);
-  assert.match(client.text, /Montant payé : 90,00\s€/);
-  assert.match(client.text, /Date : samedi 6 mars à 10:00/);
-  assert.match(client.text, /Lieu : La Rochelle/);
-  // Sans compte : aucun lien « Mon compte », mais un moyen de joindre Julie (la réponse lui arrive).
-  assert.ok(!client.text.includes('/compte'));
-  assert.match(client.text, /Répondez simplement à cet e-mail/);
-  assert.equal(client.replyTo, 'julie@exemple.fr');
-  assert.equal(envoyes.find(m => m.to === 'julie@exemple.fr')!.replyTo, 'camille@example.com');
-});
-
 test('une demande de devis envoie le détail à Julie (réponse directe au client) et un accusé, sans HTML injecté', async () => {
   const message = '<img src=x onerror=alert(1)> Team building';
   const corps = { nom: 'Sophie', entreprise: 'Acme', email: 'devis-mail@example.com', telephone: '0600000002', typeDemande: 'evenement', lieuSouhaite: 'a_proximite', message, consentement: true };
@@ -119,42 +82,28 @@ test('une demande de devis envoie le détail à Julie (réponse directe au clien
   assert.equal(accuse.replyTo, 'julie@exemple.fr');
 });
 
-test('un serveur SMTP en panne n’empêche pas d’enregistrer le paiement', async t => {
+test('devis pour une expérience : son slug est enregistré, son titre écrit dans l’e-mail', async () => {
+  const corps = { nom: 'Léa', entreprise: 'Équipe Verte', email: 'experience@example.com', telephone: '0600000004', typeDemande: 'experience', experience: 'immersion-producteur', message: 'Une journée', consentement: true };
+  assert.equal((await devis.createDevis(requete('/api/devis', { methode: 'POST', corps }))).status, 201);
+  await envoi.attendreLesEnvois();
+  assert.equal((await prisma.demandeDevis.findFirstOrThrow({ where: { email: 'experience@example.com' } })).experience, 'immersion-producteur');
+  assert.match(envoyes.find(m => m.to === 'julie@exemple.fr')!.text, /Expérience : Immersion chez un producteur/);
+
+  const inconnue = await devis.createDevis(requete('/api/devis', { methode: 'POST', corps: { ...corps, experience: 'inconnue' } }));
+  assert.equal(inconnue.status, 400);
+  assert.deepEqual((await inconnue.json() as { details: { champ: string }[] }).details.map(d => d.champ), ['experience']);
+});
+
+test('un serveur SMTP en panne n’empêche pas d’enregistrer la demande de devis', async t => {
   t.mock.method(console, 'error', () => undefined);
   envoi.utiliserTransport(nodemailer.createTransport({ name: 'panne', version: '1', send: (mail, fin) => fin(new Error('SMTP indisponible'), { envelope: mail.message.getEnvelope(), messageId: '' }) }));
   try {
-    const { reservation, envoyer } = await paiementReussi('cs_test_mail_panne');
-    assert.equal((await envoyer()).status, 200);
+    const corps = { nom: 'Sophie', entreprise: 'Panne SA', email: 'panne@example.com', telephone: '0600000003', typeDemande: 'studio', message: 'Un podcast', consentement: true };
+    assert.equal((await devis.createDevis(requete('/api/devis', { methode: 'POST', corps }))).status, 201);
     await envoi.attendreLesEnvois();
-    assert.equal((await prisma.reservation.findUniqueOrThrow({ where: { id: reservation.id } })).statut, 'payee');
+    assert.equal(await prisma.demandeDevis.count({ where: { email: 'panne@example.com' } }), 1);
   } finally {
     envoi.utiliserTransport(transportMemoire());
   }
 });
 
-test('la page de succès enregistre le paiement confirmé par Stripe ; le webhook arrivé ensuite ne refait rien', async () => {
-  const { reservation, paye, envoyer } = await paiementReussi('cs_test_succesAvantWebhook');
-  const stripeRenvoyant = (session: object) => ({ checkout: { sessions: { retrieve: async () => session } } }) as unknown as Stripe;
-  const etat = async () => {
-    const r = await prisma.reservation.findUniqueOrThrow({ where: { id: reservation.id }, include: { session: true } });
-    return { statut: r.statut, placesPrises: r.session.placesPrises };
-  };
-  const statutAffiche = async (session: object) => {
-    const resultat = await bookings.reservationApresPaiement(paye.id, stripeRenvoyant(session));
-    return 'reservation' in resultat ? resultat.reservation.statut : resultat.refus;
-  };
-
-  // Stripe n'a pas encore encaissé : rien n'est enregistré.
-  assert.equal(await statutAffiche({ ...paye, status: 'open', payment_status: 'unpaid' }), 'en_attente');
-  assert.deepEqual(await etat(), { statut: 'en_attente', placesPrises: 0 });
-
-  // Arrivée sur la page de succès, Stripe confirme : même traitement que le webhook.
-  assert.equal(await statutAffiche(paye), 'payee');
-  assert.deepEqual(await etat(), { statut: 'payee', placesPrises: 2 });
-
-  // Le webhook arrive ensuite : ni double comptage des places, ni second e-mail.
-  assert.equal((await envoyer()).status, 200);
-  await envoi.attendreLesEnvois();
-  assert.deepEqual(await etat(), { statut: 'payee', placesPrises: 2 });
-  assert.deepEqual(envoyes.map(m => m.to).sort(), ['camille@example.com', 'julie@exemple.fr']);
-});

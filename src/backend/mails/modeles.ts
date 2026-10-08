@@ -1,6 +1,6 @@
 import 'server-only';
-import { formatDate, formatDateHeure, formatPrix, libelle, LIEUX_DEVIS, TYPES_DEVIS } from '@/frontend/format';
-import { EMAIL_DE_CONTACT, urlDuSite } from '@/backend/site';
+import { formatDate, libelle, LIEUX_DEVIS, TYPES_DEVIS } from '@/frontend/format';
+import { EMAIL_DE_CONTACT } from '@/backend/site';
 import type { Mail } from './envoi';
 
 const ENTITES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -52,56 +52,22 @@ export function composer(a: string, sujet: string, contenu: Contenu, repondreA?:
   return { a, sujet, html: html(contenu), texte: texte(contenu), repondreA };
 }
 
-// --- Réservations et devis
-
-export type ReservationMail = {
-  id: number; nom: string; email: string; telephone: string | null; nbPersonnes: number; montantCents: number;
-  session: { dateDebut: Date; lieu: string; experience: { titre: string; slug: string } };
-};
+// --- Devis
 
 export type DevisMail = {
   id: number; entreprise: string; contactNom: string; email: string; telephone: string | null; typeDemande: string;
   nbParticipants: number | null; dateSouhaitee: Date | null; lieuSouhaite: string | null; message: string;
-  experience: { titre: string } | null;
+  experience: string | null;                  // titre de l'expérience visée
 };
-
-function detailsReservation(r: ReservationMail): [string, string][] {
-  return [
-    ['Expérience', r.session.experience.titre],
-    ['Date', formatDateHeure(r.session.dateDebut)],
-    ['Lieu', r.session.lieu],
-    ['Participants', String(r.nbPersonnes)],
-    ['Montant payé', formatPrix(r.montantCents)],
-    ['Réservation', `n° ${r.id}`],
-  ];
-}
 
 /** Pour joindre Julie : la réponse à l'e-mail lui arrive (MAIL_ADMIN_TO), et l'adresse publique reste affichée. */
 const CONTACTER_JULIE = `Une question, un empêchement ? Répondez simplement à cet e-mail : il arrive directement à Julie. Vous pouvez aussi écrire à ${EMAIL_DE_CONTACT}.`;
 const repondreAJulie = () => process.env.MAIL_ADMIN_TO || undefined;
 
-export function confirmationReservation(r: ReservationMail): Mail {
-  return composer(r.email, `Réservation confirmée : ${r.session.experience.titre}`, {
-    titre: 'Votre place est réservée',
-    paragraphes: [`Bonjour ${r.nom},`, 'Merci ! Votre paiement est bien reçu : nous avons hâte de vous accueillir. Gardez cet e-mail, il récapitule votre réservation.'],
-    details: [['Au nom de', r.nom], ['E-mail', r.email], ...(r.telephone ? [['Téléphone', r.telephone] as [string, string]] : []), ...detailsReservation(r)],
-    complement: CONTACTER_JULIE,
-    lien: { texte: 'Revoir l’expérience', url: urlDuSite(`/experiences/${r.session.experience.slug}`) },
-  }, repondreAJulie());
-}
-
-export function reservationPourJulie(a: string, r: ReservationMail): Mail {
-  return composer(a, `Nouvelle réservation payée : ${r.session.experience.titre}`, {
-    titre: 'Nouvelle réservation payée',
-    paragraphes: [`${r.nom} vient de réserver et de payer en ligne.`],
-    details: [['Client', r.nom], ['E-mail', r.email], ['Téléphone', r.telephone ?? '—'], ...detailsReservation(r)],
-  }, r.email);
-}
-
 function detailsDevis(d: DevisMail): [string, string][] {
   const lignes: [string, string | null][] = [
     ['Demande', libelle(TYPES_DEVIS, d.typeDemande)],
-    ['Expérience', d.experience?.titre ?? null],
+    ['Expérience', d.experience],
     ['Entreprise', d.entreprise],
     ['Participants', d.nbParticipants ? String(d.nbParticipants) : null],
     ['Date souhaitée', d.dateSouhaitee ? formatDate(d.dateSouhaitee) : null],

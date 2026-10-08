@@ -1,5 +1,6 @@
 import 'server-only';
 import { adresseDuSite } from '@/backend/site';
+import { LIEN_LUMA } from '@/contenu/liens';
 import { detailSchema, entreeListeSchema, listeSchema, type DetailEvenementLuma, type EntreeListeLuma } from './types';
 
 // Client Luma unique, en lecture seule (GET) : les événements du calendrier de la cliente, qui les gère dans Luma.
@@ -11,8 +12,7 @@ import { detailSchema, entreeListeSchema, listeSchema, type DetailEvenementLuma,
 // Les réponses sont gardées DUREE_CACHE_MS en mémoire ; si Luma ne répond pas, la dernière réponse reste affichée,
 // et sans réponse du tout, les pages proposent le lien de secours LIEN_LUMA.
 
-/** Page publique du calendrier Luma : lien de secours quand les événements ne peuvent pas être lus. */
-export const LIEN_LUMA = 'https://luma.com/larecette';
+export { LIEN_LUMA }; // lien de secours (src/contenu/liens.ts)
 
 export const API_LUMA = 'https://public-api.luma.com';
 

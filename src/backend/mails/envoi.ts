@@ -52,8 +52,8 @@ const enCours = new Set<Promise<void>>();
 
 /**
  * Lance une tâche (un envoi d'e-mail) après la réponse HTTP, grâce à after() de Next.js :
- * ni Stripe ni l'utilisateur n'attendent l'envoi. Un échec est journalisé, jamais propagé :
- * un paiement ou un devis reste enregistré même si l'e-mail ne part pas.
+ * l'utilisateur n'attend pas l'envoi. Un échec est journalisé, jamais propagé :
+ * une demande de devis ou une inscription reste enregistrée même si l'e-mail ne part pas.
  */
 export function enArrierePlan(tache: Promise<unknown>) {
   const suivie: Promise<void> = tache

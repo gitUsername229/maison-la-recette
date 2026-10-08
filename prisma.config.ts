@@ -6,9 +6,5 @@ loadEnvConfig(process.cwd());
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
-  migrations: {
-    path: 'prisma/migrations',
-    // react-server : le seed réutilise des modules backend marqués server-only.
-    seed: 'node --conditions=react-server --import tsx prisma/seed.ts',
-  },
+  migrations: { path: 'prisma/migrations' },
 });

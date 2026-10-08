@@ -1,35 +1,21 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
-import { cache } from 'react';
-import { experiencePublique } from '@/backend/ateliers/catalogue';
+import { experienceAvecDates, experienceParSlug } from '@/backend/ateliers/catalogue';
+import { metadonnees } from '@/backend/seo';
 import Experience from '@/frontend/pages/experience';
 
 type Props = { params: Promise<{ slug: string }> };
 
-// Une seule requête par affichage, partagée par generateMetadata et la page.
-const charger = cache((slug: string) => experiencePublique(slug));
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const experience = await charger((await params).slug);
-  return experience ? { title: `${experience.titre} | Maison La recette`, description: experience.accroche } : {};
+  const { slug } = await params;
+  const experience = experienceParSlug(slug);
+  return experience ? metadonnees({ titre: experience.titre, description: experience.accroche, chemin: `/experiences/${slug}`, image: { url: experience.image, alt: experience.imageAlt } }) : {};
 }
 
 export default async function Page({ params }: Props) {
-  await connection(); // places restantes lues à chaque requête
-  const experience = await charger((await params).slug);
-  if (!experience) notFound();
-
-  // Le formulaire est un composant client : dates en ISO, prix de la session ou de l'expérience.
-  const sessions = experience.sessions
-    .filter(session => session.statut === 'ouverte')
-    .map(session => ({
-      id: session.id,
-      dateDebut: session.dateDebut.toISOString(),
-      lieu: session.lieu,
-      placesRestantes: session.placesRestantes,
-      prixCents: session.prixCents ?? experience.prixCents,
-    }));
-
-  return <Experience experience={{ ...experience, sessions }} />;
+  await connection(); // prochaines dates lues dans Luma (mises en cache quelques minutes)
+  const page = await experienceAvecDates((await params).slug);
+  if (!page) notFound();
+  return <Experience experience={page.experience} galerie={page.galerie} dates={page.evenements} />;
 }

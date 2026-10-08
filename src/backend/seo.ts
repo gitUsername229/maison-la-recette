@@ -2,8 +2,8 @@ import 'server-only';
 import type { Metadata, MetadataRoute } from 'next';
 import { articlesPublies } from '@/backend/contenus/blog';
 import { estCategorie } from '@/backend/contenus/categories-blog';
-import { prisma } from '@/backend/db/prisma';
 import { NOM_DU_SITE, urlDuSite } from '@/backend/site';
+import { EXPERIENCES } from '@/contenu/experiences';
 
 // Référencement : balises des pages publiques, sitemap et robots.txt.
 
@@ -33,19 +33,18 @@ export function metadonnees({ titre, description, chemin, image, article }: Page
 const PAGES_PUBLIQUES = ['/', '/experiences', '/experiences/entreprises', '/podcast', '/blog', '/a-propos', '/studio', '/contact', '/mentions-legales', '/confidentialite'];
 
 /** Pages techniques ou de passage : exclues du sitemap et interdites aux robots. */
-export const CHEMINS_PRIVES = ['/reservation', '/luma-simule', '/api/'];
+export const CHEMINS_PRIVES = ['/luma-simule', '/api/'];
 
 /**
- * Sitemap : pages publiques, expériences visibles, articles publiés et les catégories qui en ont
+ * Sitemap : pages publiques, expériences, articles publiés et les catégories qui en ont
  * (une catégorie vide n'est pas proposée aux moteurs de recherche).
  */
-export async function pagesDuSitemap(): Promise<MetadataRoute.Sitemap> {
+export function pagesDuSitemap(): MetadataRoute.Sitemap {
   const articles = articlesPublies();
-  const experiences = await prisma.experience.findMany({ where: { actif: true }, select: { slug: true }, orderBy: { id: 'asc' } });
   const categories = [...new Set(articles.map(a => a.categorie))].filter(estCategorie);
   return [
     ...PAGES_PUBLIQUES.map(chemin => ({ url: urlDuSite(chemin) })),
-    ...experiences.map(e => ({ url: urlDuSite(`/experiences/${e.slug}`) })),
+    ...EXPERIENCES.map(e => ({ url: urlDuSite(`/experiences/${e.slug}`) })),
     ...categories.map(categorie => ({ url: urlDuSite(`/blog/categorie/${categorie}`) })),
     ...articles.map(a => ({ url: urlDuSite(`/blog/${a.slug}`), lastModified: a.datePublication })),
   ];

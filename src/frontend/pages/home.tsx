@@ -83,7 +83,7 @@ export default function Home({ textes, fond, emission, extrait, lecteur, liens, 
           {experiences.length > 0 && (
             <div className="mt-8">
               <Carrousel libelle={textes.experiencesBlocTitre}>
-                {experiences.map(experience => <CarteExperience key={experience.id} experience={experience} action="decouvrir" />)}
+                {experiences.map(experience => <CarteExperience key={experience.slug} experience={experience} />)}
               </Carrousel>
             </div>
           )}

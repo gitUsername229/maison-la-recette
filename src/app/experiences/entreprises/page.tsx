@@ -1,4 +1,3 @@
-import { connection } from 'next/server';
 import { photosDesExperiences } from '@/backend/ateliers/catalogue';
 import { metadonnees } from '@/backend/seo';
 import { AVIS } from '@/contenu/avis';
@@ -11,7 +10,6 @@ export const metadata = metadonnees({
   chemin: '/experiences/entreprises',
 });
 
-export default async function Page() {
-  await connection(); // couvertures des expériences lues en base
-  return <ExperiencesEntreprises textes={TEXTES.experiences} photos={await photosDesExperiences()} avis={AVIS} />;
+export default function Page() {
+  return <ExperiencesEntreprises textes={TEXTES.experiences} photos={photosDesExperiences()} avis={AVIS} />;
 }

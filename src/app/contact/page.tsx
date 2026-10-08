@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { listerExperiences } from '@/backend/ateliers/catalogue';
+import { EXPERIENCES } from '@/contenu/experiences';
 import Contact from '@/frontend/pages/contact';
 
 export const metadata: Metadata = {
@@ -9,14 +9,13 @@ export const metadata: Metadata = {
 
 type Props = { searchParams: Promise<{ experience?: string }> };
 
+/** ?experience=<slug> : l'expérience déjà choisie dans le formulaire (liens « Demander un devis »). */
 export default async function Page({ searchParams }: Props) {
   const { experience } = await searchParams;
-  const experiences = await listerExperiences();
-  const choisie = experiences.find(e => e.slug === experience);
   return (
     <Contact
-      experiences={experiences.map(({ id, titre }) => ({ id, titre }))}
-      experienceId={choisie?.id}
+      experiences={EXPERIENCES.map(({ slug, titre }) => ({ slug, titre }))}
+      experience={EXPERIENCES.some(e => e.slug === experience) ? experience : undefined}
     />
   );
 }

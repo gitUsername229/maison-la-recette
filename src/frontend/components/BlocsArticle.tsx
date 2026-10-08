@@ -1,14 +1,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import LecteurAusha from '@/frontend/components/LecteurAusha';
-import ProchainesDates, { type DateOuverte } from '@/frontend/components/ProchainesDates';
+import ProchainesDates, { type DateLuma } from '@/frontend/components/ProchainesDates';
 import { formatDate } from '@/frontend/format';
 import { classeGrandBouton } from '@/frontend/styles/classes';
 
 // Blocs sous un article : ils mènent le lecteur vers le podcast, les expériences ou une demande de devis.
 
 export type EpisodeLie = { titre: string; datePublication: Date; image: string; embedUrl: string };
-export type ExperienceLiee = { id: number; slug: string; titre: string; accroche: string; reservableEnLigne: boolean; prochainesDates: DateOuverte[] };
+export type ExperienceLiee = { slug: string; titre: string; accroche: string; reservation: 'luma' | 'devis'; prochainesDates: DateLuma[] };
 
 const classeBloc = 'mt-12 rounded-2xl bg-fond p-6 sm:p-8';
 const classeLien = 'text-sm font-semibold text-accent hover:underline';
@@ -36,7 +36,7 @@ export function BlocEpisode({ episode, textes }: { episode: EpisodeLie; textes: 
 
 type TextesExperiences = { titre: string; texte: string; bouton: string };
 
-/** Expériences liées et leurs prochaines dates ; sans lien, une invitation à découvrir toutes les expériences. */
+/** Expériences liées et leurs prochaines dates Luma ; sans lien, une invitation à découvrir toutes les expériences. */
 export function BlocExperiences({ experiences, textes }: { experiences: ExperienceLiee[]; textes: TextesExperiences }) {
   return (
     <section className={classeBloc} aria-labelledby="bloc-experiences">
@@ -46,15 +46,15 @@ export function BlocExperiences({ experiences, textes }: { experiences: Experien
       ) : (
         <ul className="mt-5 grid gap-6 sm:grid-cols-2">
           {experiences.map(experience => (
-            <li key={experience.id} className="grid content-start gap-3">
+            <li key={experience.slug} className="grid content-start gap-3">
               <div>
                 <Link href={`/experiences/${experience.slug}`} className="text-xl font-bold text-titre hover:underline">{experience.titre}</Link>
                 <p className="mt-1 text-sm">{experience.accroche}</p>
               </div>
-              {experience.reservableEnLigne ? (
+              {experience.reservation === 'luma' ? (
                 <>
-                  <ProchainesDates sessions={experience.prochainesDates} />
-                  <Link href={`/experiences/${experience.slug}`} className={classeLien}>Voir les dates et réserver →</Link>
+                  <ProchainesDates dates={experience.prochainesDates} />
+                  <Link href={`/experiences/${experience.slug}`} className={classeLien}>Voir l’expérience →</Link>
                 </>
               ) : (
                 <Link href={`/contact?experience=${experience.slug}`} className={classeLien}>Sur devis : demander une date →</Link>

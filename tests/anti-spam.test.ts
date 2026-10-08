@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer, request as requeteHttp } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { randomUUID } from 'node:crypto';
 import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
 import { preparerBaseDeTest, requete } from './outils';
@@ -9,8 +8,6 @@ import { preparerBaseDeTest, requete } from './outils';
 let nettoyer: () => Promise<void>;
 let prisma: PrismaClient;
 let devis: typeof import('../src/backend/ateliers/devis');
-let handlers: typeof import('../src/backend/ateliers/payment-handlers');
-let bookings: typeof import('../src/backend/ateliers/bookings');
 let newsletter: typeof import('../src/backend/contenus/newsletter');
 let antiSpam: typeof import('../src/backend/anti-spam');
 let adresse: typeof import('../src/backend/adresse-ip');
@@ -20,8 +17,6 @@ before(async () => {
   nettoyer = await preparerBaseDeTest();
   ({ prisma } = await import('../src/backend/db/prisma'));
   devis = await import('../src/backend/ateliers/devis');
-  handlers = await import('../src/backend/ateliers/payment-handlers');
-  bookings = await import('../src/backend/ateliers/bookings');
   newsletter = await import('../src/backend/contenus/newsletter');
   antiSpam = await import('../src/backend/anti-spam');
   adresse = await import('../src/backend/adresse-ip');
@@ -37,10 +32,9 @@ after(async () => {
 let derniereIp = 0;
 const nouvelleIp = () => `198.51.100.${++derniereIp}`;
 const DEVIS = { nom: 'Sophie', entreprise: 'Acme', email: 'sophie@example.com', telephone: '0600000001', typeDemande: 'studio', message: 'Un podcast', consentement: true };
-const envoyer = (route: 'devis' | 'checkout' | 'newsletter', corps: unknown, ip = nouvelleIp()) => {
+const envoyer = (route: 'devis' | 'newsletter', corps: unknown, ip = nouvelleIp()) => {
   const options = { methode: 'POST', corps, entetes: { 'x-forwarded-for': ip } };
   if (route === 'devis') return devis.createDevis(requete('/api/devis', options));
-  if (route === 'checkout') return handlers.checkout(requete('/api/checkout', options));
   return newsletter.inscrire(requete('/api/newsletter', options));
 };
 
@@ -57,7 +51,7 @@ async function avecEnvironnement(valeurs: Record<string, string | undefined>, fa
   try { await faire(); } finally { appliquer(avant); }
 }
 
-test('champ piège rempli : devis et newsletter font semblant de réussir sans rien enregistrer ; la réservation est refusée', async () => {
+test('champ piège rempli : devis et newsletter font semblant de réussir sans rien enregistrer', async () => {
   const devisRobot = await envoyer('devis', { ...DEVIS, email: 'robot@example.com', siteWeb: 'https://spam.example' });
   const devisHumain = await envoyer('devis', { ...DEVIS, email: 'humaine@example.com', siteWeb: '' });
   assert.deepEqual([devisRobot.status, await devisRobot.json()], [devisHumain.status, await devisHumain.json()]);
@@ -68,19 +62,14 @@ test('champ piège rempli : devis et newsletter font semblant de réussir sans r
   assert.equal(lettreRobot.status, 201);
   assert.equal(await prisma.newsletter.count({ where: { email: 'robot@example.com' } }), 0);
 
-  const avant = await prisma.reservation.count();
-  const paiementRobot = await envoyer('checkout', { sessionId: 1, nbPersonnes: 1, nom: 'Robot', email: 'robot@example.com', consentement: true, siteWeb: 'x' });
-  assert.equal(paiementRobot.status, 400);
-  assert.equal(await prisma.reservation.count(), avant);
   await envoi.attendreLesEnvois();
 });
 
-test('consentement obligatoire sur les trois formulaires, et sa date enregistrée', async () => {
+test('consentement obligatoire sur les deux formulaires, et sa date enregistrée', async () => {
   const champs = async (reponse: Response) => ((await reponse.json()) as { details?: { champ: string; message: string }[] }).details ?? [];
   for (const [route, corps] of [
     ['devis', { ...DEVIS, consentement: undefined }],
     ['devis', { ...DEVIS, consentement: false }],
-    ['checkout', { sessionId: 1, nbPersonnes: 1, nom: 'Camille', email: 'camille@example.com' }],
     ['newsletter', { email: 'lectrice@example.com' }],
   ] as const) {
     const reponse = await envoyer(route, corps);
@@ -93,21 +82,11 @@ test('consentement obligatoire sur les trois formulaires, et sa date enregistré
   assert.ok((await prisma.demandeDevis.findFirstOrThrow({ where: { email: 'consentie@example.com' } })).consentementLe!.getTime() >= avant);
   assert.equal((await envoyer('newsletter', { email: 'consentie@example.com', consentement: true })).status, 201);
   assert.ok((await prisma.newsletter.findUniqueOrThrow({ where: { email: 'consentie@example.com' } })).consentementLe!.getTime() >= avant);
-
-  // Réservation : la date est gardée avec la réservation (paiement Stripe simulé).
-  const experience = await prisma.experience.create({ data: { slug: 'consentement', type: 'atelier', titre: 'Atelier', accroche: 'A', description: 'D', dureeMin: 60, prixCents: 4500, capaciteMax: 5, image: '', imageAlt: '' } });
-  const session = await prisma.session.create({ data: { experienceId: experience.id, dateDebut: new Date(Date.now() + 86400_000), dateFin: new Date(Date.now() + 90000_000), lieu: 'Test', placesTotal: 5 } });
-  const stripe = { checkout: { sessions: {
-    create: async () => ({ id: 'cs_test_consentement', status: 'open', url: 'https://checkout.stripe.com/x' }),
-  } } } as unknown as import('stripe').default;
-  const consentement = new Date();
-  const { reservationId } = await bookings.createCheckout({ sessionId: session.id, nbPersonnes: 1, nom: 'Camille', email: 'camille@example.com', consentement }, randomUUID(), stripe);
-  assert.deepEqual((await prisma.reservation.findUniqueOrThrow({ where: { id: reservationId } })).consentementLe, consentement);
   await envoi.attendreLesEnvois();
 });
 
 test('limite d’envois par IP : 429 au-delà de la limite réglée, les autres adresses ne sont pas gênées, puis la période repart', async t => {
-  await avecEnvironnement({ LIMITE_DEVIS: '2', LIMITE_CHECKOUT: '1', LIMITE_NEWSLETTER: '1', LIMITE_PERIODE_MINUTES: '10' }, async () => {
+  await avecEnvironnement({ LIMITE_DEVIS: '2', LIMITE_NEWSLETTER: '1', LIMITE_PERIODE_MINUTES: '10' }, async () => {
     t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
     const ip = nouvelleIp();
     assert.equal((await envoyer('devis', DEVIS, ip)).status, 201);
@@ -120,8 +99,6 @@ test('limite d’envois par IP : 429 au-delà de la limite réglée, les autres 
     // Chaque formulaire a son compteur ; même un envoi invalide compte (un robot ne peut pas insister).
     assert.equal((await envoyer('newsletter', { email: 'pas-une-adresse' }, ip)).status, 400);
     assert.equal((await envoyer('newsletter', { email: 'lecteur@example.com', consentement: true }, ip)).status, 429);
-    assert.equal((await envoyer('checkout', {}, ip)).status, 400);
-    assert.equal((await envoyer('checkout', {}, ip)).status, 429);
 
     t.mock.timers.tick(10 * 60_000);
     assert.equal((await envoyer('devis', DEVIS, ip)).status, 201);
@@ -132,7 +109,6 @@ test('limite d’envois par IP : 429 au-delà de la limite réglée, les autres 
 test('limites par défaut : réglables, et 20 fois plus larges en développement', async () => {
   await avecEnvironnement({ NODE_ENV: 'production', LIMITE_DEVIS: undefined, LIMITE_PERIODE_MINUTES: undefined }, async () => {
     assert.deepEqual(antiSpam.reglageLimite('devis'), { limite: 5, periodeMs: 600_000 });
-    assert.equal(antiSpam.reglageLimite('checkout').limite, 10);
     assert.equal(antiSpam.reglageLimite('newsletter').limite, 5);
   });
   await avecEnvironnement({ NODE_ENV: 'development', LIMITE_DEVIS: undefined }, async () => {
