@@ -48,25 +48,32 @@ export function reglageLimite(formulaire: Formulaire) {
 }
 
 // Compteurs en mémoire : remis à zéro au redémarrage, propres à chaque serveur (suffisant pour un seul serveur).
-const compteurs = new Map<string, { debut: number; nombre: number }>();
+const compteurs = new Map<string, { debut: number; nombre: number; periodeMs: number }>();
 const TAILLE_AVANT_MENAGE = 10_000;
+
+/**
+ * Compte un essai de plus pour `cle` (ex : formulaire et adresse IP). Au-delà de `limite` essais sur la période,
+ * renvoie le nombre de minutes à attendre ; sinon null. Sert aussi aux tentatives de connexion au tableau de bord.
+ */
+export function compterEssai(cle: string, limite: number, periodeMs: number): number | null {
+  const maintenant = Date.now();
+  let compteur = compteurs.get(cle);
+  if (!compteur || maintenant - compteur.debut >= periodeMs) {
+    if (compteurs.size >= TAILLE_AVANT_MENAGE) {
+      for (const [ancienne, ancien] of compteurs) if (maintenant - ancien.debut >= ancien.periodeMs) compteurs.delete(ancienne);
+    }
+    compteur = { debut: maintenant, nombre: 0, periodeMs };
+    compteurs.set(cle, compteur);
+  }
+  compteur.nombre += 1;
+  return compteur.nombre > limite ? Math.max(1, Math.ceil((compteur.debut + periodeMs - maintenant) / 60_000)) : null;
+}
+
+export const minutes = (n: number) => `${n} minute${n > 1 ? 's' : ''}`;
 
 /** Refuse (429) un envoi de trop depuis la même adresse IP sur la période. */
 export function limiterDebit(request: Request, formulaire: Formulaire) {
   const { limite, periodeMs } = reglageLimite(formulaire);
-  const maintenant = Date.now();
-  const cle = `${formulaire}:${adresseIp(request.headers)}`;
-  let compteur = compteurs.get(cle);
-  if (!compteur || maintenant - compteur.debut >= periodeMs) {
-    if (compteurs.size >= TAILLE_AVANT_MENAGE) {
-      for (const [ancienne, { debut }] of compteurs) if (maintenant - debut >= periodeMs) compteurs.delete(ancienne);
-    }
-    compteur = { debut: maintenant, nombre: 0 };
-    compteurs.set(cle, compteur);
-  }
-  compteur.nombre += 1;
-  if (compteur.nombre > limite) {
-    const minutes = Math.max(1, Math.ceil((compteur.debut + periodeMs - maintenant) / 60_000));
-    throw new ApiError(429, `Trop d’envois en peu de temps depuis votre connexion. Réessayez dans ${minutes} minute${minutes > 1 ? 's' : ''}.`);
-  }
+  const attente = compterEssai(`${formulaire}:${adresseIp(request.headers)}`, limite, periodeMs);
+  if (attente !== null) throw new ApiError(429, `Trop d’envois en peu de temps depuis votre connexion. Réessayez dans ${minutes(attente)}.`);
 }

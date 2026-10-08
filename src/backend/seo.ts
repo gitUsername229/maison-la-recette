@@ -33,7 +33,7 @@ export function metadonnees({ titre, description, chemin, image, article }: Page
 const PAGES_PUBLIQUES = ['/', '/experiences', '/experiences/entreprises', '/podcast', '/blog', '/a-propos', '/studio', '/contact', '/mentions-legales', '/confidentialite'];
 
 /** Pages techniques ou de passage : exclues du sitemap et interdites aux robots. */
-export const CHEMINS_PRIVES = ['/luma-simule', '/api/'];
+export const CHEMINS_PRIVES = ['/luma-simule', '/tableau-de-bord', '/api/'];
 
 /**
  * Sitemap : pages publiques, expériences, articles publiés et les catégories qui en ont
