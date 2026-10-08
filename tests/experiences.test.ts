@@ -66,6 +66,21 @@ test('expériences passées : sessions terminées des expériences visibles, hor
   assert.equal(passees[0].lieu, 'J+-2');
 });
 
+test('mosaïque entreprises : galeries des expériences visibles, puis leurs couvertures, sans doublon', async () => {
+  await experience('mosaique-visible', { image: '/images/couverture-a.jpg', imageAlt: 'Couverture A' });
+  await experience('mosaique-masquee', { actif: false, image: '/images/couverture-b.jpg', imageAlt: 'Couverture B' });
+  await prisma.image.createMany({ data: [
+    { url: '/images/galerie-1.jpg', alt: 'Galerie 1', page: '/experiences/mosaique-visible', ordre: 1 },
+    { url: '/images/couverture-a.jpg', alt: 'Même photo que la couverture', page: '/experiences/mosaique-visible', ordre: 2 },
+    { url: '/images/galerie-masquee.jpg', alt: 'Expérience masquée', page: '/experiences/mosaique-masquee', ordre: 0 },
+  ] });
+
+  assert.deepEqual(await catalogue.photosDesExperiences(), [
+    { url: '/images/galerie-1.jpg', alt: 'Galerie 1' },
+    { url: '/images/couverture-a.jpg', alt: 'Même photo que la couverture' },
+  ]);
+});
+
 test('année d’une session à l’heure de Paris', async () => {
   const { anneeDe } = await import('../src/frontend/format');
   assert.equal(anneeDe('2026-12-31T23:30:00Z'), 2027); // 1er janvier, 0 h 30 à Paris
@@ -88,6 +103,6 @@ test('les liens « Demander un devis » passent le slug de l’expérience, celu
       assert.match(valeur, /slug$|^experience$/, `${fichier} : /contact?experience=\${${valeur}}`);
     }
   }
-  assert.ok(liens >= 5);
+  assert.ok(liens >= 4);
 });
 

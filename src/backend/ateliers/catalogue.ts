@@ -64,6 +64,16 @@ export async function cartesExperiences() {
   });
 }
 
+/** Photos des expériences visibles (galeries, puis couvertures), sans doublon : mosaïque « Pour les entreprises ». */
+export async function photosDesExperiences(nombre = 4) {
+  const experiences = await prisma.experience.findMany({ where: { actif: true }, orderBy: { id: 'asc' }, select: { slug: true, image: true, imageAlt: true } });
+  const galeries = await prisma.image.findMany({
+    where: { page: { in: experiences.map(e => `/experiences/${e.slug}`) } }, orderBy: [{ ordre: 'asc' }, { id: 'asc' }], select: { url: true, alt: true },
+  });
+  const photos = [...galeries, ...experiences.filter(e => e.image).map(e => ({ url: e.image, alt: e.imageAlt }))];
+  return photos.filter((photo, i) => photos.findIndex(p => p.url === photo.url) === i).slice(0, nombre);
+}
+
 /** Sessions passées (hors annulées) des expériences visibles, la plus récente d'abord : « Expériences passées ». */
 export function sessionsPassees() {
   return prisma.session.findMany({

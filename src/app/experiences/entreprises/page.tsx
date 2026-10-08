@@ -1,5 +1,5 @@
 import { connection } from 'next/server';
-import { cartesExperiences } from '@/backend/ateliers/catalogue';
+import { photosDesExperiences } from '@/backend/ateliers/catalogue';
 import { listerAvis } from '@/backend/contenus/contenus';
 import { textesDePage } from '@/backend/contenus/textes-pages';
 import { metadonnees } from '@/backend/seo';
@@ -13,6 +13,6 @@ export const metadata = metadonnees({
 
 export default async function Page() {
   await connection();
-  const [textes, formats, avis] = await Promise.all([textesDePage('experiences'), cartesExperiences(), listerAvis({ limite: 4 })]);
-  return <ExperiencesEntreprises textes={textes} formats={formats} avis={avis} />;
+  const [textes, photos, avis] = await Promise.all([textesDePage('experiences'), photosDesExperiences(), listerAvis()]);
+  return <ExperiencesEntreprises textes={textes} photos={photos} avis={avis} />;
 }

@@ -5,7 +5,7 @@ export type AvisAffiche = { id: number; nom: string; citation: string; contexte:
 type Props = {
   avis: AvisAffiche[];
   titre?: string;            // titre de section (maquette : « Ils en parlent »)
-  moyenne?: boolean;         // note moyenne en grand au-dessus des avis (maquette : « 4,8 … 27 avis de participants »)
+  notes?: boolean;           // note moyenne en grand (« 4,8 … 27 avis de participants ») et étoiles de chaque avis
   nombre?: number;           // avis affichés (la moyenne compte tous les avis notés)
   surFondSombre?: boolean;
 };
@@ -20,7 +20,7 @@ function Etoiles({ note, className = '' }: { note: number; className?: string })
 }
 
 /** Avis clients visibles (gérés dans /admin/avis) : la note moyenne, puis les avis en carrousel sur mobile. */
-export default function ListeAvis({ avis, titre, moyenne = true, nombre = 6, surFondSombre = false }: Props) {
+export default function ListeAvis({ avis, titre, notes: avecNotes = true, nombre = 6, surFondSombre = false }: Props) {
   if (avis.length === 0) return null;
   const notes = avis.flatMap(a => (a.note ? [a.note] : []));
   const valeur = notes.length ? notes.reduce((somme, note) => somme + note, 0) / notes.length : null;
@@ -28,7 +28,7 @@ export default function ListeAvis({ avis, titre, moyenne = true, nombre = 6, sur
   return (
     <section className="grid gap-5" aria-label={titre ? undefined : 'Avis des participants'}>
       {titre && <h2 className="text-xl font-bold">{titre}</h2>}
-      {moyenne && valeur !== null && (
+      {avecNotes && valeur !== null && (
         <p className="flex items-center gap-3">
           <span className="sr-only">Note moyenne : {texteMoyenne} sur 5, {notes.length} avis de participants</span>
           <span aria-hidden="true" className="text-5xl font-bold leading-none">{texteMoyenne}</span>
@@ -41,7 +41,7 @@ export default function ListeAvis({ avis, titre, moyenne = true, nombre = 6, sur
       <Carrousel libelle="Avis des participants">
         {avis.slice(0, nombre).map(a => (
           <figure key={a.id} className="flex h-full flex-col gap-2 rounded-2xl bg-fond p-5 text-texte">
-            {a.note && <p><span className="sr-only">Note : {a.note} sur 5</span><Etoiles note={a.note} className="text-lg text-accent" /></p>}
+            {avecNotes && a.note && <p><span className="sr-only">Note : {a.note} sur 5</span><Etoiles note={a.note} className="text-lg text-accent" /></p>}
             <figcaption className="text-sm">
               <span className="font-bold">{a.nom}</span>
               {a.contexte && <> <span aria-hidden="true">•</span> {a.contexte}</>}
