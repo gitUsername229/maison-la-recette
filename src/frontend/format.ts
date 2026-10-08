@@ -21,6 +21,26 @@ export function formatDuree(minutes: number) {
   return reste ? `${heures} h ${String(reste).padStart(2, '0')}` : `${heures} h`;
 }
 
+// Titres d'épisodes : préfixe de type ou de série (« EXTRAIT 2 - », « REPLAY - », « CHAPITRE 1 - »…), retiré à l'affichage.
+const PREFIXE_EPISODE = /^\s*(?:(?:extrait|teaser|replay|rediffusion|[ée]pisode complet|table-ronde|chapitre|partie)(?:\s*\d+)?\s*[-–:]\s*)+/i;
+const majuscule = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
+
+/**
+ * Titre d'épisode → nom de l'invité et sujet, affichés l'un sous l'autre (maquette) :
+ * « Jean Marie Pédron, cueilleur d'algues : celui qui… » → « Jean Marie Pédron » / « Cueilleur d'algues : celui qui… » ;
+ * « [EXTRAIT 1 - Jean-Marie Pédron ] - Les algues… » → « Jean-Marie Pédron » / « Les algues… ».
+ * Sans nom reconnaissable au début, le titre entier sert de nom et le sujet est vide.
+ */
+export function decouperTitre(titre: string): { nom: string; sujet: string } {
+  const reste = titre.replace(PREFIXE_EPISODE, '').trim();
+  const crochets = /^\[[^\]]*?(?:-\s*([^\]]+?))?\s*\]\s*[-–]?\s*(.+)$/.exec(reste);
+  if (crochets) return crochets[1] ? { nom: crochets[1], sujet: majuscule(crochets[2]) } : { nom: majuscule(crochets[2]), sujet: '' };
+  // Une question (« Comment mieux manger, sans se ruiner ? ») ne se coupe pas à la virgule.
+  const morceaux = (reste.endsWith('?') ? /^([^,:?]{3,45}?)(?: :| [-–]) (.+)$/ : /^([^,:?]{3,45}?)(?:,| :| [-–]) (.+)$/).exec(reste);
+  if (morceaux) return { nom: morceaux[1].trim(), sujet: majuscule(morceaux[2].trim()) };
+  return { nom: reste, sujet: '' };
+}
+
 export type Libelles = Record<string, string>;
 
 export const TYPES_EXPERIENCE: Libelles = { atelier: 'Atelier', good_tour: 'Good tour', immersion: 'Immersion' };

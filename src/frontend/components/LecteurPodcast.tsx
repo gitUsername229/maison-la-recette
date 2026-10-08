@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Icone from '@/frontend/components/Icone';
 import LecteurAusha from '@/frontend/components/LecteurAusha';
 import TexteRepliable from '@/frontend/components/TexteRepliable';
-import { formatDate } from '@/frontend/format';
+import { decouperTitre, formatDate } from '@/frontend/format';
 
 export type EpisodeLecteur = {
   id: number; titre: string; invite: string | null; resume: string; datePublication: string; dureeMin: number;
@@ -15,6 +15,9 @@ export type EpisodeLecteur = {
 type Props = {
   episodes: EpisodeLecteur[];                // la saison affichée, la plus récente d'abord
   lecteur: 'sur-mesure' | 'ausha';           // réglage LECTEUR_PODCAST (src/backend/podcast/emission.ts)
+  etiquette?: string;                        // pastille au-dessus de l'épisode (accueil : « Extrait du dernier épisode »)
+  liste?: boolean;                           // la liste des épisodes sous le lecteur (page podcast)
+  niveau?: 'h2' | 'h3';                      // niveau du titre de l'épisode en cours
 };
 
 /** 754 s → « 12:34 » */
@@ -26,12 +29,22 @@ const duree = (secondes: number) => {
 const defiler = (element: HTMLElement | null) =>
   element?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 
+function Pause({ taille }: { taille: 'petite' | 'grande' }) {
+  const barre = taille === 'grande' ? 'h-5 w-1.5' : 'h-4 w-1';
+  return <span aria-hidden="true" className="flex gap-1"><span className={`${barre} rounded-sm bg-current`} /><span className={`${barre} rounded-sm bg-current`} /></span>;
+}
+
+/** Invité (saisi dans l'admin, sinon lu dans le titre) et sujet de l'épisode. */
+const titres = (episode: EpisodeLecteur) => (episode.invite ? { nom: episode.invite, sujet: episode.titre } : decouperTitre(episode.titre));
+
+const classeSaut = 'h-10 rounded-full px-4 text-sm ring-1 ring-texte hover:bg-fond-doux';
+
 /**
- * Lecteur de la maquette (écran « Frame 15 ») : l'épisode en cours en grand (pochette, précédent, lecture, suivant,
- * progression), puis la liste de la saison, chaque épisode avec son bouton lecture. Le son vient du fichier audio
- * du flux Ausha ; en réglage « ausha », ou sans fichier audio, le lecteur intégré d'Ausha le remplace.
+ * Lecteur de la maquette : l'épisode en cours dans une carte blanche (pochette, invité, sujet, date, progression,
+ * −15 s, lecture, +30 s), puis la liste de la saison, chaque épisode avec son bouton lecture. Le son vient du fichier
+ * audio du flux Ausha ; en réglage « ausha », ou sans fichier audio, le lecteur intégré d'Ausha le remplace.
  */
-export default function LecteurPodcast({ episodes, lecteur }: Props) {
+export default function LecteurPodcast({ episodes, lecteur, etiquette, liste = true, niveau: Titre = 'h2' }: Props) {
   const audio = useRef<HTMLAudioElement>(null);
   const carte = useRef<HTMLElement>(null);
   const [index, setIndex] = useState(0);
@@ -43,6 +56,7 @@ export default function LecteurPodcast({ episodes, lecteur }: Props) {
   if (!episode) return null;
   const surMesure = lecteur === 'sur-mesure' && Boolean(episode.audioUrl);
   const totalAffiche = total || episode.dureeMin * 60;
+  const { nom, sujet } = titres(episode);
 
   function choisir(nouvelIndex: number, lancer: boolean) {
     if (nouvelIndex < 0 || nouvelIndex >= episodes.length) return;
@@ -60,16 +74,26 @@ export default function LecteurPodcast({ episodes, lecteur }: Props) {
     else element.pause();
   }
 
+  function sauter(secondes: number) {
+    const element = audio.current;
+    if (element) element.currentTime = Math.min(Math.max(0, element.currentTime + secondes), element.duration || totalAffiche);
+  }
+
   return (
-    <div className="grid gap-8">
-      <section ref={carte} aria-label="Épisode en cours" className="scroll-mt-24 rounded-xl bg-fond-doux px-6 pb-8 pt-5 text-texte">
-        <h2 className="text-lg font-bold">{episode.titre}</h2>
-        {episode.invite && <p className="text-xs font-bold">avec {episode.invite}</p>}
-        <p className="mt-3 flex items-center gap-2 text-xs font-bold">
-          <Icone nom="calendrier" taille={15} />
-          {formatDate(episode.datePublication)} · {episode.dureeMin} min
-        </p>
-        <Image src={episode.image} alt="" width={181} height={181} className="mx-auto mt-5 h-[181px] w-[181px] rounded-md object-cover" />
+    <div className="grid gap-5">
+      <section ref={carte} aria-label="Épisode en cours" className="scroll-mt-24 rounded-2xl bg-fond p-5 text-texte">
+        {etiquette && <p className="mb-4 w-fit rounded-full bg-fond-sombre px-3 py-1 text-xs font-bold text-sur-fond-sombre">{etiquette}</p>}
+        <div className="flex gap-4">
+          <Image src={episode.image} alt="" width={96} height={96} className="h-24 w-24 shrink-0 rounded-lg object-cover" />
+          <div className="min-w-0">
+            <Titre className="text-2xl leading-tight">{nom}</Titre>
+            {sujet && <p className="mt-1 line-clamp-3 text-sm leading-snug">{sujet}</p>}
+            <p className="mt-2 flex items-center gap-2 text-xs">
+              <Icone nom="calendrier" taille={15} />
+              {formatDate(episode.datePublication)}
+            </p>
+          </div>
+        </div>
 
         {surMesure ? (
           <>
@@ -83,57 +107,64 @@ export default function LecteurPodcast({ episodes, lecteur }: Props) {
               onPause={() => setEnLecture(false)}
               onEnded={() => choisir(index + 1, true)}
             />
-            <div className="mt-6 flex items-center justify-center gap-8 text-primaire">
-              <button type="button" onClick={() => choisir(index - 1, enLecture)} disabled={index === 0} aria-label="Épisode précédent" className="disabled:opacity-40">
-                <Icone nom="suivant" taille={32} className="-scale-x-100" />
-              </button>
-              <button type="button" onClick={basculer} aria-label={enLecture ? 'Pause' : 'Lecture'} className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-primaire text-sur-primaire hover:bg-primaire-fort">
-                {enLecture
-                  ? <span aria-hidden="true" className="flex gap-1.5"><span className="h-5 w-1.5 rounded-sm bg-current" /><span className="h-5 w-1.5 rounded-sm bg-current" /></span>
-                  : <Icone nom="lecture" taille={26} />}
-              </button>
-              <button type="button" onClick={() => choisir(index + 1, enLecture)} disabled={index === episodes.length - 1} aria-label="Épisode suivant" className="disabled:opacity-40">
-                <Icone nom="suivant" taille={32} />
-              </button>
-            </div>
             <input
               type="range" min={0} max={Math.max(1, Math.round(totalAffiche))} step={1} value={Math.round(position)}
               onChange={e => { if (audio.current) audio.current.currentTime = Number(e.target.value); }}
               aria-label="Position dans l’épisode"
               aria-valuetext={`${duree(position)} sur ${duree(totalAffiche)}`}
-              className="curseur-lecture mt-6 w-full"
+              className="curseur-lecture mt-5 w-full"
               style={{ '--progression': `${totalAffiche ? (position / totalAffiche) * 100 : 0}%` } as React.CSSProperties}
             />
-            <p className="flex justify-between text-xs" aria-hidden="true"><span>{duree(position)}</span><span>{duree(totalAffiche)}</span></p>
+            <p className="flex justify-between text-xs" aria-hidden="true"><span>{duree(position)}</span><span>−{duree(totalAffiche - position)}</span></p>
+            <div className="mt-3 flex items-center justify-center gap-5">
+              <button type="button" onClick={() => sauter(-15)} aria-label="Reculer de 15 secondes" className={classeSaut}>−15 s</button>
+              <button type="button" onClick={basculer} aria-label={enLecture ? 'Pause' : 'Lecture'} className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-primaire text-sur-primaire hover:bg-primaire-fort">
+                {enLecture ? <Pause taille="grande" /> : <Icone nom="lecture" taille={26} />}
+              </button>
+              <button type="button" onClick={() => sauter(30)} aria-label="Avancer de 30 secondes" className={classeSaut}>+30 s</button>
+            </div>
           </>
         ) : (
-          <div className="mt-6 grid">
+          <div className="mt-5 grid">
             <LecteurAusha key={episode.id} url={episode.embedUrl} titre={episode.titre} />
           </div>
         )}
-        {episode.resume && <div className="mt-6"><TexteRepliable texte={episode.resume} /></div>}
+        {/* Résumé (rempli à l'import, modifiable dans l'admin) : page podcast seulement, replié. */}
+        {liste && episode.resume && <div className="mt-5 border-t border-bordure pt-4"><TexteRepliable texte={episode.resume} seuil={200} /></div>}
       </section>
 
-      <ul className="grid gap-5">
-        {episodes.map((e, i) => (
-          <li key={e.id} aria-current={i === index ? 'true' : undefined} className={`flex items-center gap-3 rounded-xl p-3 sm:gap-4 sm:p-4 ${i === index ? 'bg-pastel' : 'bg-fond-doux'}`}>
-            <Image src={e.image} alt="" width={102} height={102} className="h-20 w-20 shrink-0 rounded-md object-cover sm:h-[102px] sm:w-[102px]" />
-            <div className="min-w-0 flex-1">
-              <h3 className="line-clamp-3 font-bold leading-snug" title={e.titre}>{e.titre}</h3>
-              {e.invite && <p className="text-xs font-bold">avec {e.invite}</p>}
-              <p className="mt-1 text-xs text-texte-doux">{formatDate(e.datePublication)} · {e.dureeMin} min</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => { if (i === index) audio.current?.play().catch(() => setEnLecture(false)); else choisir(i, true); defiler(carte.current); }}
-              aria-label={`Écouter : ${e.titre}`}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface text-texte ring-1 ring-bordure hover:bg-pastel sm:h-[65px] sm:w-[65px]"
-            >
-              <Icone nom="lecture-petit" taille={16} />
-            </button>
-          </li>
-        ))}
-      </ul>
+      {liste && (
+        <ul className="grid gap-4">
+          {episodes.map((e, i) => {
+            const enCours = i === index;
+            const { nom: nomEpisode, sujet: sujetEpisode } = titres(e);
+            return (
+              <li key={e.id} aria-current={enCours ? 'true' : undefined} className="flex items-center gap-3 rounded-2xl bg-fond p-3 sm:gap-4 sm:p-4">
+                <Image src={e.image} alt="" width={88} height={88} className="h-[72px] w-[72px] shrink-0 rounded-lg object-cover sm:h-[88px] sm:w-[88px]" />
+                <div className="min-w-0 flex-1">
+                  <p className="flex w-fit items-center gap-1.5 rounded-full bg-pastel px-2.5 py-0.5 text-xs">
+                    <Icone nom="calendrier" taille={13} />
+                    {formatDate(e.datePublication)}
+                  </p>
+                  <h3 className="mt-1 font-bold leading-snug">{nomEpisode}</h3>
+                  {sujetEpisode && <p className="line-clamp-2 text-sm leading-snug" title={sujetEpisode}>{sujetEpisode}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!enCours) { choisir(i, true); defiler(carte.current); } else if (surMesure) basculer();
+                    else defiler(carte.current);
+                  }}
+                  aria-label={`${enCours && enLecture ? 'Pause' : 'Écouter'} : ${e.titre}`}
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primaire text-sur-primaire hover:bg-primaire-fort"
+                >
+                  {enCours && enLecture ? <Pause taille="petite" /> : <Icone nom="lecture-petit" taille={18} />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

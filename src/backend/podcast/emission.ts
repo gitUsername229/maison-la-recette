@@ -6,6 +6,9 @@ import 'server-only';
 export const TYPES_EPISODE = ['complet', 'extrait', 'replay'] as const;
 export type TypeEpisode = (typeof TYPES_EPISODE)[number];
 
+/** Nom et accroche de l'émission (maquette : accueil et page podcast, à côté du logo). */
+export const PRESENTATION_EMISSION = { nom: 'La Recette', accroche: 'Le podcast de référence sur l’alimentation éco-responsable' } as const;
+
 /** Liens de l'émission, vérifiés sur le smartlink officiel (smartlink.ausha.co/la-recette) le 6 octobre 2026. */
 export const LIENS_EMISSION = [
   { plateforme: 'Apple Podcasts', url: 'https://podcasts.apple.com/us/podcast/la-recette/id1673916177' },

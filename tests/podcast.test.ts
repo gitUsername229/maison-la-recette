@@ -101,3 +101,17 @@ test('l’import depuis Ausha est réservé à l’admin et exige AUSHA_RSS_URL'
   const avecCle = requete('/api/episodes/import', { methode: 'POST', entetes: { 'x-admin-key': process.env.ADMIN_KEY! } });
   assert.equal((await importation.importerDepuisAusha(avecCle)).status, 503); // pas de flux configuré dans les tests
 });
+
+test('titres d’épisodes : nom de l’invité en grand, sujet dessous, préfixes de type retirés', async () => {
+  const { decouperTitre } = await import('../src/frontend/format');
+  const cas: [string, string, string][] = [
+    ['Jean Marie Pédron, cueilleur d\'algues : celui qui donne le goût des algues', 'Jean Marie Pédron', 'Cueilleur d\'algues : celui qui donne le goût des algues'],
+    ['Pierre-André Aubert : celui qui a créé le premier restaurant solaire', 'Pierre-André Aubert', 'Celui qui a créé le premier restaurant solaire'],
+    ['[EXTRAIT 1 - Jean-Marie Pédron ] - Les algues vont-elles arriver dans nos assiettes demain ?', 'Jean-Marie Pédron', 'Les algues vont-elles arriver dans nos assiettes demain ?'],
+    ['REPLAY - [EXTRAIT 2 - Christian Têtedoie ] Pourquoi s\'engager ?', 'Christian Têtedoie', 'Pourquoi s\'engager ?'],
+    ['REDIFFUSION : Katia Tardy, co-fondatrice de Kignon', 'Katia Tardy', 'Co-fondatrice de Kignon'],
+    ['EXTRAIT 4 - Comment mieux manger, sans se ruiner ?', 'Comment mieux manger, sans se ruiner ?', ''],
+    ['[EXTRAIT 2] - Les 5 conseils de Charles Guirriec pour choisir ses produits de la mer', 'Les 5 conseils de Charles Guirriec pour choisir ses produits de la mer', ''],
+  ];
+  for (const [titre, nom, sujet] of cas) assert.deepEqual(decouperTitre(titre), { nom, sujet }, titre);
+});
