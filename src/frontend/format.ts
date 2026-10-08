@@ -13,6 +13,10 @@ export const formatDate = (date: Date | string) =>
 export const formatDateHeure = (date: Date | string) =>
   new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: FUSEAU });
 
+/** Année d'une date, à l'heure de Paris (une session le 31 décembre à 23 h reste dans son année). */
+export const anneeDe = (date: Date | string) =>
+  Number(new Date(date).toLocaleDateString('fr-FR', { year: 'numeric', timeZone: FUSEAU }));
+
 /** 150 → « 2 h 30 », 180 → « 3 h », 45 → « 45 min » */
 export function formatDuree(minutes: number) {
   const heures = Math.floor(minutes / 60);

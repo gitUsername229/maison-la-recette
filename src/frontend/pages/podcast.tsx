@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import ChoixSaison from '@/frontend/components/ChoixSaison';
+import ChoixParametre from '@/frontend/components/ChoixParametre';
 import LecteurPodcast, { type EpisodeLecteur } from '@/frontend/components/LecteurPodcast';
 import LiensEcoute from '@/frontend/components/LiensEcoute';
 import PresentationEmission from '@/frontend/components/PresentationEmission';
@@ -50,7 +50,9 @@ export default function Podcast({ episodes, saisons, saison, filtre, compteurs, 
       <LiensEcoute titre="À écouter aussi sur" liens={liens} className="mt-8" />
 
       <div className="mt-10 grid gap-4">
-        {saison !== null && saisons.length > 1 && <ChoixSaison saisons={saisons} saison={saison} />}
+        {saison !== null && saisons.length > 1 && (
+          <ChoixParametre parametre="saison" etiquette="Saison" valeur={saison} options={saisons.map(s => ({ valeur: s, texte: `Saison ${s}` }))} />
+        )}
         <nav aria-label="Type d’épisodes" className="flex flex-wrap gap-2">
           {ONGLETS.map(onglet => (
             <Link

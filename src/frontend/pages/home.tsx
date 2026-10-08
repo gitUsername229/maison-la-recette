@@ -54,7 +54,7 @@ export default function Home({ textes, avis, photos }: Props) {
             </Link>
           ))}
         </section>
-        <ListeAvis avis={avis} titre={textes.avisTitre} />
+        <div className="mt-14"><ListeAvis avis={avis} titre={textes.avisTitre} /></div>
         <Galerie photos={autresPhotos} titre={textes.galerieTitre} />
         <InscriptionNewsletter titre={textes.newsletterTitre} texte={textes.newsletterTexte} bouton={textes.newsletterBouton} />
         {textes.mention && <p className="mt-16 whitespace-pre-line text-sm text-texte-doux">{textes.mention}</p>}

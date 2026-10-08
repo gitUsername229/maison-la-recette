@@ -66,7 +66,7 @@ export default function APropos({ textes, partenaires, avis, photos }: Props) {
         </section>
       )}
 
-      <ListeAvis avis={avis} titre={textes.avisTitre} />
+      <div className="mt-14"><ListeAvis avis={avis} titre={textes.avisTitre} /></div>
       <Galerie photos={photos} titre={textes.galerieTitre} />
     </main>
   );

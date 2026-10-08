@@ -64,6 +64,15 @@ export async function cartesExperiences() {
   });
 }
 
+/** Sessions passées (hors annulées) des expériences visibles, la plus récente d'abord : « Expériences passées ». */
+export function sessionsPassees() {
+  return prisma.session.findMany({
+    where: { dateDebut: { lt: new Date() }, statut: { not: 'annulee' }, experience: { actif: true } },
+    orderBy: { dateDebut: 'desc' },
+    select: { id: true, dateDebut: true, lieu: true, experience: { select: { slug: true, type: true, titre: true, image: true, imageAlt: true, dureeMin: true } } },
+  });
+}
+
 export const listExperiences = endpoint(async (request: Request) => {
   const type = new URL(request.url).searchParams.get('type');
   if (type && !['atelier', 'good_tour', 'immersion'].includes(type)) throw new ApiError(400, 'Type inconnu');

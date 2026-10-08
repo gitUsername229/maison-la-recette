@@ -1,22 +1,55 @@
+import Carrousel from '@/frontend/components/Carrousel';
+
 export type AvisAffiche = { id: number; nom: string; citation: string; contexte: string; note: number | null };
 
-/** Avis clients visibles (gérés dans /admin/avis). */
-export default function ListeAvis({ avis, titre = 'Ils en parlent' }: { avis: AvisAffiche[]; titre?: string }) {
-  if (avis.length === 0) return null;
+type Props = {
+  avis: AvisAffiche[];
+  titre?: string;            // titre de section (maquette : « Ils en parlent »)
+  moyenne?: boolean;         // note moyenne en grand au-dessus des avis (maquette : « 4,8 … 27 avis de participants »)
+  nombre?: number;           // avis affichés (la moyenne compte tous les avis notés)
+  surFondSombre?: boolean;
+};
+
+/** Note sur 5 en étoiles (la maquette dessine des carottes : icône attendue de Romain). */
+function Etoiles({ note, className = '' }: { note: number; className?: string }) {
   return (
-    <section className="mt-14">
-      <h2 className="font-serif text-3xl">{titre}</h2>
-      <ul className="mt-5 grid gap-4 sm:grid-cols-2">
-        {avis.map(a => (
-          <li key={a.id}>
-            <figure className="h-full rounded-2xl border border-bordure bg-surface p-6">
-              {a.note && <p className="text-accent" aria-label={`Note : ${a.note} sur 5`}>{'★'.repeat(a.note)}<span className="text-bordure-forte">{'★'.repeat(5 - a.note)}</span></p>}
-              <blockquote className="mt-2 whitespace-pre-line font-serif text-lg leading-relaxed">« {a.citation} »</blockquote>
-              <figcaption className="mt-4 text-sm"><span className="font-medium">{a.nom}</span> · <span className="text-texte-doux">{a.contexte}</span></figcaption>
-            </figure>
-          </li>
+    <span aria-hidden="true" className={className}>
+      {'★'.repeat(note)}<span className="opacity-35">{'★'.repeat(5 - note)}</span>
+    </span>
+  );
+}
+
+/** Avis clients visibles (gérés dans /admin/avis) : la note moyenne, puis les avis en carrousel sur mobile. */
+export default function ListeAvis({ avis, titre, moyenne = true, nombre = 6, surFondSombre = false }: Props) {
+  if (avis.length === 0) return null;
+  const notes = avis.flatMap(a => (a.note ? [a.note] : []));
+  const valeur = notes.length ? notes.reduce((somme, note) => somme + note, 0) / notes.length : null;
+  const texteMoyenne = valeur?.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return (
+    <section className="grid gap-5" aria-label={titre ? undefined : 'Avis des participants'}>
+      {titre && <h2 className="text-xl font-bold">{titre}</h2>}
+      {moyenne && valeur !== null && (
+        <p className="flex items-center gap-3">
+          <span className="sr-only">Note moyenne : {texteMoyenne} sur 5, {notes.length} avis de participants</span>
+          <span aria-hidden="true" className="text-5xl font-bold leading-none">{texteMoyenne}</span>
+          <span aria-hidden="true" className="grid gap-0.5">
+            <Etoiles note={Math.round(valeur)} className={`text-2xl leading-none ${surFondSombre ? '' : 'text-accent'}`} />
+            <span className="text-sm">{notes.length} avis de participants</span>
+          </span>
+        </p>
+      )}
+      <Carrousel libelle="Avis des participants">
+        {avis.slice(0, nombre).map(a => (
+          <figure key={a.id} className="flex h-full flex-col gap-2 rounded-2xl bg-fond p-5 text-texte">
+            {a.note && <p><span className="sr-only">Note : {a.note} sur 5</span><Etoiles note={a.note} className="text-lg text-accent" /></p>}
+            <figcaption className="text-sm">
+              <span className="font-bold">{a.nom}</span>
+              {a.contexte && <> <span aria-hidden="true">•</span> {a.contexte}</>}
+            </figcaption>
+            <blockquote className="mt-1 whitespace-pre-line leading-relaxed">« {a.citation} »</blockquote>
+          </figure>
         ))}
-      </ul>
+      </Carrousel>
     </section>
   );
 }

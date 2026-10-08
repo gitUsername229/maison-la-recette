@@ -52,6 +52,26 @@ test('cartes : prochaine date ouverte avec des places, autres dates comptées, �
   assert.equal(carte('carte-masquee'), undefined);
 });
 
+test('expériences passées : sessions terminées des expériences visibles, hors annulées, la plus récente d’abord', async () => {
+  const atelier = await experience('passee-atelier');
+  const recente = await session(atelier.id, -2);
+  const ancienne = await session(atelier.id, -400);
+  await session(atelier.id, -3, { statut: 'annulee' });
+  await session(atelier.id, 6);
+  const masquee = await experience('passee-masquee', { actif: false });
+  await session(masquee.id, -5);
+
+  const passees = (await catalogue.sessionsPassees()).filter(s => s.experience.slug.startsWith('passee-'));
+  assert.deepEqual(passees.map(s => s.id), [recente.id, ancienne.id]);
+  assert.equal(passees[0].lieu, 'J+-2');
+});
+
+test('année d’une session à l’heure de Paris', async () => {
+  const { anneeDe } = await import('../src/frontend/format');
+  assert.equal(anneeDe('2026-12-31T23:30:00Z'), 2027); // 1er janvier, 0 h 30 à Paris
+  assert.equal(anneeDe('2026-06-15T10:00:00Z'), 2026);
+});
+
 test('l’adresse « entreprises » est réservée à l’onglet Entreprises', async () => {
   const corps = { slug: 'entreprises', type: 'atelier', titre: 'T', accroche: 'A', description: 'D', dureeMin: 60, prixCents: 4500, capaciteMax: 8, image: '', imageAlt: '' };
   const reponse = await catalogue.createExperience(requete('/api/experiences', { methode: 'POST', corps, entetes: { 'x-admin-key': 'local-test-admin' } }));

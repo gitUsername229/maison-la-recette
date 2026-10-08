@@ -66,7 +66,7 @@ export default function ExperiencesEntreprises({ textes, formats, avis }: { text
         </ol>
       </section>
 
-      <ListeAvis avis={avis} titre={textes.avisTitre} />
+      <div className="mt-14"><ListeAvis avis={avis} titre={textes.avisTitre} /></div>
 
       <section className="mt-14 grid justify-items-center gap-5 rounded-xl bg-pastel-chaud px-6 py-10 text-center">
         <p className="max-w-md whitespace-pre-line text-lg font-bold">{textes.encartTitre}</p>
