@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Anton, Inria_Sans } from 'next/font/google';
 import '@/frontend/styles/globals.css';
-import { adresseDuSite, NOM_DU_SITE, RESEAUX_SOCIAUX } from '@/backend/site';
+import { adresseDuSite, NOM_DU_SITE } from '@/backend/site';
 import EnTete from '@/frontend/components/EnTete';
 import PiedDePage from '@/frontend/components/PiedDePage';
 
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="flex min-h-screen flex-col">
         <EnTete />
         <div className="flex-1">{children}</div>
-        <PiedDePage reseaux={RESEAUX_SOCIAUX} />
+        <PiedDePage />
       </body>
     </html>
   );
