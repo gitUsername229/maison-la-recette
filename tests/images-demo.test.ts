@@ -42,7 +42,7 @@ test('seed : photos posées seulement sur les couvertures vides et les pages san
   assert.ok(atelier.image.startsWith('/images/demo/') && atelier.imageAlt.length > 0);
   assert.equal((await prisma.experience.findUniqueOrThrow({ where: { slug: 'good-tour-marche-producteurs' } })).image, '/images/uploads/photo-de-julie.jpg');
   assert.deepEqual((await prisma.image.findMany({ where: { page: '/a-propos' } })).map(i => i.alt), ['Choisie par Julie']);
-  assert.ok((await prisma.image.findMany({ where: { page: '/' }, orderBy: { ordre: 'asc' } }))[0].url.startsWith('/images/demo/'));
+  assert.equal((await prisma.image.findMany({ where: { page: '/' }, orderBy: { ordre: 'asc' } }))[0].url, '/images/accueil/fond-accueil.jpg');
 
   assert.deepEqual(await demo.poserPhotosDemo(prisma), { couvertures: 0, galeries: 0 });
 });

@@ -24,6 +24,9 @@ export const NOMS_PHOTOS_DEMO = Object.keys(PHOTOS) as Photo[];
 
 const photo = (nom: Photo) => ({ url: `/images/demo/${nom}.jpg`, alt: PHOTOS[nom] });
 
+/** Photo de fond de l'accueil, tirée de la maquette de Romain (public/images/accueil/). */
+const FOND_ACCUEIL = { url: '/images/accueil/fond-accueil.jpg', alt: 'Une personne marche dans une serre, entre des rangs de jeunes pousses' };
+
 /** Couvertures des expériences et des articles du seed (par slug). */
 const COUVERTURES: { experiences: Record<string, Photo>; articles: Record<string, Photo> } = {
   experiences: {
@@ -38,13 +41,13 @@ const COUVERTURES: { experiences: Record<string, Photo>; articles: Record<string
   },
 };
 
-/** Galeries par page ; la première photo de l'accueil sert aussi d'image principale. */
-const GALERIES: Record<string, Photo[]> = {
-  '/': ['atelier-legumes-colores', 'panier-legumes-saison', 'carottes-fanes', 'marche-radis-carottes'],
-  '/a-propos': ['tomates-recolte', 'potager', 'carottes-fanes'],
-  '/experiences/atelier-cuisine-anti-gaspi': ['herbes-ciselees', 'carottes-fanes'],
-  '/experiences/good-tour-marche-producteurs': ['marche-radis-carottes', 'panier-legumes-saison'],
-  '/experiences/immersion-producteur': ['tomates-recolte', 'potager'],
+/** Galeries par page ; la première photo de l'accueil sert d'image de fond (la seule affichée sur l'accueil). */
+const GALERIES: Record<string, { url: string; alt: string }[]> = {
+  '/': [FOND_ACCUEIL],
+  '/a-propos': (['tomates-recolte', 'potager', 'carottes-fanes'] as const).map(photo),
+  '/experiences/atelier-cuisine-anti-gaspi': (['herbes-ciselees', 'carottes-fanes'] as const).map(photo),
+  '/experiences/good-tour-marche-producteurs': (['marche-radis-carottes', 'panier-legumes-saison'] as const).map(photo),
+  '/experiences/immersion-producteur': (['tomates-recolte', 'potager'] as const).map(photo),
 };
 
 /** Pose les photos de démonstration : couvertures encore vides et pages sans galerie. Rien n'est remplacé. */
@@ -60,9 +63,9 @@ export async function poserPhotosDemo(prisma: PrismaClient) {
   }
 
   let galeries = 0;
-  for (const [page, noms] of Object.entries(GALERIES)) {
+  for (const [page, photos] of Object.entries(GALERIES)) {
     if (await prisma.image.count({ where: { page } })) continue;
-    await prisma.image.createMany({ data: noms.map((nom, ordre) => ({ ...photo(nom), page, ordre })) });
+    await prisma.image.createMany({ data: photos.map((p, ordre) => ({ ...p, page, ordre })) });
     galeries++;
   }
   return { couvertures, galeries };

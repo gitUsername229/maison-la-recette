@@ -258,7 +258,8 @@ et liens dans [`CREDITS.md`](public/images/demo/CREDITS.md). Thèmes : ateliers 
 légumes de saison, mains qui cuisinent, tablées ; pas de logo de marque ni de visage mis en avant.
 Le seed (`prisma/images-demo.ts`) les pose seulement sur les couvertures vides (expériences, articles de démo) et les
 pages sans galerie (accueil, à propos, expériences) : une photo choisie dans l'admin n'est jamais remplacée. La première
-photo de la galerie de l'accueil sert d'image principale (les suivantes ne sont plus affichées) ; la mosaïque « Pour les
+photo de la galerie de l'accueil sert d'image de fond (par défaut la serre de la maquette,
+`public/images/accueil/fond-accueil.jpg` ; les suivantes ne sont plus affichées) ; la mosaïque « Pour les
 entreprises » (accueil et onglet Entreprises) reprend les galeries des expériences, puis leurs couvertures. Pour les remplacer : `/admin/photos`, et la couverture dans
 `/admin/experiences` ou `/admin/articles`.
 
