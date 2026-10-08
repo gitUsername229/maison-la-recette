@@ -146,6 +146,11 @@ n'envoie pas le cookie (protection `SameSite=Strict`) et redemande le mot de pas
 
 **Changer le mot de passe** : dans `.env.local` (jamais commité), modifier `TABLEAU_DE_BORD_MOT_DE_PASSE`, puis
 redémarrer le serveur. Tous les navigateurs déjà connectés sont déconnectés (le cookie est signé avec le mot de passe).
+
+> **En production, un mot de passe long et unique** : au moins 16 caractères (par exemple une phrase de quatre ou cinq
+> mots, ou `openssl rand -base64 18`), utilisé nulle part ailleurs, différent de celui de développement, et jamais
+> écrit dans le code, `.env.example` ou un commit. La limite de 5 tentatives par quart d'heure freine les essais, mais
+> ne protège pas un mot de passe court ou déjà employé sur un autre site.
 `TABLEAU_DE_BORD_SECRET` (32 caractères au moins, ex : `openssl rand -base64 48`) signe le cookie ; le changer
 déconnecte aussi tout le monde. Sans l'une des deux variables, la page indique que l'accès n'est pas configuré. En
 production, les valeurs factices de `.env.example` (qui contiennent « factice ») laissent le tableau de bord fermé.
@@ -197,8 +202,8 @@ backend sont réservés au serveur (`server-only`) ; le frontend ne les importe 
    articles du blog (trois articles de démonstration) ; voir « Où modifier le reste ».
 2. Luma : passer en mode `api` avec la clé de la cliente et étiqueter ses événements (voir plus haut).
 3. En production : `NEXT_PUBLIC_BASE_URL` = la vraie adresse du site (sitemap, adresses canoniques, aperçus de partage,
-   faux serveur Luma), puis déclarer `/sitemap.xml` dans Google Search Console. Tableau de bord : choisir le mot de
-   passe et un secret aléatoire (voir « Tableau de bord privé »), renseigner `LIEN_BOITE_MAIL` (webmail de Julie) et,
+   faux serveur Luma), puis déclarer `/sitemap.xml` dans Google Search Console. Tableau de bord : choisir un mot de
+   passe long et unique et un secret aléatoire (voir « Tableau de bord privé »), renseigner `LIEN_BOITE_MAIL` (webmail de Julie) et,
    à la mise en ligne, brancher Plausible à la place de « Bientôt disponible ».
 4. **Mentions légales et politique de confidentialité** : compléter les éléments entre crochets (forme juridique,
    SIRET, hébergeur, prestataires, durées de conservation), faire valider le texte par la cliente, puis vider
