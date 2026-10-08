@@ -85,6 +85,24 @@
   --text-7xl: 4.5rem;   --text-7xl--line-height: 1.05;  /* 72 px : grand titre de l'accueil (ordinateur) */
 }
 
+/*
+ * 4. Tailles des logos, selon l'écran : téléphone, tablette (md, dès 768 px), ordinateur (lg, dès 1024 px).
+ * Seul endroit où elles sont fixées : les composants les emploient par leur nom (h-(--logo-entete)…), et la largeur
+ * suit les proportions du fichier (logos carrés, sans largeur ni hauteur fixes dans les SVG).
+ */
+:root {
+  --logo-entete: 2.75rem;      /* 44 px : en-tête et menu ouvert (l'en-tête garde 80 px de haut) */
+  --logo-pied: 6rem;           /* 96 px : pied de page */
+  --logo-emission: 5rem;       /* 80 px : logo « la recette » du podcast (accueil, page podcast) */
+  --logo-plateforme: 1.25rem;  /* 20 px : Spotify, Deezer, Apple Podcasts */
+}
+@media (width >= 48rem) {
+  :root { --logo-entete: 3.25rem; --logo-pied: 7.5rem; --logo-emission: 6rem; --logo-plateforme: 1.5rem; }
+}
+@media (width >= 64rem) {
+  :root { --logo-entete: 3.5rem; --logo-pied: 9rem; --logo-emission: 7rem; }
+}
+
 @layer base {
   html {
     color-scheme: light;

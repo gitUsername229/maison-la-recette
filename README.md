@@ -240,6 +240,9 @@ conservé (la maquette dit « Événements »).
   Sans pour le texte et les boutons, chargées par `next/font` dans `src/app/layout.tsx` avec leurs polices de secours.
 - **Échelle des tailles** (`--text-*`), tirée de la maquette : 14 px (étiquettes, dates), 16 px (texte courant,
   jamais moins : 15 px dans la maquette), 20 (boutons), 24, 28, 32, 40 (titres de page), 48, 58 (menu) et 72 px.
+- **Logos** : le logo dessiné (`public/images/logo-maison-la-recette.svg`), le logo du podcast et ceux des plateformes
+  d'écoute ont des tailles adaptées à l'écran (téléphone, tablette, ordinateur), fixées une seule fois dans
+  `globals.css` (variables `--logo-*`) ; les SVG n'ont qu'un viewBox, sans largeur ni hauteur fixes.
 - **Icônes** de la maquette dans `public/images/icones/`, affichées par le composant `Icone` en masque : la forme vient
   du fichier, la couleur du thème.
 - `tests/theme.test.ts` vérifie les valeurs Figma, les contrastes WCAG AA de chaque couple utilisé, l'échelle des

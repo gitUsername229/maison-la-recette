@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icone from '@/frontend/components/Icone';
+import Logo from '@/frontend/components/Logo';
 
 // Navigation de la maquette (écran « Frame 17 ») : grands liens, puis liens secondaires. Le blog est dans le pied de page.
 const PRINCIPAUX = [
@@ -50,8 +51,8 @@ export default function EnTete() {
     <header className={`${accueil ? 'absolute inset-x-0' : 'sticky'} top-0 z-50 ${apparence}`}>
       <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-3 px-5 sm:gap-6 lg:px-6">
         {/* Logo dessiné : vert vif sur l'en-tête clair, crème sur la photo de l'accueil et sur le menu ouvert. */}
-        <Link href="/" onClick={fermer} className={`shrink-0 ${menuOuvert || accueil ? 'text-fond-doux' : 'text-titre'}`}>
-          <Icone nom="logo" taille={56} />
+        <Link href="/" onClick={fermer} className={`flex shrink-0 ${menuOuvert || accueil ? 'text-fond-doux' : 'text-titre'}`}>
+          <Logo className="h-(--logo-entete)" />
           <span className="sr-only">Maison La recette, accueil</span>
         </Link>
 
