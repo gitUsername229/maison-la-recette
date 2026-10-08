@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { RESEAUX_SOCIAUX } from '@/backend/site';
 import Logo from '@/frontend/components/Logo';
 
-// Les deux colonnes de liens de la maquette. Le blog n'est que là (pas dans le menu) ; Instagram et LinkedIn
-// attendent leurs adresses.
+// Les deux colonnes de liens de la maquette (les réseaux sociaux en tête de la seconde, voir RESEAUX_SOCIAUX).
+// Le blog n'est que là (pas dans le menu).
 const COLONNES = [
   [
     { href: '/podcast', label: 'Podcast' },
@@ -28,8 +29,15 @@ export default function PiedDePage() {
           <span className="sr-only">Maison La recette, accueil</span>
         </Link>
         <nav aria-label="Plan du site" className="grid grid-cols-2 gap-x-6 pt-1 sm:gap-x-20">
-          {COLONNES.map(liens => (
+          {COLONNES.map((liens, i) => (
             <ul key={liens[0].href} className="grid content-start gap-3">
+              {i === 1 && RESEAUX_SOCIAUX.map(reseau => (
+                <li key={reseau.url}>
+                  <a href={reseau.url} target="_blank" rel="noopener noreferrer" className={classeLien}>
+                    {reseau.nom}<span className="sr-only"> (nouvel onglet)</span>
+                  </a>
+                </li>
+              ))}
               {liens.map(lien => <li key={lien.href}><Link href={lien.href} className={classeLien}>{lien.label}</Link></li>)}
             </ul>
           ))}
