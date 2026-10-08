@@ -2,7 +2,7 @@ import 'server-only';
 import { prisma } from '@/backend/db/prisma';
 import { EXPERIENCES } from '@/contenu/experiences';
 import { envoyerMail, type Mail } from './envoi';
-import { accuseDevis, devisPourJulie } from './modeles';
+import { accuseDevis, devisPourJulie, newsletterPourJulie } from './modeles';
 
 /** E-mail destiné à Julie (MAIL_ADMIN_TO), ou rien si l'adresse n'est pas configurée. */
 function pourJulie(creer: (adresse: string) => Mail): Mail[] {
@@ -21,4 +21,9 @@ export async function envoyerMailsDevis(id: number) {
   const titre = EXPERIENCES.find(e => e.slug === experience)?.titre ?? experience;
   const mail = { ...devis, experience: titre };
   await Promise.all([...pourJulie(a => devisPourJulie(a, mail)), accuseDevis(mail)].map(envoyerMail));
+}
+
+/** Nouvelle inscription à la newsletter : l'adresse à Julie (l'inscription reste enregistrée en base). */
+export async function envoyerMailNewsletter(email: string, inscritLe: Date) {
+  await Promise.all(pourJulie(a => newsletterPourJulie(a, email, inscritLe)).map(envoyerMail));
 }

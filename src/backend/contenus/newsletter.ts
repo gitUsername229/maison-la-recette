@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { consentement, limiterDebit, lirePiege } from '@/backend/anti-spam';
 import { prisma } from '@/backend/db/prisma';
 import { endpoint, json } from '@/backend/http';
+import { enArrierePlan } from '@/backend/mails/envoi';
+import { envoyerMailNewsletter } from '@/backend/mails/notifications';
 
 // Adresse nettoyée (espaces, majuscules) avant d'être validée.
 const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
@@ -13,6 +15,7 @@ const MERCI = 'Merci ! Votre adresse est inscrite à la newsletter.';
 /**
  * POST /api/newsletter (public). Même réponse que l'adresse soit déjà inscrite ou non : on ne révèle pas
  * qui est abonné. Champ piège, limite d'envois par IP et consentement obligatoire (sa date est enregistrée).
+ * Une nouvelle adresse est enregistrée et envoyée à Julie (MAIL_ADMIN_TO).
  */
 export const inscrire = endpoint(async (request: Request) => {
   limiterDebit(request, 'newsletter');
@@ -20,6 +23,8 @@ export const inscrire = endpoint(async (request: Request) => {
   // Robot : même réponse, rien n'est enregistré.
   if (robot) return json({ message: MERCI }, 201);
   const { email, consentement: consentementLe } = inscriptionPubliqueSchema.parse(donnees);
+  const dejaInscrite = await prisma.newsletter.findUnique({ where: { email }, select: { id: true } });
   await prisma.newsletter.upsert({ where: { email }, update: { consentementLe }, create: { email, consentementLe } });
+  if (!dejaInscrite) enArrierePlan(envoyerMailNewsletter(email, consentementLe));
   return json({ message: MERCI }, 201);
 });

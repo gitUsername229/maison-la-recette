@@ -94,3 +94,14 @@ export function accuseDevis(d: DevisMail): Mail {
     complement: CONTACTER_JULIE,
   }, repondreAJulie());
 }
+
+// --- Newsletter
+
+/** Nouvelle inscription : prévenir Julie, qui ajoute l'adresse à son outil d'envoi (rien n'est envoyé à l'inscrit). */
+export function newsletterPourJulie(a: string, email: string, inscritLe: Date): Mail {
+  return composer(a, `Nouvelle inscription à la newsletter : ${email}`, {
+    titre: 'Nouvelle inscription à la newsletter',
+    paragraphes: ['Une personne vient de s’inscrire à la newsletter depuis le site, en acceptant la politique de confidentialité.'],
+    details: [['E-mail', email], ['Inscription', formatDate(inscritLe)]],
+  }, email);
+}

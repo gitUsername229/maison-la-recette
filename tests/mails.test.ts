@@ -12,6 +12,7 @@ let envoi: typeof import('../src/backend/mails/envoi');
 let modeles: typeof import('../src/backend/mails/modeles');
 let prisma: PrismaClient;
 let devis: typeof import('../src/backend/ateliers/devis');
+let newsletter: typeof import('../src/backend/contenus/newsletter');
 
 /** Transport Nodemailer en mémoire : les e-mails « envoyés » sont gardés dans `envoyes`. */
 function transportMemoire() {
@@ -31,6 +32,7 @@ before(async () => {
   modeles = await import('../src/backend/mails/modeles');
   ({ prisma } = await import('../src/backend/db/prisma'));
   devis = await import('../src/backend/ateliers/devis');
+  newsletter = await import('../src/backend/contenus/newsletter');
   envoi.utiliserTransport(transportMemoire());
 });
 
@@ -105,5 +107,21 @@ test('un serveur SMTP en panne n’empêche pas d’enregistrer la demande de de
   } finally {
     envoi.utiliserTransport(transportMemoire());
   }
+});
+
+test('newsletter : une nouvelle adresse est enregistrée et envoyée à Julie, une seule fois', async () => {
+  const inscrire = (corps: unknown) => newsletter.inscrire(requete('/api/newsletter', { methode: 'POST', corps, entetes: { 'x-forwarded-for': '203.0.113.7' } }));
+  assert.equal((await inscrire({ email: 'Lectrice@Example.com ', consentement: true })).status, 201);
+  await envoi.attendreLesEnvois();
+  assert.equal(envoyes.length, 1);
+  assert.equal(envoyes[0].to, 'julie@exemple.fr');
+  assert.match(envoyes[0].subject, /Nouvelle inscription à la newsletter : lectrice@example\.com/);
+  assert.equal(envoyes[0].replyTo, 'lectrice@example.com');
+  assert.equal(await prisma.newsletter.count({ where: { email: 'lectrice@example.com' } }), 1);
+
+  // Déjà inscrite : même réponse, rien de renvoyé à Julie.
+  assert.equal((await inscrire({ email: 'lectrice@example.com', consentement: true })).status, 201);
+  await envoi.attendreLesEnvois();
+  assert.equal(envoyes.length, 1);
 });
 
