@@ -56,7 +56,7 @@ test('contrastes WCAG AA des couleurs employées ensemble', () => {
     ['erreur', 'erreur-fond', 4.5], ['erreur', 'fond', 4.5], ['succes', 'succes-fond', 4.5],
     ['titre', 'fond', 4.5], ['titre', 'fond-doux', 4.5], ['titre', 'surface', 4.5],
     ['sur-fond-sombre', 'fond-sombre', 4.5], ['sur-fond-sombre', 'voile', 4.5],
-    ['bordure-forte', 'fond', 3], ['bordure-forte', 'surface', 3],
+    ['bordure-forte', 'fond', 3], ['bordure-forte', 'surface', 3], ['notation', 'fond', 3], // éléments graphiques
     ['texte', 'fond', 3], ['sur-fond-sombre', 'fond-sombre', 3], // contour de focus (sombre sur clair, blanc sur vert foncé)
   ];
   const echecs = couples

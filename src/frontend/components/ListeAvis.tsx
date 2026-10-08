@@ -1,4 +1,5 @@
 import Carrousel from '@/frontend/components/Carrousel';
+import Icone from '@/frontend/components/Icone';
 
 export type AvisAffiche = { id: number; nom: string; citation: string; contexte: string; note: number | null };
 
@@ -10,11 +11,11 @@ type Props = {
   surFondSombre?: boolean;
 };
 
-/** Note sur 5 en étoiles (la maquette dessine des carottes : icône attendue de Romain). */
-function Etoiles({ note, className = '' }: { note: number; className?: string }) {
+/** Note sur 5 en carottes (icônes de la maquette) : pleines, puis vides. */
+function Carottes({ note, taille }: { note: number; taille: number }) {
   return (
-    <span aria-hidden="true" className={className}>
-      {'★'.repeat(note)}<span className="opacity-35">{'★'.repeat(5 - note)}</span>
+    <span aria-hidden="true" className="flex gap-1 text-notation">
+      {Array.from({ length: 5 }, (_, i) => <Icone key={i} nom={i < note ? 'carotte' : 'carotte-vide'} taille={taille} />)}
     </span>
   );
 }
@@ -33,7 +34,7 @@ export default function ListeAvis({ avis, titre, notes: avecNotes = true, nombre
           <span className="sr-only">Note moyenne : {texteMoyenne} sur 5, {notes.length} avis de participants</span>
           <span aria-hidden="true" className={`font-titre text-5xl leading-none ${surFondSombre ? '' : 'text-titre'}`}>{texteMoyenne}</span>
           <span aria-hidden="true" className="grid gap-0.5">
-            <Etoiles note={Math.round(valeur)} className={`text-2xl leading-none ${surFondSombre ? '' : 'text-accent'}`} />
+            <Carottes note={Math.round(valeur)} taille={28} />
             <span className="text-sm">{notes.length} avis de participants</span>
           </span>
         </p>
@@ -41,7 +42,7 @@ export default function ListeAvis({ avis, titre, notes: avecNotes = true, nombre
       <Carrousel libelle="Avis des participants">
         {avis.slice(0, nombre).map(a => (
           <figure key={a.id} className="flex h-full flex-col gap-2 rounded-2xl bg-fond p-5 text-texte">
-            {avecNotes && a.note && <p><span className="sr-only">Note : {a.note} sur 5</span><Etoiles note={a.note} className="text-lg text-accent" /></p>}
+            {avecNotes && a.note && <p><span className="sr-only">Note : {a.note} sur 5</span><Carottes note={a.note} taille={18} /></p>}
             <figcaption className="text-sm">
               <span className="font-bold">{a.nom}</span>
               {a.contexte && <> <span aria-hidden="true">•</span> {a.contexte}</>}

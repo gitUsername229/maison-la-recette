@@ -47,6 +47,8 @@
   --color-accent: color-mix(in srgb, var(--corail) 85%, var(--vert-fonce));
   --color-sur-accent: var(--blanc);
   --color-decor: var(--orange);
+  /* Carottes de notation : l'orange à peine assombri, pour 3:1 sur les cartes blanches (élément graphique). */
+  --color-notation: color-mix(in srgb, var(--orange) 85%, var(--vert-fonce));
   --color-decor-vert: var(--vert-olive);
   --color-fond-sombre: var(--vert-vif);
   --color-sur-fond-sombre: var(--blanc);

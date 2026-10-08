@@ -1,7 +1,8 @@
 // Icônes de la maquette Figma (public/images/icones/). Elles sont affichées en masque : la forme vient du fichier,
 // la couleur est celle du texte autour (thème), pour que la future DA puisse les recolorer depuis globals.css.
 export type NomIcone = 'burger' | 'croix' | 'fleche-bas' | 'fleche-droite' | 'calendrier' | 'lecture' | 'lecture-petit' | 'suivant' | 'chevron-bas'
-  | 'logo'; // logo dessiné « Maison la recette » (carré)
+  | 'logo' // logo dessiné « Maison la recette » (carré)
+  | 'apple-podcasts' | 'carotte' | 'carotte-vide';
 
 type Props = { nom: NomIcone; taille: number; className?: string };
 
