@@ -38,12 +38,13 @@ export const articleSchemas = {
   modification: article.partial(),
 };
 
+// « demo » n'est pas modifiable : seuls les avis fictifs du seed le portent.
 const avis = z.object({
   nom: texte(120), citation: texte(2000), contexte: texte(),
-  note: z.number().int().min(1).max(5).nullable(), visible: z.boolean(),
+  note: z.number().int().min(1).max(5).nullable(), date: date.nullable(), visible: z.boolean(),
 }).strict();
 export const avisSchemas = {
-  creation: avis.extend({ note: avis.shape.note.optional(), visible: z.boolean().default(true) }),
+  creation: avis.extend({ note: avis.shape.note.optional(), date: avis.shape.date.optional(), visible: z.boolean().default(true) }),
   modification: avis.partial(),
 };
 

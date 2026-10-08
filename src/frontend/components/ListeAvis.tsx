@@ -1,7 +1,8 @@
 import Carrousel from '@/frontend/components/Carrousel';
-import Icone from '@/frontend/components/Icone';
+import Carottes from '@/frontend/components/Carottes';
+import { formatDate } from '@/frontend/format';
 
-export type AvisAffiche = { id: number; nom: string; citation: string; contexte: string; note: number | null };
+export type AvisAffiche = { id: number; nom: string; citation: string; contexte: string; note: number | null; date: Date | string | null };
 
 type Props = {
   avis: AvisAffiche[];
@@ -11,16 +12,7 @@ type Props = {
   surFondSombre?: boolean;
 };
 
-/** Note sur 5 en carottes (icônes de la maquette) : pleines, puis vides. */
-function Carottes({ note, taille }: { note: number; taille: number }) {
-  return (
-    <span aria-hidden="true" className="flex gap-1 text-notation">
-      {Array.from({ length: 5 }, (_, i) => <Icone key={i} nom={i < note ? 'carotte' : 'carotte-vide'} taille={taille} />)}
-    </span>
-  );
-}
-
-/** Avis clients visibles (gérés dans /admin/avis) : la note moyenne, puis les avis en carrousel sur mobile. */
+/** Avis clients visibles (gérés dans /admin/avis) : la note moyenne en grand, puis les avis en carrousel sur mobile. */
 export default function ListeAvis({ avis, titre, notes: avecNotes = true, nombre = 6, surFondSombre = false }: Props) {
   if (avis.length === 0) return null;
   const notes = avis.flatMap(a => (a.note ? [a.note] : []));
@@ -44,8 +36,9 @@ export default function ListeAvis({ avis, titre, notes: avecNotes = true, nombre
           <figure key={a.id} className="flex h-full flex-col gap-2 rounded-2xl bg-fond p-5 text-texte">
             {avecNotes && a.note && <p><span className="sr-only">Note : {a.note} sur 5</span><Carottes note={a.note} taille={18} /></p>}
             <figcaption className="text-sm">
+              {/* Maquette : « Prénom, âge • date » ; sans date, le contexte (ex : l'atelier) à la place. */}
               <span className="font-bold">{a.nom}</span>
-              {a.contexte && <> <span aria-hidden="true">•</span> {a.contexte}</>}
+              {(a.date || a.contexte) && <> <span aria-hidden="true">•</span> {a.date ? formatDate(a.date) : a.contexte}</>}
             </figcaption>
             <blockquote className="mt-1 whitespace-pre-line leading-relaxed">« {a.citation} »</blockquote>
           </figure>

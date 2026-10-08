@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Carottes from '@/frontend/components/Carottes';
 import Pastille from '@/frontend/components/Pastille';
 import { formatDate, formatDateHeure, formatPrix, libelle } from '@/frontend/format';
 import type { ColonneAdmin } from './ressources';
@@ -15,6 +16,7 @@ function Principale({ colonne, ligne }: { colonne: ColonneAdmin; ligne: Ligne })
     case 'booleen': return <>{valeur ? 'Oui' : 'Non'}</>;
     case 'image': return <Image src={texte} alt="" width={48} height={48} unoptimized className="h-12 w-12 rounded object-cover" />;
     case 'statut': return <Pastille statut={texte} texte={libelle(colonne.libelles ?? {}, texte)} />;
+    case 'note': return <><span className="sr-only">{texte} sur 5</span><Carottes note={Number(valeur)} taille={16} /></>;
     default: return <>{colonne.libelles ? libelle(colonne.libelles, texte) : texte}</>;
   }
 }

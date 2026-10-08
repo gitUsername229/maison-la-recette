@@ -153,10 +153,12 @@ Les règles de type et de coupure du résumé sont dans `src/backend/podcast/emi
 | Colonne | Type | Détail |
 |---|---|---|
 | `id` | Int | Clé primaire |
-| `nom` | String | Qui parle, ex : `Claire D.` |
+| `nom` | String | Prénom et âge, ex : `Claire, 52 ans` |
 | `citation` | String | Le témoignage |
-| `contexte` | String | Ex : `Team building, atelier anti-gaspi` |
-| `note` | Int? | Note sur 5, optionnelle |
+| `contexte` | String | Ex : `Team building, atelier anti-gaspi` (affiché à la place de la date si elle est vide) |
+| `note` | Int? | Note sur 5, optionnelle, affichée en carottes |
+| `date` | DateTime? | Date de l'avis, affichée après le nom (`Claire, 52 ans • 27 juillet 2026`) |
+| `demo` | Boolean | Avis fictif créé par le seed (« démo » dans l'admin) : à supprimer avant la mise en ligne |
 | `visible` | Boolean | Affiché sur le site ou non |
 
 Pas de logos clients : seuls les avis (texte) sont affichés.

@@ -111,7 +111,8 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 
 **Reste à faire :**
 1. Contenus réels (photos, articles, avis, partenaires, textes des pages) : Julie les saisit dans `/admin`. Le seed
-   ne contient que trois articles de démonstration, marqués « Contenu de démonstration à remplacer », et des photos
+   ne contient que trois articles de démonstration, marqués « Contenu de démonstration à remplacer », trois avis
+   fictifs (« Démo : Oui » dans `/admin/avis`, à supprimer avant la mise en ligne) et des photos
    provisoires (voir « Thème (maquette Figma) et images provisoires ») : à remplacer. Les épisodes, eux, viennent d'Ausha.
 2. En production : `NEXT_PUBLIC_BASE_URL` = la vraie adresse du site (sitemap, adresses canoniques, aperçus de partage),
    puis déclarer `/sitemap.xml` dans Google Search Console.

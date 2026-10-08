@@ -34,7 +34,7 @@ export type ChampAdmin = {
   longueurMax?: number;        // types « texte » et « texteLong »
 };
 
-export type FormatColonne = 'texte' | 'date' | 'dateHeure' | 'prix' | 'booleen' | 'image' | 'statut';
+export type FormatColonne = 'texte' | 'date' | 'dateHeure' | 'prix' | 'booleen' | 'image' | 'statut' | 'note';
 
 export type ColonneAdmin = {
   libelle: string;
@@ -372,18 +372,21 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     cle: 'avis', titre: 'Avis clients', singulier: 'un avis', api: '/api/avis',
     textes: { enregistre: 'Avis enregistré', supprime: 'Avis supprimé' },
     designation: ligne => `l’avis de ${String(ligne.nom)}`,
-    description: 'Les témoignages affichés sur le site.',
+    description: 'Les témoignages affichés sur le site. Les avis « démo » sont fictifs (créés par le seed) : supprimez-les avant la mise en ligne.',
     colonnes: [
       { libelle: 'Nom', chemin: 'nom' },
+      { libelle: 'Date', chemin: 'date', format: 'date' },
       { libelle: 'Contexte', chemin: 'contexte' },
-      { libelle: 'Note', chemin: 'note' },
+      { libelle: 'Note', chemin: 'note', format: 'note' },
+      { libelle: 'Démo', chemin: 'demo', format: 'booleen' },
       { libelle: 'Visible', chemin: 'visible', format: 'booleen' },
     ],
     champs: [
-      { nom: 'nom', libelle: 'Nom', type: 'texte', requis: true, aide: 'Ex : Claire D.' },
+      { nom: 'nom', libelle: 'Nom', type: 'texte', requis: true, aide: 'Prénom et âge, ex : Claire, 52 ans.' },
       { nom: 'citation', libelle: 'Témoignage', type: 'texteLong', requis: true },
-      { nom: 'contexte', libelle: 'Contexte', type: 'texte', requis: true, aide: 'Ex : Team building, atelier anti-gaspi.' },
-      { nom: 'note', libelle: 'Note sur 5', type: 'nombre', nullable: true, aide: 'Facultatif.' },
+      { nom: 'date', libelle: 'Date de l’avis', type: 'date', nullable: true, aide: 'Affichée après le nom. Facultatif.' },
+      { nom: 'contexte', libelle: 'Contexte', type: 'texte', requis: true, aide: 'Ex : Team building, atelier anti-gaspi. Affiché à la place de la date si elle est vide.' },
+      { nom: 'note', libelle: 'Note sur 5', type: 'nombre', nullable: true, aide: 'Facultatif. Affichée en carottes.' },
       visible('Décochez pour masquer l’avis.', true),
     ],
     actions: masquerAfficher,

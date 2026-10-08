@@ -130,12 +130,16 @@ model Article {
 }
 
 model Avis {
-  id       Int     @id @default(autoincrement())
+  id       Int       @id @default(autoincrement())
   nom      String
   citation String
   contexte String
   note     Int?
-  visible  Boolean @default(true)
+  /// Date de l'avis, affichée après le nom (« Claire, 52 ans • 27 juillet 2026 ») ; vide : le contexte à la place
+  date     DateTime?
+  /// Avis fictif créé par le seed pour la démo : à supprimer avant la mise en ligne
+  demo     Boolean   @default(false)
+  visible  Boolean   @default(true)
 }
 
 model Partenaire {
