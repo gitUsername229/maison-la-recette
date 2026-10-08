@@ -118,12 +118,11 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 3. **Mentions légales et politique de confidentialité** : compléter les éléments entre crochets (forme juridique,
    SIRET, hébergeur, prestataires, durées de conservation), faire valider le texte par la cliente, puis vider le
    bandeau « Texte de base, à compléter… » dans `/admin/textes`.
-4. **Questions à Romain (maquette)** : polices de la nouvelle maquette (titres condensés, texte sans empattement : noms et
-   fichiers), le site garde Inria Serif ; logo dessiné (fichiers SVG) ; icônes des plateformes, carottes de notation,
-   coche et onde sonore de l'épisode en cours ; logos clients « Ils me font confiance » (et leurs autorisations) ;
-   adresses Instagram et LinkedIn du pied de page ; filtre du podcast (un interrupteur « Voir les extraits » : que
-   deviennent les replays ?) ; « food tours » ou « good tours » ; libellé « Expériences » gardé (la maquette dit
-   « Événements »). Les e-mails gardent pour l'instant leurs propres couleurs (`src/backend/mails/modeles.ts`).
+4. **Questions à Romain (maquette)** : icônes de la coche (« Pour les entreprises ») et de l'onde sonore (épisode en
+   cours), non fournies ; adresse LinkedIn ; vrais logos clients pour « Ils me font confiance » (ceux de la maquette
+   sont provisoires) et autorisation de les afficher ; valeurs des autres couleurs (cartes, orange, corail, texte : le
+   site garde les siennes) ; la photo `aproposnous.svg` (Julie ?) est-elle pour la page À propos ? Les e-mails gardent
+   leurs propres couleurs (`src/backend/mails/modeles.ts`).
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
@@ -215,8 +214,8 @@ sans écraser le type, le résumé, l'invité ni les liens modifiés dans l'admi
 Le site suit la maquette UX/UI de Romain (Figma « Workshop 1 », page Maquettes : écrans mobiles, mise à jour du
 8 octobre 2026 pour l'accueil, le podcast et les deux onglets Expériences) ; la version ordinateur en est déduite, et les
 pages sans maquette en reprennent le style (fond vert clair, cartes blanches, grands boutons arrondis, titres en 40 px).
-Le logo et les polices restent ceux d'avant en attendant les fichiers de Romain, et le libellé « Expériences » est
-conservé (la maquette dit « Événements »).
+Logo dessiné, polices (Anton, Inria Sans), vert vif, icônes des plateformes et carottes de notation viennent des
+fichiers de Romain ; le libellé « Expériences » est conservé (la maquette dit « Événements »), ainsi que « food tours ».
 
 **Couleurs, police et tailles de texte sont dans un seul fichier : [`src/frontend/styles/globals.css`](src/frontend/styles/globals.css).**
 - La **palette** (`:root`) reprend les variables Figma (collection « Temp ») et le vert vif de la maquette :
