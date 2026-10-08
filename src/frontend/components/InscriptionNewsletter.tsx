@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { CaseConsentement, ChampPiege } from '@/frontend/components/Champ';
-import { classeBouton, classeChamp } from '@/frontend/styles/classes';
+import { classeGrandBouton } from '@/frontend/styles/classes';
 
-/** Inscription à la newsletter (accueil) ; titre, texte et bouton modifiables dans /admin/textes. */
+/** Inscription à la newsletter (accueil, sur fond vert foncé) ; titre, texte et bouton modifiables dans /admin/textes. */
 export default function InscriptionNewsletter({ titre, texte, bouton }: { titre: string; texte: string; bouton: string }) {
   const [etat, setEtat] = useState<{ erreur: boolean; texte: string } | null>(null);
   const [envoi, setEnvoi] = useState(false);
@@ -29,22 +29,22 @@ export default function InscriptionNewsletter({ titre, texte, bouton }: { titre:
   }
 
   return (
-    <section className="mt-14 rounded-3xl bg-pastel-chaud p-7 sm:p-10">
-      <h2 className="font-serif text-3xl">{titre}</h2>
-      <p className="mt-2 whitespace-pre-line">{texte}</p>
-      <form onSubmit={inscrire} className="relative mt-5 grid gap-3">
+    <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
+      <div>
+        <h2 className="text-4xl font-bold">{titre}</h2>
+        <p className="mt-3 whitespace-pre-line">{texte}</p>
+      </div>
+      <form onSubmit={inscrire} className="relative grid gap-4">
         <ChampPiege />
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <label className="min-w-0 flex-1">
-            <span className="sr-only">Adresse e-mail</span>
-            <input name="email" type="email" required autoComplete="email" placeholder="Votre adresse e-mail" className={classeChamp} />
-          </label>
-          <button type="submit" disabled={envoi} className={classeBouton}>{envoi ? 'Inscription…' : bouton}</button>
-        </div>
-        <CaseConsentement usage="pour recevoir la newsletter" />
+        <label>
+          <span className="sr-only">Adresse e-mail</span>
+          <input name="email" type="email" required autoComplete="email" placeholder="votre@email.fr" className="min-h-14 w-full rounded-full bg-fond-doux px-6 text-texte placeholder:text-texte-doux" />
+        </label>
+        <button type="submit" disabled={envoi} className={`${classeGrandBouton.primaire} disabled:opacity-60`}>{envoi ? 'Inscription…' : bouton}</button>
+        <CaseConsentement usage="pour recevoir la newsletter" surFondSombre />
+        {/* Le message garde la couleur du texte (contraste AA sur le vert) ; son texte dit s'il s'agit d'une erreur. */}
+        {etat && <p role="status" className="text-sm font-bold">{etat.texte}</p>}
       </form>
-      {/* Sur le fond coloré, le message reste couleur texte (contraste AA) ; son texte dit s'il s'agit d'une erreur. */}
-      {etat && <p role="status" className="mt-3 text-sm font-bold">{etat.texte}</p>}
-    </section>
+    </div>
   );
 }

@@ -31,18 +31,18 @@ type Erreur = { error: string; details?: { champ: string; message: string }[] };
 
 test('sans texte en base, les pages affichent les textes d’origine', async () => {
   const accueil = await textes.textesDePage('accueil');
-  assert.equal(accueil.titre, 'Maison La recette');
+  assert.equal(accueil.slogan, 'Mieux manger, c’est déjà changer le monde');
   assert.equal(accueil.newsletterBouton, 'S’inscrire');
   assert.equal((await textes.textesDePage('studio')).bouton, 'Demander un devis studio');
 });
 
 test('le seed crée les textes manquants sans jamais remplacer un texte modifié', async () => {
   assert.equal(await defaut.creerTextesManquants(prisma), defaut.EMPLACEMENTS.length);
-  await prisma.textePage.update({ where: { id: await idDe('accueil', 'titre') }, data: { texte: 'Texte de Julie' } });
+  await prisma.textePage.update({ where: { id: await idDe('accueil', 'slogan') }, data: { texte: 'Texte de Julie' } });
   await prisma.textePage.delete({ where: { id: await idDe('studio', 'bouton') } });
 
   assert.equal(await defaut.creerTextesManquants(prisma), 1);
-  assert.equal((await textes.textesDePage('accueil')).titre, 'Texte de Julie');
+  assert.equal((await textes.textesDePage('accueil')).slogan, 'Texte de Julie');
   assert.equal(await prisma.textePage.count(), defaut.EMPLACEMENTS.length);
 });
 
@@ -62,12 +62,12 @@ test('modification : admin seulement, règles de l’emplacement, visible aussit
   // Un titre tient sur une ligne ; un paragraphe garde ses retours à la ligne ; un texte facultatif peut être vidé.
   assert.equal((await modifier(titre, { texte: ' Notre   histoire\n à La Rochelle ' })).status, 200);
   assert.equal((await modifier(await idDe('a-propos', 'introduction'), { texte: 'Premier paragraphe.\n\nSecond paragraphe.' })).status, 200);
-  assert.equal((await modifier(await idDe('accueil', 'mention'), { texte: '' })).status, 200);
+  assert.equal((await modifier(await idDe('confidentialite', 'avertissement'), { texte: '' })).status, 200);
 
   const aPropos = await textes.textesDePage('a-propos');
   assert.equal(aPropos.titre, 'Notre histoire à La Rochelle');
   assert.equal(aPropos.introduction, 'Premier paragraphe.\n\nSecond paragraphe.');
-  assert.equal((await textes.textesDePage('accueil')).mention, '');
+  assert.equal((await textes.textesDePage('confidentialite')).avertissement, '');
 });
 
 test('liste : publique et filtrée par page ; l’admin y retrouve les emplacements manquants', async () => {
@@ -85,17 +85,17 @@ test('admin : le formulaire s’adapte à l’emplacement et « Remettre le text
   const ligne = (page: string, cle: string) => lignes.find(l => l.page === page && l.cle === cle)!;
   const ressource = ressourceAdmin('textes')!;
 
-  const [mention] = champsDe(ressource, ligne('accueil', 'mention'));
-  assert.deepEqual([mention.type, mention.requis, mention.longueurMax], ['texteLong', false, 1000]);
+  const [avertissement] = champsDe(ressource, ligne('mentions-legales', 'avertissement'));
+  assert.deepEqual([avertissement.type, avertissement.requis, avertissement.longueurMax], ['texteLong', false, 1000]);
   const [bouton] = champsDe(ressource, ligne('studio', 'bouton'));
   assert.deepEqual([bouton.type, bouton.requis, bouton.longueurMax, bouton.libelle], ['texte', true, 40, 'Encadré : bouton (vers la demande de devis)']);
 
-  const titre = ligne('accueil', 'titre');
+  const titre = ligne('accueil', 'slogan');
   assert.equal(titre.modifie, true);
   const remettre = ressource.actions!.find(a => a.id === 'origine')!;
   const corps = typeof remettre.corps === 'function' ? remettre.corps(titre) : remettre.corps;
   assert.equal((await modifier(Number(titre.id), corps)).status, 200);
-  assert.equal((await textes.textesDePage('accueil')).titre, 'Maison La recette');
+  assert.equal((await textes.textesDePage('accueil')).slogan, 'Mieux manger, c’est déjà changer le monde');
 });
 
 test('mentions légales et confidentialité : texte de base modifiable, intertitres et retours à la ligne gardés', async () => {

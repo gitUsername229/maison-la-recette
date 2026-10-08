@@ -72,9 +72,10 @@ export function ChampCases({ libelle, aide, erreur, name, options, valeurs }: Ha
 
 /**
  * Case de consentement des formulaires publics (obligatoire, vérifiée aussi par le serveur), avec le lien vers
- * la politique de confidentialité, ouvert dans un nouvel onglet pour ne pas perdre la saisie.
+ * la politique de confidentialité, ouvert dans un nouvel onglet pour ne pas perdre la saisie. Sur fond sombre,
+ * l'astérisque garde la couleur du texte (le corail n'y est pas lisible).
  */
-export function CaseConsentement({ usage, erreur }: { usage: string; erreur?: string }) {
+export function CaseConsentement({ usage, erreur, surFondSombre = false }: { usage: string; erreur?: string; surFondSombre?: boolean }) {
   return (
     <div className="grid gap-1">
       <label className="flex items-start gap-2 text-sm">
@@ -82,7 +83,7 @@ export function CaseConsentement({ usage, erreur }: { usage: string; erreur?: st
         <span>
           J’accepte que mes coordonnées soient utilisées {usage}, comme expliqué dans la{' '}
           <Link href="/confidentialite" target="_blank" className="underline">politique de confidentialité<span className="sr-only"> (nouvel onglet)</span></Link>
-          <span className="text-erreur" title="Obligatoire"> *</span>
+          <span className={surFondSombre ? '' : 'text-erreur'} title="Obligatoire"> *</span>
         </span>
       </label>
       {erreur && <span className="text-sm font-medium text-erreur">{erreur}</span>}

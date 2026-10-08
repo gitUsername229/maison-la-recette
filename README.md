@@ -250,7 +250,8 @@ et liens dans [`CREDITS.md`](public/images/demo/CREDITS.md). Thèmes : ateliers 
 légumes de saison, mains qui cuisinent, tablées ; pas de logo de marque ni de visage mis en avant.
 Le seed (`prisma/images-demo.ts`) les pose seulement sur les couvertures vides (expériences, articles de démo) et les
 pages sans galerie (accueil, à propos, expériences) : une photo choisie dans l'admin n'est jamais remplacée. La première
-photo de la galerie de l'accueil sert d'image principale. Pour les remplacer : `/admin/photos`, et la couverture dans
+photo de la galerie de l'accueil sert d'image principale (les suivantes ne sont plus affichées) ; la mosaïque « Pour les
+entreprises » (accueil et onglet Entreprises) reprend les galeries des expériences, puis leurs couvertures. Pour les remplacer : `/admin/photos`, et la couverture dans
 `/admin/experiences` ou `/admin/articles`.
 
 ## Technologies utilisées
@@ -273,11 +274,11 @@ Tout tourne en local sur `http://localhost:3000`.
 
 | Page | Contenu | Public visé | Routes utilisées |
 |---|---|---|---|
-| Accueil | Présentation de la marque chapeau et des 3 pôles, avis clients, galerie photos, inscription à la newsletter | Tous | `GET /api/avis`, `GET /api/images?page=/`, `POST /api/newsletter` |
-| Podcast (`/podcast`) | Lecteur sur mesure (épisode en cours, précédent / suivant, progression), liste de la saison choisie (`?saison=`), complets par défaut, filtre extraits / replays, liens de l'émission (Apple Podcasts, Spotify, Deezer, YouTube) | Auditeurs | `GET /api/episodes?type=` |
+| Accueil | Photo plein écran et accroche ; le podcast (dernier extrait, plateformes) ; les expériences en carrousel et la note moyenne des avis ; l'offre entreprises (mosaïque, points forts) ; le studio ; la newsletter | Tous | `GET /api/avis`, `GET /api/images?page=/`, `GET /api/episodes?type=extrait`, `POST /api/newsletter` |
+| Podcast (`/podcast`) | Présentation de l'émission, liens d'écoute (Apple Podcasts, Spotify, Deezer, YouTube), lecteur sur mesure (invité et sujet lus dans le titre, progression, −15 s / +30 s, résumé replié), liste de la saison choisie (`?saison=`), complets par défaut, filtre extraits / replays | Auditeurs | `GET /api/episodes?type=` |
 | Offre podcast | Studio de production pour d'autres marques, sponsoring du podcast | B2B | `POST /api/devis` |
-| Expériences (`/experiences`) | Onglet Particuliers : une carte par expérience (prochaine date, places restantes, autres dates, ou « Sur devis ») | B2C | `GET /api/experiences` |
-| Expériences entreprises (`/experiences/entreprises`) | Onglet Entreprises : sur-mesure, formats en photos, déroulé, avis, « Obtenir un devis » | B2B | `POST /api/devis` |
+| Expériences (`/experiences`) | Onglet Particuliers : expériences à venir (date, lieu, durée, prix, places restantes, « Réserver » ou « Sur devis »), avis avec la note moyenne, expériences passées de l'année choisie (`?annee=`) | B2C | `GET /api/experiences` |
+| Expériences entreprises (`/experiences/entreprises`) | Onglet Entreprises : présentation du sur-mesure, mosaïque de photos, « Demander un devis », témoignages | B2B | `POST /api/devis` |
 | Ateliers / Good tours / Immersions | 1 page par expérience, galerie photos. Ateliers et good tours : sessions réservables et payables en ligne, sans compte (nom, e-mail, téléphone facultatif). Immersions (surtout B2B) : sur devis uniquement | B2C et B2B | `GET /api/experiences/[slug]`, `GET /api/sessions`, `POST /api/checkout`, `POST /api/devis` |
 | Blog (`/blog`) | Articles publiés, onglets par catégorie | Tous | `GET /api/articles` |
 | Catégorie (`/blog/categorie/[categorie]`) | Les articles d'une catégorie, avec son titre et sa description | Tous (« Pour les entreprises » : B2B) | `GET /api/articles?categorie=` |

@@ -28,7 +28,7 @@ type Contenu = {
 /** Carte de la maquette : photo et étiquettes, puis titre, Date / Lieu / Durée / Prix et un bouton. */
 function Carte({ image, imageAlt, type, places, titre, lienTitre, lignes, action }: Contenu) {
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl bg-fond text-texte">
+    <article className="zone-claire group flex h-full flex-col overflow-hidden rounded-2xl bg-fond text-texte">
       <div className="relative aspect-[16/9] overflow-hidden bg-pastel">
         {image && (
           <Image src={image} alt={imageAlt} fill sizes="(min-width: 1024px) 30vw, (min-width: 640px) 60vw, 85vw"

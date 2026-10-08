@@ -110,6 +110,11 @@
   .zone-sombre :focus-visible {
     outline-color: var(--color-sur-fond-sombre);
   }
+
+  /* Carte claire posée sur une zone sombre (cartes d'expériences de l'accueil) : contour de focus foncé. */
+  .zone-sombre .zone-claire :focus-visible {
+    outline-color: var(--color-texte);
+  }
 }
 
 /*
