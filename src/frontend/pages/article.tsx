@@ -21,24 +21,24 @@ export type TextesArticle = Record<
 
 // Contenu en Markdown (écrit dans /admin/articles) ; le HTML brut n'est jamais interprété.
 const STYLES = {
-  h2: 'mt-10 font-serif text-2xl text-texte',
-  h3: 'mt-8 font-serif text-xl text-texte',
-  p: 'mt-4 leading-relaxed text-texte-doux',
-  ul: 'mt-4 list-disc space-y-1 pl-6 text-texte-doux',
-  ol: 'mt-4 list-decimal space-y-1 pl-6 text-texte-doux',
+  h2: 'mt-10 text-2xl font-bold',
+  h3: 'mt-8 text-xl font-bold',
+  p: 'mt-4 leading-relaxed',
+  ul: 'mt-4 list-disc space-y-1 pl-6',
+  ol: 'mt-4 list-decimal space-y-1 pl-6',
   a: 'text-accent underline',
-  blockquote: 'mt-6 border-l-4 border-bordure-forte pl-4 italic text-texte-doux',
+  blockquote: 'mt-6 border-l-4 border-bordure-forte pl-4 italic',
 };
 
 export default function Article({ article, textes }: { article: ArticleComplet; textes: TextesArticle }) {
   return (
     <main className="mx-auto max-w-3xl px-5 py-8 lg:px-6 lg:py-12">
-      <Link href="/blog" className="text-sm text-texte-doux hover:text-texte">← {textes.tousLesArticles}</Link>
-      <p className="mt-8 text-sm text-texte-doux">
-        <Link href={`/blog/categorie/${article.categorie}`} className="font-medium text-accent hover:underline">{article.categorieLibelle}</Link>
+      <Link href="/blog" className="text-sm underline-offset-4 hover:underline">← {textes.tousLesArticles}</Link>
+      <p className="mt-8 text-sm">
+        <Link href={`/blog/categorie/${article.categorie}`} className="font-bold text-accent hover:underline">{article.categorieLibelle}</Link>
         {' · '}{formatDate(article.datePublication)}
       </p>
-      <h1 className="mt-2 text-3xl font-bold lg:text-4xl">{article.titre}</h1>
+      <h1 className="mt-2 text-4xl font-bold">{article.titre}</h1>
       {article.image && <Image src={article.image} alt={article.imageAlt} width={1200} height={750} priority className="mt-8 aspect-[16/10] w-full rounded-2xl object-cover" />}
       <div className="mt-8">
         <Markdown

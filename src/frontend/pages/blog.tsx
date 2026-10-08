@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import PhotoCarte from '@/frontend/components/PhotoCarte';
 import { formatDate } from '@/frontend/format';
+import { classeSurtitre } from '@/frontend/styles/classes';
 
 export type ArticleResume = {
   id: number; slug: string; titre: string; extrait: string; image: string; imageAlt: string; datePublication: Date; categorieLibelle: string;
@@ -17,22 +18,17 @@ type Props = {
   categorieActive?: CategorieAffichee; // page /blog/categorie/<clé>
 };
 
+// Onglets en pastilles, comme les filtres du podcast.
 const classeOnglet = (actif: boolean) =>
-  `rounded-full px-4 py-2 text-sm ${actif ? 'bg-primaire text-sur-primaire' : 'text-texte-doux ring-1 ring-bordure-forte hover:bg-surface'}`;
+  `rounded-full px-4 py-2 text-sm ${actif ? 'bg-primaire font-bold text-sur-primaire' : 'bg-fond hover:bg-pastel'}`;
 
 /** Liste du blog : tous les articles (/blog) ou ceux d'une catégorie (/blog/categorie/<clé>). */
 export default function Blog({ textes, articles, categories, categorieActive }: Props) {
   return (
     <main className="mx-auto max-w-4xl px-5 py-8 lg:px-6 lg:py-12">
-      <span className="rounded-full bg-pastel px-3 py-1 text-xs font-semibold uppercase tracking-wider text-texte-doux">
-        {textes.surtitre}
-      </span>
-      <h1 className="mt-4 text-3xl font-bold lg:text-4xl">
-        {categorieActive?.libelle ?? textes.titre}
-      </h1>
-      <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-texte-doux">
-        {categorieActive?.description ?? textes.introduction}
-      </p>
+      <p className={classeSurtitre}>{textes.surtitre}</p>
+      <h1 className="mt-4 text-4xl font-bold">{categorieActive?.libelle ?? textes.titre}</h1>
+      <p className="mt-6 whitespace-pre-line text-lg leading-relaxed">{categorieActive?.description ?? textes.introduction}</p>
 
       <nav aria-label="Catégories du blog" className="mt-10 flex flex-wrap gap-2">
         <Link href="/blog" aria-current={categorieActive ? undefined : 'page'} className={classeOnglet(!categorieActive)}>{textes.tousLesArticles}</Link>
@@ -47,20 +43,23 @@ export default function Blog({ textes, articles, categories, categorieActive }: 
       </nav>
 
       {articles.length === 0 ? (
-        <div className="mt-12 rounded-2xl border border-dashed border-bordure-forte p-12 text-center text-texte-doux">
+        <div className="mt-12 rounded-2xl bg-fond p-12 text-center">
           <p className="whitespace-pre-line">{textes.aucunArticle}</p>
         </div>
       ) : (
-        <ul className="mt-12 grid gap-8 sm:grid-cols-2">
+        <ul className="mt-10 grid gap-6 sm:grid-cols-2">
           {articles.map(article => (
             <li key={article.id}>
-              <Link href={`/blog/${article.slug}`} className="group block">
+              {/* Carte blanche, comme les cartes d'expériences de la maquette. */}
+              <Link href={`/blog/${article.slug}`} className="group flex h-full flex-col overflow-hidden rounded-2xl bg-fond">
                 {article.image && <PhotoCarte src={article.image} alt={article.imageAlt} ratio="aspect-[16/10]" sizes="(min-width: 640px) 45vw, 100vw" />}
-                <p className="mt-4 text-sm text-texte-doux">
-                  <span className="font-semibold text-accent">{article.categorieLibelle}</span> · {formatDate(article.datePublication)}
-                </p>
-                <h2 className="mt-1 font-serif text-2xl text-texte group-hover:underline">{article.titre}</h2>
-                <p className="mt-2 leading-relaxed text-texte-doux">{article.extrait}</p>
+                <div className="p-5">
+                  <p className="text-sm">
+                    <span className="font-bold text-accent">{article.categorieLibelle}</span> · {formatDate(article.datePublication)}
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold group-hover:underline">{article.titre}</h2>
+                  <p className="mt-2 leading-relaxed">{article.extrait}</p>
+                </div>
               </Link>
             </li>
           ))}
