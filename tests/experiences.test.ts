@@ -3,7 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
-import { preparerBaseDeTest, requete } from './outils';
+import { preparerBaseDeTest } from './outils';
 
 let nettoyer: () => Promise<void>;
 let prisma: PrismaClient;
@@ -85,13 +85,6 @@ test('année d’une session à l’heure de Paris', async () => {
   const { anneeDe } = await import('../src/frontend/format');
   assert.equal(anneeDe('2026-12-31T23:30:00Z'), 2027); // 1er janvier, 0 h 30 à Paris
   assert.equal(anneeDe('2026-06-15T10:00:00Z'), 2026);
-});
-
-test('l’adresse « entreprises » est réservée à l’onglet Entreprises', async () => {
-  const corps = { slug: 'entreprises', type: 'atelier', titre: 'T', accroche: 'A', description: 'D', dureeMin: 60, prixCents: 4500, capaciteMax: 8, image: '', imageAlt: '' };
-  const reponse = await catalogue.createExperience(requete('/api/experiences', { methode: 'POST', corps, entetes: { 'x-admin-key': 'local-test-admin' } }));
-  assert.equal(reponse.status, 400);
-  assert.deepEqual((await reponse.json() as { details: { champ: string }[] }).details.map(d => d.champ), ['slug']);
 });
 
 test('les liens « Demander un devis » passent le slug de l’expérience, celui qu’attend /contact', async () => {

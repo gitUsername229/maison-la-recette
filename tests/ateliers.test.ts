@@ -93,30 +93,12 @@ test('un montant Stripe incorrect ne confirme pas le paiement', async () => {
   assert.equal((await prisma.session.findUniqueOrThrow({ where: { id: input.sessionId } })).placesPrises, 0);
 });
 
-test('une expiration libère les places et une réservation payée ne peut pas être annulée silencieusement', async () => {
-  const input = await workshop(1); const fake = gateway();
-  await reserver(input, randomUUID(), fake.client);
-  await bookings.applyStripeSession({ ...[...fake.sessions.values()][0], status: 'expired' }, 'checkout.session.expired');
-  const next = await reserver(input, randomUUID(), fake.client);
-  const paid = { ...[...fake.sessions.values()][1], status: 'complete', payment_status: 'paid' } as Stripe.Checkout.Session;
-  await bookings.applyStripeSession(paid, 'checkout.session.completed');
-  await assert.rejects(bookings.cancelReservation(next.reservationId, fake.client));
-});
-
 test('un timeout réseau conserve les places et la reprise retrouve le même paiement', async () => {
   const input = await workshop(1); const fake = gateway(true); const key = randomUUID();
   await assert.rejects(reserver(input, key, fake.client));
   await assert.rejects(reserver(input, randomUUID(), fake.client));
   const result = await reserver(input, key, fake.client);
   assert.equal(fake.sessions.size, 1); assert.ok(result.checkoutUrl);
-});
-
-test('une annulation expire le paiement avant de libérer la place', async () => {
-  const input = await workshop(1); const fake = gateway();
-  const first = await reserver(input, randomUUID(), fake.client);
-  await bookings.cancelReservation(first.reservationId, fake.client);
-  assert.equal([...fake.sessions.values()][0].status, 'expired');
-  await reserver(input, randomUUID(), fake.client);
 });
 
 test('la signature du webhook est vérifiée sur le corps brut', async () => {
@@ -129,39 +111,6 @@ test('la signature du webhook est vérifiée sur le corps brut', async () => {
   assert.equal(response.status, 200);
   const invalid = await handlers.webhook(new Request('http://localhost/api/webhook', { method: 'POST', body: payload + ' ', headers: { 'stripe-signature': header } }));
   assert.equal(invalid.status, 400);
-});
-
-test('les mutations admin et la capacité sont protégées', async () => {
-  const denied = await catalogue.createExperience(new Request('http://localhost/api/experiences', { method: 'POST', body: '{}' }));
-  assert.equal(denied.status, 401);
-  const input = await workshop(2); const fake = gateway();
-  await reserver({ ...input, nbPersonnes: 2 }, randomUUID(), fake.client);
-  const response = await catalogue.updateSession(new Request('http://localhost/api/sessions/1', { method: 'PUT', headers: { 'x-admin-key': process.env.ADMIN_KEY! }, body: JSON.stringify({ placesTotal: 1 }) }), { params: Promise.resolve({ id: String(input.sessionId) }) });
-  assert.equal(response.status, 409);
-});
-
-test('le remboursement intégral permet une seule libération des places', async () => {
-  const input = await workshop(1); const fake = gateway();
-  const result = await reserver(input, randomUUID(), fake.client);
-  const session = [...fake.sessions.values()][0];
-  session.status = 'complete'; session.payment_status = 'paid';
-  await bookings.applyStripeSession(session, 'checkout.session.completed');
-  session.payment_intent = { latest_charge: { refunded: true, amount_refunded: 4500, currency: 'eur' } } as Stripe.PaymentIntent;
-  await bookings.cancelReservation(result.reservationId, fake.client);
-  await bookings.cancelReservation(result.reservationId, fake.client);
-  const stored = await prisma.session.findUniqueOrThrow({ where: { id: input.sessionId } });
-  assert.equal(stored.placesPrises, 0); assert.equal(stored.statut, 'ouverte');
-});
-
-test('une mise à jour partielle ne réactive pas une expérience ou une session fermée', async () => {
-  const input = await workshop();
-  const session = await prisma.session.update({ where: { id: input.sessionId }, data: { statut: 'complete' } });
-  await prisma.experience.update({ where: { id: session.experienceId }, data: { actif: false } });
-  const request = (body: unknown) => new Request('http://localhost/api', { method: 'PUT', headers: { 'x-admin-key': process.env.ADMIN_KEY! }, body: JSON.stringify(body) });
-  assert.equal((await catalogue.updateSession(request({ prixCents: 5000 }), { params: Promise.resolve({ id: String(session.id) }) })).status, 200);
-  assert.equal((await catalogue.updateExperience(request({ titre: 'Nouveau titre' }), { params: Promise.resolve({ id: String(session.experienceId) }) })).status, 200);
-  assert.equal((await prisma.session.findUniqueOrThrow({ where: { id: session.id } })).statut, 'complete');
-  assert.equal((await prisma.experience.findUniqueOrThrow({ where: { id: session.experienceId } })).actif, false);
 });
 
 test('une expérience sur devis ne peut pas ouvrir de paiement Stripe', async () => {

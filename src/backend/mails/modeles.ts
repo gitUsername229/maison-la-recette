@@ -95,7 +95,6 @@ export function reservationPourJulie(a: string, r: ReservationMail): Mail {
     titre: 'Nouvelle réservation payée',
     paragraphes: [`${r.nom} vient de réserver et de payer en ligne.`],
     details: [['Client', r.nom], ['E-mail', r.email], ['Téléphone', r.telephone ?? '—'], ...detailsReservation(r)],
-    lien: { texte: 'Voir les réservations', url: urlDuSite('/admin/reservations') },
   }, r.email);
 }
 
@@ -118,7 +117,6 @@ export function devisPourJulie(a: string, d: DevisMail): Mail {
     titre: 'Nouvelle demande de devis',
     paragraphes: [`${d.contactNom} attend votre appel (réponse promise sous 48 h). Répondre à cet e-mail lui écrit directement.`],
     details: [['Contact', d.contactNom], ['E-mail', d.email], ['Téléphone', d.telephone ?? '—'], ...detailsDevis(d)],
-    lien: { texte: 'Voir les demandes de devis', url: urlDuSite('/admin/devis') },
   }, d.email);
 }
 
@@ -129,30 +127,4 @@ export function accuseDevis(d: DevisMail): Mail {
     details: [['Nom', d.contactNom], ['E-mail', d.email], ['Téléphone', d.telephone ?? '—'], ...detailsDevis(d)],
     complement: CONTACTER_JULIE,
   }, repondreAJulie());
-}
-
-// --- Connexion à l'administration (envoyés par Better Auth)
-
-export function motDePasseOublie(nom: string, email: string, url: string): Mail {
-  return composer(email, 'Choisir un nouveau mot de passe', {
-    titre: 'Nouveau mot de passe',
-    paragraphes: [
-      `Bonjour ${nom},`,
-      'Vous avez demandé à changer votre mot de passe pour l’administration du site Maison La recette. Ce lien est valable 1 heure.',
-      'Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot de passe ne change pas.',
-    ],
-    lien: { texte: 'Choisir un nouveau mot de passe', url },
-  });
-}
-
-export function invitationAdmin(nom: string, email: string, url: string): Mail {
-  return composer(email, 'Votre accès à l’administration de Maison La recette', {
-    titre: 'Bienvenue dans l’administration',
-    paragraphes: [
-      `Bonjour ${nom},`,
-      'Un accès à l’administration du site Maison La recette vient d’être créé pour vous. Choisissez votre mot de passe avec le lien ci-dessous : il est valable 1 heure.',
-      `Passé ce délai, demandez un nouveau lien avec « Mot de passe oublié » sur la page de connexion : ${urlDuSite('/admin/connexion')}`,
-    ],
-    lien: { texte: 'Choisir mon mot de passe', url },
-  });
 }

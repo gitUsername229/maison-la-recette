@@ -1,29 +1,8 @@
 import { z } from 'zod';
 import { consentement } from '@/backend/anti-spam';
-import { cheminImage } from '@/backend/contenus/validation';
 
 const text = z.string().trim().min(1).max(500);
-const money = z.number().int().min(0).max(10_000_000);
 const positive = z.number().int().min(1).max(10_000);
-export const experienceSchema = z.object({
-  slug: z.string().min(1).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Minuscules, chiffres et tirets uniquement (ex : atelier-pain-perdu)')
-    .refine(v => v !== 'entreprises', 'Adresse réservée à l’onglet Entreprises : choisissez-en une autre.'),
-  type: z.enum(['atelier', 'good_tour', 'immersion']),
-  titre: text, accroche: text, description: z.string().trim().min(1).max(30_000),
-  dureeMin: positive, prixCents: money, prixEntrepriseCents: money.nullable().optional(),
-  capaciteMax: positive, lieu: text.nullable().optional(),
-  image: cheminImage,
-  imageAlt: z.string().trim().max(500), actif: z.boolean().default(true),
-  reservableEnLigne: z.boolean().default(true),
-}).strict();
-export const sessionSchema = z.object({
-  experienceId: z.number().int().positive(),
-  dateDebut: z.iso.datetime({ offset: true }).transform(v => new Date(v)),
-  dateFin: z.iso.datetime({ offset: true }).transform(v => new Date(v)),
-  lieu: text, placesTotal: positive,
-  prixCents: money.nullable().optional(),
-  statut: z.enum(['ouverte', 'complete', 'annulee']).default('ouverte'),
-}).strict();
 // Coordonnées saisies par le visiteur (il n'y a pas de compte client).
 const nom = z.string().trim().min(1).max(120);
 const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
@@ -34,9 +13,6 @@ export const checkoutSchema = z.object({
   nom, email, telephone: telephone.optional(), consentement,
 }).strict();
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
-export const experienceUpdateSchema = experienceSchema.omit({ actif: true, reservableEnLigne: true }).partial().extend({ actif: z.boolean().optional(), reservableEnLigne: z.boolean().optional() });
-export const sessionUpdateSchema = sessionSchema.omit({ experienceId: true, statut: true }).partial().extend({ statut: z.enum(['ouverte', 'complete', 'annulee']).optional() });
-export const cancellationSchema = z.object({ statut: z.literal('annulee') }).strict();
 
 export const TYPES_DEVIS = ['experience', 'sponsoring', 'studio', 'evenement'] as const;
 export const LIEUX_DEVIS = ['dans_les_locaux', 'a_proximite'] as const;

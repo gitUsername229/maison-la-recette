@@ -1,11 +1,9 @@
 import 'server-only';
-import { z } from 'zod';
 import { prisma } from '@/backend/db/prisma';
 import { enArrierePlan } from '@/backend/mails/envoi';
 import { envoyerMailsDevis } from '@/backend/mails/notifications';
 import { limiterDebit, lirePiege } from '@/backend/anti-spam';
-import { exigerAdmin } from '@/backend/auth/acces';
-import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
+import { ApiError, endpoint, json } from '@/backend/http';
 import { devisSchema } from './validation';
 
 /** Réponse identique pour toute demande acceptée : aucun identifiant interne n'est communiqué au visiteur. */
@@ -24,31 +22,4 @@ export const createDevis = endpoint(async (request: Request) => {
   const devis = await prisma.demandeDevis.create({ data: { ...data, contactNom: nom, consentementLe }, select: { id: true } });
   enArrierePlan(envoyerMailsDevis(devis.id));
   return json({ message: MERCI_DEVIS }, 201);
-});
-
-export const listDevis = endpoint(async (request: Request) => {
-  await exigerAdmin(request);
-  const statut = new URL(request.url).searchParams.get('statut');
-  if (statut && !['nouvelle', 'en_cours', 'traitee'].includes(statut)) throw new ApiError(400, 'Statut invalide');
-  return json(await prisma.demandeDevis.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' }, include: { experience: { select: { titre: true } } } }));
-});
-
-const modificationDevisSchema = z.object({
-  statut: z.enum(['nouvelle', 'en_cours', 'traitee']),
-  // Note interne : visible seulement dans l'admin, jamais par le client.
-  noteInterne: z.string().trim().max(5000).nullable(),
-}).partial().strict();
-
-/** PATCH /api/devis/[id] (admin) : statut et/ou note interne. */
-export const updateDevis = endpoint(async (request: Request, context: RouteContext) => {
-  await exigerAdmin(request);
-  const data = modificationDevisSchema.parse(await request.json());
-  return json(await prisma.demandeDevis.update({ where: { id: positiveId((await context.params).id) }, data }));
-});
-
-/** DELETE /api/devis/[id] (admin). */
-export const deleteDevis = endpoint(async (request: Request, context: RouteContext) => {
-  await exigerAdmin(request);
-  await prisma.demandeDevis.delete({ where: { id: positiveId((await context.params).id) } });
-  return json({ ok: true });
 });

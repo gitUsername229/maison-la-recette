@@ -177,30 +177,3 @@ export async function reservationApresPaiement(
   }
   return { reservation };
 }
-
-export async function cancelReservation(id: number, stripe: Stripe = configuredStripe()) {
-  const reservation = await prisma.reservation.findUnique({ where: { id } });
-  if (!reservation) throw new ApiError(404, 'Réservation introuvable');
-  if (reservation.statut === 'annulee') return { id, statut: 'annulee' };
-  if (reservation.statut === 'payee') {
-    if (!reservation.stripeSessionId) throw new ApiError(409, 'Réservation payée sans identifiant Stripe');
-    const checkout = await stripe.checkout.sessions.retrieve(reservation.stripeSessionId, { expand: ['payment_intent.latest_charge'] });
-    const intent = checkout.payment_intent;
-    const charge = intent && typeof intent !== 'string' ? intent.latest_charge : null;
-    if (!charge || typeof charge === 'string' || !charge.refunded || charge.amount_refunded !== reservation.montantCents || charge.currency !== 'eur') throw new ApiError(409, 'Effectuer le remboursement intégral dans Stripe avant de relancer cette annulation');
-    await prisma.$transaction(async tx => {
-      const session = await lockSession(tx, reservation.sessionId);
-      const changed = await tx.reservation.updateMany({ where: { id, statut: 'payee' }, data: { statut: 'annulee' } });
-      if (changed.count) {
-        if (session.placesPrises < reservation.nbPersonnes) throw new ApiError(409, 'Compteur de places incohérent');
-        await tx.session.update({ where: { id: session.id }, data: { placesPrises: { decrement: reservation.nbPersonnes }, ...(session.statut === 'complete' ? { statut: 'ouverte' } : {}) } });
-      }
-    });
-    return { id, statut: 'annulee' };
-  }
-  let checkout = await attachCheckout(id, stripe);
-  if (checkout.status === 'open') checkout = await stripe.checkout.sessions.expire(checkout.id);
-  if (checkout.status !== 'expired') throw new ApiError(409, 'Paiement déjà effectué ou en cours de confirmation ; annulation refusée');
-  await applyStripeSession(checkout, 'checkout.session.expired');
-  return { id, statut: 'annulee' };
-}

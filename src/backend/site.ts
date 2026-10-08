@@ -12,5 +12,5 @@ export const RESEAUX_SOCIAUX = [{ nom: 'Instagram', url: 'https://www.instagram.
 
 export const adresseDuSite = () => new URL(process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000');
 
-/** Adresse absolue d'une page du site, ex : urlDuSite('/admin/devis'). */
+/** Adresse absolue d'une page du site, ex : urlDuSite('/contact'). */
 export const urlDuSite = (chemin: string) => new URL(chemin, adresseDuSite()).toString();

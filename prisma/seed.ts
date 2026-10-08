@@ -1,7 +1,5 @@
-import { randomUUID } from 'node:crypto';
 import { loadEnvConfig } from '@next/env';
 import { PrismaClient } from '@prisma/client';
-import { hacherMotDePasse, LONGUEUR_MIN_MOT_DE_PASSE } from '../src/backend/auth/mot-de-passe';
 import { creerTextesManquants } from '../src/backend/contenus/textes-par-defaut';
 import { creerArticlesDemo } from './articles-demo';
 import { poserPhotosDemo } from './images-demo';
@@ -52,38 +50,7 @@ async function creerExperiences() {
   console.log('Données de démonstration créées : 3 expériences et leurs sessions.');
 }
 
-// Compte admin : identifiants lus dans .env.local, jamais écrits dans le code.
-// Même format que Better Auth : le mot de passe haché vit dans un compte « credential ».
-async function creerAdmin() {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const motDePasse = process.env.ADMIN_PASSWORD;
-  if (!email || !motDePasse) {
-    console.warn('ADMIN_EMAIL ou ADMIN_PASSWORD absent de .env.local : compte admin non créé.');
-    return;
-  }
-  if (motDePasse.length < LONGUEUR_MIN_MOT_DE_PASSE) {
-    throw new Error(`ADMIN_PASSWORD doit contenir au moins ${LONGUEUR_MIN_MOT_DE_PASSE} caractères.`);
-  }
-
-  const existant = await prisma.user.findUnique({ where: { email } });
-  if (existant) {
-    // Le mot de passe d'un compte existant n'est jamais remplacé par le seed.
-    if (existant.role !== 'admin') await prisma.user.update({ where: { id: existant.id }, data: { role: 'admin' } });
-    console.log(`Compte admin déjà présent : ${email}`);
-    return;
-  }
-
-  const id = randomUUID();
-  await prisma.user.create({
-    data: {
-      id, email, nom: 'Administration', role: 'admin', emailVerified: true,
-      comptes: { create: { id: randomUUID(), accountId: id, providerId: 'credential', password: await hacherMotDePasse(motDePasse) } },
-    },
-  });
-  console.log(`Compte admin créé : ${email}`);
-}
-
-// Textes fixes de l'accueil, d'À propos et du studio : textes d'origine, modifiables ensuite dans /admin/textes.
+// Textes fixes de l'accueil, d'À propos et du studio : textes d'origine.
 async function creerTextes() {
   const crees = await creerTextesManquants(prisma);
   const s = crees > 1 ? 's' : '';
@@ -94,10 +61,10 @@ async function creerTextes() {
 async function creerArticles() {
   const { crees, sansEpisode } = await creerArticlesDemo(prisma);
   console.log(crees ? `Blog : ${crees} article${crees > 1 ? 's' : ''} de démonstration créé${crees > 1 ? 's' : ''}.` : 'Blog : articles de démonstration déjà présents (non modifiés).');
-  if (crees && sansEpisode) console.warn('Aucun épisode importé : l’article « coulisses » n’est lié à aucun épisode. Importez-les depuis /admin/episodes, puis liez-le.');
+  if (crees && sansEpisode) console.warn('Aucun épisode importé : l’article « coulisses » n’est lié à aucun épisode. Importez-les, puis relancez le seed.');
 }
 
-// Avis de démonstration : prénoms et témoignages inventés, dates récentes, marqués « démo » dans /admin/avis pour être
+// Avis de démonstration : prénoms et témoignages inventés, dates récentes, marqués « démo » pour être
 // supprimés avant la mise en ligne. Un avis déjà présent (même nom, même témoignage) n'est jamais recréé.
 const AVIS_DEMO = [
   { nom: 'Claire, 52 ans', citation: 'On est reparti avec des recettes, des adresses et l’envie de cuisiner autrement.', contexte: 'Atelier cuisine anti-gaspi', note: 5, joursAvant: 12 },
@@ -126,7 +93,6 @@ async function poserPhotos() {
 
 async function main() {
   await creerExperiences();
-  await creerAdmin();
   await creerTextes();
   await creerArticles();
   await creerAvis();

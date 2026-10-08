@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { appelerApi } from "@/frontend/admin/api";
+import { appelerApi } from "@/frontend/api";
 import Champ, { CaseConsentement, ChampPiege } from "@/frontend/components/Champ";
 import { formatDateHeure, formatPrix } from "@/frontend/format";
 import { classeBouton, classeChamp, classeErreur, classeLibelle } from "@/frontend/styles/classes";

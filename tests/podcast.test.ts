@@ -2,21 +2,17 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { after, before, test } from 'node:test';
 import type { PrismaClient } from '@prisma/client';
-import { preparerBaseDeTest, requete } from './outils';
+import { preparerBaseDeTest } from './outils';
 
 let nettoyer: () => Promise<void>;
 let prisma: PrismaClient;
 let flux: typeof import('../src/backend/podcast/flux');
-let importation: typeof import('../src/backend/podcast/import');
-let contenus: typeof import('../src/backend/contenus/contenus');
 let xml: string;
 
 before(async () => {
   nettoyer = await preparerBaseDeTest();
   ({ prisma } = await import('../src/backend/db/prisma'));
   flux = await import('../src/backend/podcast/flux');
-  importation = await import('../src/backend/podcast/import');
-  contenus = await import('../src/backend/contenus/contenus');
   xml = await readFile(new URL('./donnees/flux-ausha.xml', import.meta.url), 'utf8');
 });
 
@@ -52,22 +48,6 @@ test('le flux : type détecté depuis le titre, texte commun retiré, durée, sa
   assert.equal(parGuid['guid-bande-annonce'].resume, 'Cette annonce est un avant-goût de la recette.');
 });
 
-test('l’import ne crée pas de doublon et n’écrase jamais ce que l’admin a modifié', async t => {
-  t.mock.method(console, 'warn', () => undefined);
-  assert.deepEqual(await importation.importerEpisodes(lire(xml)), { crees: 5, misAJour: 0 });
-
-  const saisieAdmin = { resume: 'Résumé réécrit par Julie', type: 'replay', invite: 'Jean-Marie Pédron', spotifyUrl: 'https://open.spotify.com/episode/x' };
-  await prisma.episode.update({ where: { guid: 'guid-complet' }, data: saisieAdmin });
-
-  const fluxModifie = xml.replace('celui qui donne le goût des algues', 'le goût des algues');
-  assert.deepEqual(await importation.importerEpisodes(lire(fluxModifie)), { crees: 0, misAJour: 5 });
-  assert.equal(await prisma.episode.count(), 5);
-
-  const episode = await prisma.episode.findUniqueOrThrow({ where: { guid: 'guid-complet' } });
-  assert.match(episode.titre, /: le goût des algues$/, 'le titre suit Ausha');
-  assert.deepEqual({ resume: episode.resume, type: episode.type, invite: episode.invite, spotifyUrl: episode.spotifyUrl }, saisieAdmin);
-});
-
 test('émojis retirés des textes venus d’Ausha, symboles typographiques gardés', () => {
   const cas: [string, string][] = [
     ['🎧 Écoutez l’épisode', 'Écoutez l’épisode'], ['Dulse, nori 🌊 kombu', 'Dulse, nori kombu'], ['👩‍💻 Développeuse', 'Développeuse'],
@@ -76,30 +56,6 @@ test('émojis retirés des textes venus d’Ausha, symboles typographiques gard�
   ];
   for (const [avant, apres] of cas) assert.equal(flux.sansEmojis(avant), apres, avant);
   assert.ok(lire(xml).every(e => !/\p{Emoji_Presentation}/u.test(e.titre + e.description + e.resume)));
-});
-
-test('saisons proposées dans la liste déroulante : celles qui ont des épisodes du type choisi, la plus récente d’abord', async () => {
-  const toutes = await contenus.saisonsDisponibles();
-  assert.deepEqual(toutes, [...toutes].sort((a, b) => b - a));
-  assert.equal(new Set(toutes).size, toutes.length);
-  for (const saison of await contenus.saisonsDisponibles('extrait')) {
-    assert.ok(await prisma.episode.count({ where: { saison, type: 'extrait' } }) > 0);
-  }
-  const episode = await prisma.episode.findFirstOrThrow({ where: { guid: 'guid-complet' } });
-  assert.ok(episode.audioUrl?.startsWith('https://audio.ausha.co/'), 'adresse audio enregistrée à l’import');
-});
-
-test('l’API filtre par type et refuse un type inconnu', async () => {
-  const lister = (chemin: string) => contenus.episodes.lister(requete(chemin));
-  const extraits = await (await lister('/api/episodes?type=extrait')).json() as { type: string }[];
-  assert.ok(extraits.length > 0 && extraits.every(e => e.type === 'extrait'));
-  assert.equal((await lister('/api/episodes?type=bonus')).status, 400);
-});
-
-test('l’import depuis Ausha est réservé à l’admin et exige AUSHA_RSS_URL', async () => {
-  assert.equal((await importation.importerDepuisAusha(requete('/api/episodes/import', { methode: 'POST' }))).status, 401);
-  const avecCle = requete('/api/episodes/import', { methode: 'POST', entetes: { 'x-admin-key': process.env.ADMIN_KEY! } });
-  assert.equal((await importation.importerDepuisAusha(avecCle)).status, 503); // pas de flux configuré dans les tests
 });
 
 test('titres d’épisodes : nom de l’invité en grand, sujet dessous, préfixes de type retirés', async () => {

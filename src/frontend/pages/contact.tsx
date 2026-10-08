@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { appelerApi } from '@/frontend/admin/api';
+import { appelerApi } from '@/frontend/api';
 import Champ, { CaseConsentement, ChampListe, ChampPiege, ChampTexte } from '@/frontend/components/Champ';
 import { LIEUX_DEVIS, TYPES_DEVIS } from '@/frontend/format';
 import { classeBouton, classeErreur } from '@/frontend/styles/classes';

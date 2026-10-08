@@ -1,13 +1,11 @@
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { prisma } from '@/backend/db/prisma';
 import { limiterDebit, lirePiege } from '@/backend/anti-spam';
-import { exigerAdmin } from '@/backend/auth/acces';
-import { ApiError, endpoint, json, positiveId, type RouteContext } from '@/backend/http';
+import { ApiError, endpoint, json } from '@/backend/http';
 import { getStripe } from '@/backend/payments/stripe';
-import { checkoutSchema, cancellationSchema } from './validation';
-import { cancelReservation, createCheckout, reservationApresPaiement, traiterSessionStripe } from './bookings';
+import { checkoutSchema } from './validation';
+import { createCheckout, reservationApresPaiement, traiterSessionStripe } from './bookings';
 
 /** POST /api/checkout (public, sans compte) : bloque les places et ouvre le paiement Stripe. */
 export const checkout = endpoint(async (request: Request) => {
@@ -40,28 +38,15 @@ export const webhook = endpoint(async (request: Request) => {
   return json({ received: true });
 });
 
+/** GET /api/reservations?session_id= : après paiement, sans compte, seulement si Stripe confirme que la session désigne la réservation. */
 export const listReservations = endpoint(async (request: Request) => {
-  const params = new URL(request.url).searchParams;
-  const stripeId = params.get('session_id');
-  if (stripeId !== null) {
-    // Après paiement, sans compte : visible seulement si Stripe confirme que cette session désigne la réservation.
-    if (!/^cs_test_[A-Za-z0-9]+$/.test(stripeId)) throw new ApiError(400, 'Identifiant Stripe invalide');
-    const resultat = await reservationApresPaiement(stripeId);
-    if ('refus' in resultat) {
-      if (resultat.refus === 'indisponible') throw new ApiError(503, 'Vérification du paiement impossible pour le moment. Réessayez dans un instant.');
-      throw new ApiError(404, 'Réservation introuvable');
-    }
-    const { id, nbPersonnes, montantCents, statut, session } = resultat.reservation;
-    return json({ id, nbPersonnes, montantCents, statut, session: { dateDebut: session.dateDebut, lieu: session.lieu, experience: session.experience.titre } });
+  const stripeId = new URL(request.url).searchParams.get('session_id');
+  if (stripeId === null || !/^cs_test_[A-Za-z0-9]+$/.test(stripeId)) throw new ApiError(400, 'Identifiant Stripe invalide');
+  const resultat = await reservationApresPaiement(stripeId);
+  if ('refus' in resultat) {
+    if (resultat.refus === 'indisponible') throw new ApiError(503, 'Vérification du paiement impossible pour le moment. Réessayez dans un instant.');
+    throw new ApiError(404, 'Réservation introuvable');
   }
-  await exigerAdmin(request);
-  const statut = params.get('statut');
-  if (statut && !['en_attente', 'payee', 'annulee'].includes(statut)) throw new ApiError(400, 'Statut invalide');
-  return json(await prisma.reservation.findMany({ where: statut ? { statut } : {}, orderBy: { createdAt: 'desc' }, select: { id: true, sessionId: true, nom: true, email: true, telephone: true, nbPersonnes: true, montantCents: true, statut: true, stripeSessionId: true, consentementLe: true, createdAt: true, session: { select: { dateDebut: true, experience: { select: { titre: true } } } } } }));
-});
-
-export const cancel = endpoint(async (request: Request, context: RouteContext) => {
-  await exigerAdmin(request);
-  cancellationSchema.parse(await request.json());
-  return json(await cancelReservation(positiveId((await context.params).id)));
+  const { id, nbPersonnes, montantCents, statut, session } = resultat.reservation;
+  return json({ id, nbPersonnes, montantCents, statut, session: { dateDebut: session.dateDebut, lieu: session.lieu, experience: session.experience.titre } });
 });
