@@ -13,6 +13,10 @@ export const formatDate = (date: Date | string) =>
 export const formatDateHeure = (date: Date | string) =>
   new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: FUSEAU });
 
+/** « octobre 2026 » */
+export const formatMois = (date: Date | string) =>
+  new Date(date).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: FUSEAU });
+
 /** Année d'une date, à l'heure de Paris (une session le 31 décembre à 23 h reste dans son année). */
 export const anneeDe = (date: Date | string) =>
   Number(new Date(date).toLocaleDateString('fr-FR', { year: 'numeric', timeZone: FUSEAU }));
