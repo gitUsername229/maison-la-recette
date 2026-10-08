@@ -129,7 +129,7 @@ export default function LecteurPodcast({ episodes, lecteur, etiquette, liste = t
             <LecteurAusha key={episode.id} url={episode.embedUrl} titre={episode.titre} />
           </div>
         )}
-        {/* Résumé (rempli à l'import, modifiable dans l'admin) : page podcast seulement, replié. */}
+        {/* Résumé (lu dans le flux Ausha) : page podcast seulement, replié. */}
         {liste && episode.resume && <div className="mt-5 border-t border-bordure pt-4"><TexteRepliable texte={episode.resume} seuil={200} /></div>}
       </section>
 

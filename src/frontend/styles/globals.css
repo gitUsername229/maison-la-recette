@@ -62,7 +62,6 @@
      Anton (une seule graisse) pour les titres, Inria Sans pour le texte et les boutons. */
   --font-sans: var(--police-texte);
   --font-titre: var(--police-titre);
-  --font-serif: var(--police-titre); /* ancien nom des titres, encore employé par l'admin */
 }
 
 /*

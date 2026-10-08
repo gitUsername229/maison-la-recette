@@ -1,4 +1,4 @@
-// Classes Tailwind partagées par les formulaires du site et de l'admin (couleurs : rôles du thème, voir globals.css).
+// Classes Tailwind partagées par les formulaires et les boutons du site (couleurs : rôles du thème, voir globals.css).
 // Le focus clavier est le contour commun défini dans globals.css.
 
 const baseChamp = 'w-full min-w-0 rounded-lg border bg-surface px-3 py-2.5 text-texte placeholder:text-texte-doux';

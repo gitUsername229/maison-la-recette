@@ -41,5 +41,5 @@ export const libelleCategorie = (cle: string) => (estCategorie(cle) ? CATEGORIES
 /** Les articles de cette catégorie invitent à demander un devis (entreprises). */
 export const appelDevis = (cle: string) => estCategorie(cle) && CATEGORIES_BLOG[cle].appelDevis;
 
-/** Les catégories dans l'ordre, pour les onglets du blog et les listes de l'admin. */
+/** Les catégories dans l'ordre, pour les onglets du blog. */
 export const listeCategories = () => CLES_CATEGORIES.map(valeur => ({ valeur, ...CATEGORIES_BLOG[valeur] }));
