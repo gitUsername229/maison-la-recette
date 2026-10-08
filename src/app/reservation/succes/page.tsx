@@ -19,7 +19,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
     const indisponible = resultat.refus === "indisponible";
     return (
       <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
-        <h1 className="text-3xl font-bold lg:text-4xl">{indisponible ? "Vérification en cours" : "Réservation introuvable"}</h1>
+        <h1 className="text-4xl font-bold">{indisponible ? "Vérification en cours" : "Réservation introuvable"}</h1>
         <p className="mt-4">
           {indisponible
             ? "Nous n’arrivons pas à vérifier votre paiement pour le moment. Rechargez cette page dans un instant."
@@ -39,7 +39,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
-      <h1 className="text-3xl font-bold lg:text-4xl">
+      <h1 className="text-4xl font-bold">
         {paye ? "Votre place est réservée" : "Paiement en cours de vérification"}
       </h1>
 
@@ -49,18 +49,19 @@ export default async function ReservationSucces({ searchParams }: Props) {
           : "Votre paiement est en cours de traitement. Rechargez cette page dans quelques instants."}
       </p>
 
-      <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 border-t border-bordure pt-6">
-        <dt className="font-medium">Expérience</dt>
+      {/* Récapitulatif en carte blanche, comme les cartes d'expériences de la maquette. */}
+      <dl className="mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 rounded-2xl bg-fond p-5">
+        <dt className="font-bold">Expérience</dt>
         <dd>{session.experience.titre}</dd>
-        <dt className="font-medium">Date</dt>
+        <dt className="font-bold">Date</dt>
         <dd>{formatDateHeure(session.dateDebut)}</dd>
-        <dt className="font-medium">Lieu</dt>
+        <dt className="font-bold">Lieu</dt>
         <dd>{session.lieu}</dd>
-        <dt className="font-medium">Participants</dt>
+        <dt className="font-bold">Participants</dt>
         <dd>{reservation.nbPersonnes}</dd>
-        <dt className="font-medium">Montant</dt>
+        <dt className="font-bold">Montant</dt>
         <dd>{formatPrix(reservation.montantCents)}</dd>
-        <dt className="font-medium">Réservation</dt>
+        <dt className="font-bold">Réservation</dt>
         <dd>n° {reservation.id}</dd>
       </dl>
 
