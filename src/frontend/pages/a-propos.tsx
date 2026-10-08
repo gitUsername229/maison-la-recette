@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Galerie, { type PhotoGalerie } from '@/frontend/components/Galerie';
 import ListeAvis, { type AvisAffiche } from '@/frontend/components/ListeAvis';
+import { classeGrandBouton, classeSurtitre } from '@/frontend/styles/classes';
 
 export type PartenaireAffiche = { id: number; nom: string; metier: string; photo: string; photoAlt: string; description: string };
 
@@ -18,46 +19,32 @@ type Props = { textes: TextesAPropos; partenaires: PartenaireAffiche[]; avis: Av
 export default function APropos({ textes, partenaires, avis, photos }: Props) {
   return (
     <main className="mx-auto max-w-4xl px-5 py-8 lg:px-6 lg:py-12">
-      <span className="rounded-full bg-pastel px-3 py-1 text-xs font-semibold uppercase tracking-wider text-texte-doux">
-        {textes.surtitre}
-      </span>
-      <h1 className="mt-4 text-3xl font-bold lg:text-4xl">
-        {textes.titre}
-      </h1>
-      <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-texte-doux">
-        {textes.introduction}
-      </p>
+      <p className={classeSurtitre}>{textes.surtitre}</p>
+      <h1 className="mt-4 text-4xl font-bold">{textes.titre}</h1>
+      <p className="mt-6 whitespace-pre-line text-lg leading-relaxed">{textes.introduction}</p>
       <div className="mt-10 grid gap-6 sm:grid-cols-2">
-        <div className="rounded-3xl bg-pastel p-7">
-          <h2 className="font-serif text-2xl">{textes.experiencesTitre}</h2>
-          <p className="mt-2 whitespace-pre-line text-texte-doux">
-            {textes.experiencesTexte}
-          </p>
-          <Link href="/experiences" className="mt-4 inline-block text-sm font-semibold text-accent hover:underline">
-            {textes.experiencesBouton} →
-          </Link>
-        </div>
-        <div className="rounded-3xl bg-pastel-chaud p-7">
-          <h2 className="font-serif text-2xl">{textes.podcastTitre}</h2>
-          <p className="mt-2 whitespace-pre-line">
-            {textes.podcastTexte}
-          </p>
-          <Link href="/podcast" className="mt-4 inline-block text-sm font-semibold underline underline-offset-4">
-            {textes.podcastBouton} →
-          </Link>
-        </div>
+        {[
+          { titre: textes.experiencesTitre, texte: textes.experiencesTexte, bouton: textes.experiencesBouton, href: '/experiences' },
+          { titre: textes.podcastTitre, texte: textes.podcastTexte, bouton: textes.podcastBouton, href: '/podcast' },
+        ].map(bloc => (
+          <div key={bloc.href} className="flex flex-col rounded-2xl bg-fond p-6">
+            <h2 className="text-2xl font-bold">{bloc.titre}</h2>
+            <p className="mt-2 whitespace-pre-line">{bloc.texte}</p>
+            <Link href={bloc.href} className={`mt-6 ${classeGrandBouton.contour}`}>{bloc.bouton}</Link>
+          </div>
+        ))}
       </div>
 
       {partenaires.length > 0 && (
         <section className="mt-14">
-          <h2 className="font-serif text-2xl">{textes.partenairesTitre}</h2>
+          <h2 className="text-xl font-bold">{textes.partenairesTitre}</h2>
           <ul className="mt-5 grid gap-4 sm:grid-cols-2">
             {partenaires.map(p => (
-              <li key={p.id} className="flex gap-4 rounded-2xl border border-bordure bg-surface p-5">
+              <li key={p.id} className="flex gap-4 rounded-2xl bg-fond p-5">
                 {p.photo && <Image src={p.photo} alt={p.photoAlt} width={96} height={96} className="h-24 w-24 shrink-0 rounded-xl object-cover" />}
                 <div>
-                  <p className="font-serif text-lg">{p.nom}</p>
-                  <p className="text-sm text-texte-doux">{p.metier}</p>
+                  <p className="text-lg font-bold">{p.nom}</p>
+                  <p className="text-sm">{p.metier}</p>
                   <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-texte-doux">{p.description}</p>
                 </div>
               </li>
