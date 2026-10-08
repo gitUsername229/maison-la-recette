@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Inria_Serif } from 'next/font/google';
 import '@/frontend/styles/globals.css';
-import { LIENS_EMISSION } from '@/backend/podcast/emission';
 import { adresseDuSite, NOM_DU_SITE } from '@/backend/site';
 import EnTete from '@/frontend/components/EnTete';
 import PiedDePage from '@/frontend/components/PiedDePage';
@@ -26,7 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="flex min-h-screen flex-col">
         <EnTete />
         <div className="flex-1">{children}</div>
-        <PiedDePage liensEcoute={LIENS_EMISSION} />
+        <PiedDePage />
       </body>
     </html>
   );

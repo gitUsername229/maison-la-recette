@@ -40,8 +40,15 @@ export default function EnTete() {
   const estActif = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
   const courant = (href: string) => (estActif(href) ? 'page' : undefined);
 
+  // Maquette : en-tête clair souligné d'un trait vert ; sur l'accueil, transparent au-dessus de la photo ;
+  // menu ouvert (écran « Frame 17 »), vert foncé comme le menu.
+  const accueil = pathname === '/';
+  const apparence = menuOuvert
+    ? 'zone-sombre bg-fond-sombre text-sur-fond-sombre'
+    : accueil ? 'zone-sombre text-sur-fond-sombre' : 'border-b-2 border-texte bg-fond-doux text-texte';
+
   return (
-    <header className="zone-sombre sticky top-0 z-50 bg-fond-sombre text-sur-fond-sombre">
+    <header className={`${accueil ? 'absolute inset-x-0' : 'sticky'} top-0 z-50 ${apparence}`}>
       <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-6 px-5 lg:px-6">
         <Link href="/" onClick={fermer} className="flex shrink-0 items-center gap-2 whitespace-nowrap text-2xl lowercase lg:text-xl xl:text-2xl">
           <Feuille className="h-7 w-7" />
@@ -54,7 +61,7 @@ export default function EnTete() {
               key={lien.href}
               href={lien.href}
               aria-current={courant(lien.href)}
-              className={`whitespace-nowrap border-b-2 pb-0.5 ${estActif(lien.href) ? 'border-decor' : 'border-transparent hover:border-lien-sur-sombre'}`}
+              className={`whitespace-nowrap border-b-2 pb-0.5 ${estActif(lien.href) ? 'border-decor' : 'border-transparent hover:border-current'}`}
             >
               {lien.label}
             </Link>

@@ -52,7 +52,7 @@ export default function Experience({ experience }: { experience: ExperienceDetai
           <Galerie photos={experience.images} />
         </article>
 
-        <aside id="reserver" className="h-fit scroll-mt-24 rounded-xl bg-fond-doux p-6">
+        <aside id="reserver" className="h-fit scroll-mt-24 rounded-xl bg-fond p-6">
           {experience.reservableEnLigne ? (
             <>
               <h2 className="font-serif text-2xl">Réserver</h2>

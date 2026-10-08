@@ -218,18 +218,18 @@ de Romain (la maquette dit « Événements »).
 
   | Nom | Valeur | Variable Figma | Usage |
   |---|---|---|---|
-  | `blanc` | #ffffff | — | Fonds de page |
-  | `fond-clair` | #e9edd7 | BG | Cartes, encarts (lecteur, déroulé, réservation) |
+  | `blanc` | #ffffff | — | Cartes et encarts (lecteur, épisodes, expériences, réservation) |
+  | `fond-clair` | #e9edd7 | BG | Fond des pages, en-tête et pied de page |
   | `vert-fonce` | #123f1b | 1 | Texte, à la place du noir de la maquette |
   | `vert-tendre` | #bdd3a7 | 2 | Aplats, étiquettes |
   | `vert-olive` | #90ae2d | 3 | Décor uniquement |
-  | `orange` | #f57f03 | Accent 1 | Décor uniquement (onglet actif, contours d'étiquettes) |
+  | `orange` | #f57f03 | Accent 1 | Boutons et étiquettes secondaires, avec texte vert foncé (le blanc n'atteint pas AA) ; jamais en couleur de texte |
   | `corail` | #c94e3e | Accent 2 (#e75a47) | Boutons ; assombri de 13 % pour le contraste AA du texte blanc |
-  | `vert-entete` | #146048 | — | En-tête, menu et pied de page |
+  | `vert-entete` | #146048 | — | Menu ouvert, sections sombres de l'accueil (expériences, newsletter) |
 
   Le corail en couleur de texte (liens, catégories, erreurs) est à peine plus foncé, pour rester AA sur les fonds teintés.
 - Les **rôles** (`@theme inline`) sont les seules classes de couleur employées par les composants : `bg-fond`,
-  `bg-fond-doux`, `text-texte`, `text-texte-doux`, `bg-primaire`, `text-accent`, `bg-fond-sombre`, `border-decor`…
+  `bg-fond-doux`, `text-texte`, `text-texte-doux`, `bg-primaire`, `bg-secondaire`, `text-accent`, `bg-fond-sombre`, `border-decor`…
   Les couleurs par défaut de Tailwind sont retirées : une classe comme `text-stone-600` ne produit rien.
 - **Police** : Inria Serif partout (comme la maquette), chargée par `next/font` dans `src/app/layout.tsx`, avec ses
   polices de secours (Georgia, serif).

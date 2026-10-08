@@ -51,6 +51,7 @@ test('contrastes WCAG AA des couleurs employées ensemble', () => {
     ['texte-doux', 'fond', 4.5], ['texte-doux', 'fond-doux', 4.5], ['texte-doux', 'surface', 4.5],
     ['primaire', 'fond', 4.5], ['accent', 'fond-doux', 4.5], ['erreur', 'surface', 4.5],
     ['sur-primaire', 'primaire', 4.5], ['sur-primaire', 'primaire-fort', 4.5],
+    ['sur-secondaire', 'secondaire', 4.5], ['sur-secondaire', 'secondaire-clair', 4.5],
     ['accent', 'fond', 4.5], ['accent', 'surface', 4.5], ['sur-accent', 'accent', 4.5],
     ['erreur', 'erreur-fond', 4.5], ['erreur', 'fond', 4.5], ['succes', 'succes-fond', 4.5],
     ['sur-fond-sombre', 'fond-sombre', 4.5], ['lien-sur-sombre', 'fond-sombre', 4.5], ['sur-fond-sombre', 'voile', 4.5],
