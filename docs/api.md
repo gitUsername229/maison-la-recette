@@ -1,7 +1,7 @@
 # Routes API
 
-Le site n'a ni compte ni administration : les routes API se limitent aux deux formulaires publics, au faux serveur
-Luma (simulation) et à une route de santé. Les événements (Luma) et les épisodes (Ausha) sont lus côté serveur à
+Le site n'a ni compte ni administration : les routes API se limitent aux deux formulaires publics, à l'entrée et à la
+sortie du tableau de bord privé (mot de passe partagé), au faux serveur Luma (simulation) et à une route de santé. Les événements (Luma) et les épisodes (Ausha) sont lus côté serveur à
 l'affichage des pages, sans route API du site. Exemples : [curl-public.md](curl-public.md).
 
 ## Résumé
@@ -12,6 +12,8 @@ l'affichage des pages, sans route API du site. Exemples : [curl-public.md](curl-
 | POST | `/api/newsletter` | Inscription à la newsletter : `email`, `consentement`. Même réponse `201` si l'adresse était déjà inscrite |
 | GET | `/api/luma-simule/v1/calendars/events/list` | Faux serveur Luma : événements du calendrier (`after`, `before`, `sort_column`, `sort_direction`, `pagination_limit`, `pagination_cursor`) |
 | GET | `/api/luma-simule/v1/events/get?event_id=evt-…` | Faux serveur Luma : un événement, avec sa description et ses organisateurs |
+| POST | `/api/tableau-de-bord/connexion` | Tableau de bord privé : `{ "motDePasse": "…" }`. Bon mot de passe : `200` et cookie d'accès (30 jours) ; faux : `401` ; plus de 5 tentatives en 15 minutes depuis la même adresse IP : `429` ; mot de passe ou secret absents de l'environnement : `503` |
+| POST | `/api/tableau-de-bord/deconnexion` | Efface le cookie d'accès et renvoie (`303`) vers `/tableau-de-bord` |
 | GET | `/api/health` | `{ "name": "Maison La recette", "status": "ok" }` |
 
 Les anciennes routes (administration, connexion, contenus, épisodes, réservation et paiement Stripe) n'existent plus
@@ -65,6 +67,7 @@ l'appelle exactement comme la vraie API : seule l'adresse de base change (`LUMA_
 ## Référencement
 
 - `/sitemap.xml` : pages publiques, expériences et articles publiés, recalculé à chaque demande.
-- `/robots.txt` : exclut `/api/` et la page factice `/luma-simule/`, elle-même en `noindex`.
+- `/robots.txt` : exclut `/api/`, le tableau de bord privé `/tableau-de-bord` et la page factice `/luma-simule/`, toutes
+  deux aussi en `noindex`.
 - Chaque article et chaque expérience a son titre, sa description, son adresse canonique et ses balises de partage
   (Open Graph, X).

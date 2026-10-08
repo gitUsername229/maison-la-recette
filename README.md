@@ -6,7 +6,8 @@ Projet de workshop M1 (Groupe 3), 100 % local.
 Le site n'a **pas d'administration** : la cliente gère ses événements dans **Luma** et son podcast dans **Ausha** ;
 le site les lit et les affiche. Tout le reste (textes, expériences, avis, photos, articles) est du **contenu fixe**
 dans le code, dans `src/contenu/`. La base de données ne garde que les demandes de devis et les inscriptions à la
-newsletter, aussi envoyées par e-mail à Julie.
+newsletter, aussi envoyées par e-mail à Julie. Un **tableau de bord privé** (`/tableau-de-bord`, un mot de passe
+partagé) lui montre ses chiffres du mois, en lecture seule.
 
 ## Documentation
 
@@ -70,7 +71,7 @@ Tout se modifie dans le code, puis se commite et se déploie (en local, `npm run
 | Les photos : fond de l'accueil, galeries (fichiers dans `public/images/`) | `src/contenu/photos.ts` |
 | Les articles du blog : un fichier Markdown par article, son nom donne l'adresse | `src/contenu/blog/*.md` (voir ci-dessous) |
 | Les catégories du blog | `src/backend/contenus/categories-blog.ts` |
-| Le calendrier Luma, Instagram, LinkedIn | `src/contenu/liens.ts` |
+| Le calendrier Luma, Instagram, LinkedIn, les raccourcis du tableau de bord (Ausha, webmail de Julie) | `src/contenu/liens.ts` |
 | Les liens d'écoute du podcast, le lecteur (sur mesure ou Ausha) | `src/backend/podcast/emission.ts` |
 | L'adresse e-mail de contact affichée | `src/backend/site.ts` |
 | Couleurs, polices, tailles | `src/frontend/styles/globals.css` (voir « Thème ») |
@@ -120,6 +121,41 @@ les requêtes (`GET https://public-api.luma.com/v1/calendars/events/list` avec l
 lecture des réponses sont vérifiées par les tests sur le format officiel, pas sur le vrai calendrier. À la première
 mise en service, vérifier l'affichage des dates, des prix et des places, et les messages `[luma]` du terminal.
 
+## Tableau de bord privé
+
+Page cachée **`/tableau-de-bord`** : aucun lien dans le menu ni le pied de page, absente du sitemap, interdite dans
+`/robots.txt` et marquée `noindex`. Elle montre à la cliente ses chiffres du mois, en lecture seule et sans aucune
+donnée personnelle (ni nom, ni e-mail, ni téléphone) :
+
+| Bloc | Source | Ce qui est affiché |
+|---|---|---|
+| Événements | Luma (client existant ; en simulation, chiffres fictifs signalés) | Prochains événements avec inscrits / places et taux de remplissage ; inscrits du mois ; chiffre d'affaires estimé du mois (prix × inscrits des événements payants) ; lien vers Luma |
+| Demandes de devis | Base de données | Nombre ce mois-ci et le mois précédent ; répartition par type sur 12 mois ; les 5 dernières (date, type, entreprise) |
+| Newsletter | Base de données | Nombre d'inscrits et nouveaux inscrits du mois |
+| Podcast | Flux Ausha | Nombre d'épisodes publiés (complets, extraits, replays) et date du dernier |
+| Statistiques du site | — | « Bientôt disponible (Plausible, à la mise en ligne) » |
+| Raccourcis | `src/contenu/liens.ts` | Luma, Ausha, boîte mail (Mailpit en développement ; `LIEN_BOITE_MAIL` en production, masqué s'il est vide) |
+
+Une source qui ne répond pas affiche un tiret et une phrase d'explication, sans empêcher les autres blocs. Les inscrits
+viennent du détail de chaque événement Luma (`guest_counts`, `max_capacity`), jamais de la liste des invités.
+
+**Y accéder** : ouvrir `http://localhost:3000/tableau-de-bord` (en production, l'adresse du site suivie de
+`/tableau-de-bord`), saisir le mot de passe partagé. Le navigateur reste connecté 30 jours ; « Se déconnecter » efface
+l'accès. Ouvrir la page depuis un favori ou en tapant l'adresse : depuis un lien reçu par e-mail, le navigateur
+n'envoie pas le cookie (protection `SameSite=Strict`) et redemande le mot de passe.
+
+**Changer le mot de passe** : dans `.env.local` (jamais commité), modifier `TABLEAU_DE_BORD_MOT_DE_PASSE`, puis
+redémarrer le serveur. Tous les navigateurs déjà connectés sont déconnectés (le cookie est signé avec le mot de passe).
+`TABLEAU_DE_BORD_SECRET` (32 caractères au moins, ex : `openssl rand -base64 48`) signe le cookie ; le changer
+déconnecte aussi tout le monde. Sans l'une des deux variables, la page indique que l'accès n'est pas configuré. En
+production, les valeurs factices de `.env.example` (qui contiennent « factice ») laissent le tableau de bord fermé.
+
+Protection (`src/backend/tableau-de-bord/acces.ts`, testée dans `tests/tableau-de-bord.test.ts`) : aucun compte ni
+table d'utilisateurs ; mot de passe comparé en temps constant ; 5 tentatives par adresse IP et par quart d'heure
+(même en développement), puis `429` ; cookie `httpOnly`, `SameSite=Strict`, `Secure` en production, limité au chemin
+`/tableau-de-bord`, signé (HMAC-SHA256) et valable 30 jours. Les chiffres ne sont lus qu'après la vérification du
+cookie.
+
 ## Séparation front / back
 
 Le projet conserve **Next.js pour le front et les routes API**, avec un seul serveur sur le port 3000 :
@@ -129,7 +165,7 @@ src/
   app/              Pages Next.js et points d'entrée /api
   contenu/          Contenu fixe du site : textes, expériences, avis, partenaires, photos, liens, blog (Markdown)
   frontend/         Pages de présentation, composants et styles Tailwind
-  backend/          Lecture de Luma et d'Ausha, devis, newsletter, e-mails, anti-spam, référencement
+  backend/          Lecture de Luma et d'Ausha, devis, newsletter, e-mails, anti-spam, référencement, tableau de bord
 prisma/             Schéma SQLite et migrations
 public/images/      Images locales
 ```
@@ -153,13 +189,17 @@ backend sont réservés au serveur (`server-only`) ; le frontend ne les importe 
   e-mails par Nodemailer (Mailpit en local), envoyés après la réponse : un échec est journalisé sans rien annuler.
 - **Référencement** : titre, description, adresse canonique et balises de partage ; `/sitemap.xml` et `/robots.txt`
   (`src/backend/seo.ts`).
+- **Tableau de bord privé** (`/tableau-de-bord`) : chiffres du mois (Luma, devis, newsletter, podcast), derrière un
+  mot de passe partagé (voir plus haut).
 
 **Reste à faire :**
 1. Contenus réels : textes, avis (les trois avis actuels sont fictifs), partenaires, photos (provisoires, Unsplash),
    articles du blog (trois articles de démonstration) ; voir « Où modifier le reste ».
 2. Luma : passer en mode `api` avec la clé de la cliente et étiqueter ses événements (voir plus haut).
 3. En production : `NEXT_PUBLIC_BASE_URL` = la vraie adresse du site (sitemap, adresses canoniques, aperçus de partage,
-   faux serveur Luma), puis déclarer `/sitemap.xml` dans Google Search Console.
+   faux serveur Luma), puis déclarer `/sitemap.xml` dans Google Search Console. Tableau de bord : choisir le mot de
+   passe et un secret aléatoire (voir « Tableau de bord privé »), renseigner `LIEN_BOITE_MAIL` (webmail de Julie) et,
+   à la mise en ligne, brancher Plausible à la place de « Bientôt disponible ».
 4. **Mentions légales et politique de confidentialité** : compléter les éléments entre crochets (forme juridique,
    SIRET, hébergeur, prestataires, durées de conservation), faire valider le texte par la cliente, puis vider
    `avertissement` dans `src/contenu/textes.ts`.
@@ -185,8 +225,9 @@ backend sont réservés au serveur (`server-only`) ; le frontend ne les importe 
 
 ### Sécurité
 
-- **Ni compte ni administration** : aucune page de connexion, aucune route de modification. Les anciennes adresses
-  `/admin` répondent 404. Le contenu ne change que par le code (relu, commité).
+- **Ni compte ni administration** : aucune route de modification. Les anciennes adresses `/admin` répondent 404. Le
+  contenu ne change que par le code (relu, commité). Seul le tableau de bord, en lecture seule, demande un mot de
+  passe partagé (voir « Tableau de bord privé »).
 - Les seules écritures sont les deux formulaires publics, protégés contre les robots (voir ci-dessous) ; tout ce qui
   est saisi est validé côté serveur (zod) et échappé dans les e-mails (impossible d'y injecter du HTML).
 - La clé Luma (`LUMA_API_KEY`) reste côté serveur : le navigateur ne voit que les événements publics. Les événements
@@ -217,8 +258,8 @@ backend sont réservés au serveur (`server-only`) ; le frontend ne les importe 
 - **SEO de base** :
   - chaque page a un titre (`<title>`) et une meta description ; les articles, les expériences et les catégories du
     blog ont aussi une adresse canonique et des balises de partage (`metadonnees()` dans `src/backend/seo.ts`) ;
-  - `/sitemap.xml` liste les pages publiques, les expériences et les articles ; `/robots.txt` écarte l'API et la page
-    factice de simulation Luma ;
+  - `/sitemap.xml` liste les pages publiques, les expériences et les articles ; `/robots.txt` écarte l'API, le
+    tableau de bord et la page factice de simulation Luma ;
   - toutes les images ont un texte alternatif (`alt`, `imageAlt` dans les fichiers de contenu) ;
   - des URLs lisibles grâce aux slugs (`/experiences/atelier-cuisine-anti-gaspi`, `/blog/retour-atelier-cuisine-anti-gaspi`).
 
@@ -302,6 +343,7 @@ Tout tourne en local sur `http://localhost:3000`.
 | À propos | Mission, histoire, partenaires, avis, galerie photos | Tous | `src/contenu/` |
 | Contact (`/contact`) | Demande de devis sans compte (expérience, sponsoring, studio, événement ; réponse sous 48 h) | B2B | `POST /api/devis` |
 | Mentions légales, Confidentialité | Texte de base à compléter (`src/contenu/textes.ts`) | Tous | — |
+| Tableau de bord (`/tableau-de-bord`) | Page privée (mot de passe partagé) : chiffres du mois, prochains événements et remplissage, devis, newsletter, podcast, raccourcis | La cliente | Luma, base, Ausha |
 | Simulation Luma (`/luma-simule/[id]`) | Page factice d'inscription Luma, en simulation seulement (non indexée) | Démo | faux serveur Luma |
 
 Pas de logos clients : la crédibilité passe par les avis et les partenaires (affichés seulement après leur accord).
@@ -325,6 +367,9 @@ LUMA_MODE=simulation             # ou api (vraie API, avec LUMA_API_KEY)
 # LUMA_API_KEY=                  # clé du calendrier Luma (Luma Plus), seulement avec LUMA_MODE=api
 
 AUSHA_RSS_URL=https://feed.ausha.co/Zg75JI109Rlm   # flux du podcast « la recette »
+
+TABLEAU_DE_BORD_MOT_DE_PASSE=mot-de-passe-factice   # mot de passe partagé du tableau de bord privé
+TABLEAU_DE_BORD_SECRET=secret-factice-a-remplacer-par-48-caracteres-aleatoires   # signe le cookie (32 caractères min.)
 
 # Facultatif : anti-spam (valeurs par défaut en production, 20 fois plus larges en développement)
 # LIMITE_PERIODE_MINUTES=10
