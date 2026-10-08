@@ -1,0 +1,4 @@
+import { detailSimule } from '@/backend/luma/simulation';
+
+// Faux serveur Luma (LUMA_MODE=simulation) : même route que GET https://public-api.luma.com/v1/events/get.
+export const GET = (request: Request) => detailSimule(request);

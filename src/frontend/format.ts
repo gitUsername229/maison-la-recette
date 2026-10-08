@@ -2,8 +2,8 @@
 
 const FUSEAU = 'Europe/Paris';
 
-export const formatPrix = (cents: number) =>
-  (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+export const formatPrix = (cents: number, devise = 'EUR') =>
+  (cents / 100).toLocaleString('fr-FR', { style: 'currency', currency: devise.toUpperCase() });
 
 /** « 14 novembre 2026 » */
 export const formatDate = (date: Date | string) =>
