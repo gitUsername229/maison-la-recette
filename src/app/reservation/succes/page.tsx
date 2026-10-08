@@ -19,7 +19,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
     const indisponible = resultat.refus === "indisponible";
     return (
       <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
-        <h1 className="text-4xl font-bold">{indisponible ? "Vérification en cours" : "Réservation introuvable"}</h1>
+        <h1 className="font-titre text-4xl text-titre">{indisponible ? "Vérification en cours" : "Réservation introuvable"}</h1>
         <p className="mt-4">
           {indisponible
             ? "Nous n’arrivons pas à vérifier votre paiement pour le moment. Rechargez cette page dans un instant."
@@ -39,7 +39,7 @@ export default async function ReservationSucces({ searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
-      <h1 className="text-4xl font-bold">
+      <h1 className="font-titre text-4xl text-titre">
         {paye ? "Votre place est réservée" : "Paiement en cours de vérification"}
       </h1>
 

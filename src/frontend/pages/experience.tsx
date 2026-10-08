@@ -29,7 +29,7 @@ export default function Experience({ experience }: { experience: ExperienceDetai
       <div className="mt-8 grid gap-12 lg:grid-cols-[1fr_24rem]">
         <article>
           <p className={`w-fit ${classeEtiquetteType(experience.type)}`}>{libelleType(experience.type)}</p>
-          <h1 className="mt-3 text-4xl font-bold">{experience.titre}</h1>
+          <h1 className="mt-3 font-titre text-4xl text-titre">{experience.titre}</h1>
           <p className="mt-5 text-lg leading-relaxed">{experience.accroche}</p>
           {experience.image && <Image src={experience.image} alt={experience.imageAlt} width={1200} height={750} priority className="mt-8 aspect-[16/10] w-full rounded-2xl object-cover" />}
 
@@ -50,13 +50,13 @@ export default function Experience({ experience }: { experience: ExperienceDetai
         <aside id="reserver" className="h-fit scroll-mt-24 rounded-2xl bg-fond p-6">
           {experience.reservableEnLigne ? (
             <>
-              <h2 className="text-2xl font-bold">Réserver</h2>
+              <h2 className="font-titre text-2xl text-titre">Réserver</h2>
               <p className="mb-6 mt-1 text-sm text-texte-doux">Paiement sécurisé par Stripe.</p>
               <ReservationForm sessions={experience.sessions} />
             </>
           ) : (
             <>
-              <h2 className="text-2xl font-bold">Sur devis</h2>
+              <h2 className="font-titre text-2xl text-titre">Sur devis</h2>
               <p className="mt-3 leading-relaxed">
                 Cette expérience se prépare avec vous : date, groupe et programme sont définis ensemble.
               </p>

@@ -11,7 +11,7 @@ export type TextesParticuliers = TextesExperiences & Record<'aVenirTitre' | 'auc
 export function EnTeteExperiences({ textes, actif }: { textes: TextesExperiences; actif: 'particuliers' | 'entreprises' }) {
   return (
     <>
-      <h1 className="text-4xl font-bold">{textes.titre}</h1>
+      <h1 className="font-titre text-4xl text-titre">{textes.titre}</h1>
       <OngletsExperiences actif={actif} libelles={{ particuliers: textes.ongletParticuliers, entreprises: textes.ongletEntreprises }} />
     </>
   );
@@ -38,7 +38,7 @@ export default function Experiences({ textes, experiences, avis, passees, annees
       <EnTeteExperiences textes={textes} actif="particuliers" />
 
       <section aria-labelledby="a-venir" className="mt-8">
-        <h2 id="a-venir" className="text-xl font-bold">{textes.aVenirTitre}</h2>
+        <h2 id="a-venir" className="text-xl font-bold text-titre">{textes.aVenirTitre}</h2>
         {experiences.length === 0 ? (
           <p className="mt-4 whitespace-pre-line text-texte-doux">{textes.aucuneExperience}</p>
         ) : (
@@ -52,7 +52,7 @@ export default function Experiences({ textes, experiences, avis, passees, annees
 
       {annee !== null && (
         <section aria-labelledby="passees" className="mt-12">
-          <h2 id="passees" className="text-xl font-bold">{textes.passeesTitre}</h2>
+          <h2 id="passees" className="text-xl font-bold text-titre">{textes.passeesTitre}</h2>
           <div className="mt-4">
             <ChoixParametre parametre="annee" etiquette="Année" valeur={annee} options={annees.map(a => ({ valeur: a, texte: String(a) }))} />
           </div>

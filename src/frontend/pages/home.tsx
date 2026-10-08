@@ -34,7 +34,7 @@ type Props = {
 };
 
 const conteneur = 'mx-auto max-w-6xl px-5 py-14 lg:px-6 lg:py-20';
-const titreSection = 'text-4xl font-bold';
+const titreSection = 'font-titre text-4xl'; // en vert vif sur fond clair (text-titre), blanc sur fond vert
 
 /**
  * Accueil (maquette) : photo plein écran, titre et deux boutons ; le podcast et l'extrait du dernier épisode ;
@@ -52,7 +52,7 @@ export default function Home({ textes, photos, emission, extrait, lecteur, liens
         {principale && <Image src={principale.url} alt="" fill priority sizes="100vw" className="-z-20 object-cover" />}
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-voile/55" />
         <div className="mx-auto w-full max-w-6xl px-5 lg:px-6">
-          <h1 className="max-w-3xl text-4xl font-bold sm:text-6xl">{textes.slogan}</h1>
+          <h1 className="max-w-3xl font-titre text-4xl sm:text-6xl">{textes.slogan}</h1>
           <p className="mt-5 max-w-xl whitespace-pre-line sm:text-lg">{textes.presentation}</p>
           <div className="mt-12 grid max-w-[334px] gap-4 sm:flex sm:max-w-none">
             <Link href="/podcast" className={`${classeGrandBouton.primaire} sm:w-auto sm:px-10`}>{textes.boutonPodcast}</Link>
@@ -96,7 +96,7 @@ export default function Home({ textes, photos, emission, extrait, lecteur, liens
       <section className="bg-fond">
         <div className={`${conteneur} grid gap-6 lg:grid-cols-2 lg:gap-x-12`}>
           <div>
-            <h2 className={titreSection}>{textes.entreprisesTitre}</h2>
+            <h2 className={`${titreSection} text-titre`}>{textes.entreprisesTitre}</h2>
             <p className="mt-3 whitespace-pre-line text-lg">{textes.entreprisesTexte}</p>
           </div>
           {photosEntreprises.length > 0 && (
@@ -107,7 +107,7 @@ export default function Home({ textes, photos, emission, extrait, lecteur, liens
               <li key={titre} className="flex gap-3">
                 <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primaire text-sm font-bold text-sur-primaire">✓</span>
                 <div>
-                  <p className="font-bold">{titre}</p>
+                  <p className="font-bold text-titre">{titre}</p>
                   <p className="whitespace-pre-line text-sm">{texte}</p>
                 </div>
               </li>
@@ -119,7 +119,7 @@ export default function Home({ textes, photos, emission, extrait, lecteur, liens
 
       <section className="bg-fond-doux">
         <div className={conteneur}>
-          <h2 className={titreSection}>{textes.studioBlocTitre}</h2>
+          <h2 className={`${titreSection} text-titre`}>{textes.studioBlocTitre}</h2>
           <p className="mt-3 max-w-xl whitespace-pre-line">{textes.studioBlocTexte}</p>
           <Link href="/studio" className={`mt-8 ${classeGrandBouton.contour} lg:max-w-[334px]`}>{textes.studioBouton}</Link>
         </div>

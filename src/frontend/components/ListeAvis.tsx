@@ -27,11 +27,11 @@ export default function ListeAvis({ avis, titre, notes: avecNotes = true, nombre
   const texteMoyenne = valeur?.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   return (
     <section className="grid gap-5" aria-label={titre ? undefined : 'Avis des participants'}>
-      {titre && <h2 className="text-xl font-bold">{titre}</h2>}
+      {titre && <h2 className="text-xl font-bold text-titre">{titre}</h2>}
       {avecNotes && valeur !== null && (
         <p className="flex items-center gap-3">
           <span className="sr-only">Note moyenne : {texteMoyenne} sur 5, {notes.length} avis de participants</span>
-          <span aria-hidden="true" className="text-5xl font-bold leading-none">{texteMoyenne}</span>
+          <span aria-hidden="true" className={`font-titre text-5xl leading-none ${surFondSombre ? '' : 'text-titre'}`}>{texteMoyenne}</span>
           <span aria-hidden="true" className="grid gap-0.5">
             <Etoiles note={Math.round(valeur)} className={`text-2xl leading-none ${surFondSombre ? '' : 'text-accent'}`} />
             <span className="text-sm">{notes.length} avis de participants</span>

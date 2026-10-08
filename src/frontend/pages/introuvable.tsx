@@ -7,7 +7,7 @@ export default function Introuvable() {
   return (
     <main className="mx-auto max-w-xl px-6 py-20 text-center">
       <Feuille className="mx-auto h-12 w-12 text-accent" />
-      <h1 className="mt-6 text-4xl font-bold">Page introuvable</h1>
+      <h1 className="mt-6 font-titre text-4xl text-titre">Page introuvable</h1>
       <p className="mt-4 leading-relaxed">Cette page n’existe pas, ou plus. Elle a peut-être changé d’adresse.</p>
       <div className="mx-auto mt-8 grid max-w-[334px] gap-4 sm:flex sm:max-w-none sm:justify-center">
         <Link href="/" className={`${classeGrandBouton.primaire} sm:w-auto sm:px-8`}>Retour à l’accueil</Link>

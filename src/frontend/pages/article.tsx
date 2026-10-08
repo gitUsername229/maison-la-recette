@@ -21,8 +21,8 @@ export type TextesArticle = Record<
 
 // Contenu en Markdown (écrit dans /admin/articles) ; le HTML brut n'est jamais interprété.
 const STYLES = {
-  h2: 'mt-10 text-2xl font-bold',
-  h3: 'mt-8 text-xl font-bold',
+  h2: 'mt-10 font-titre text-2xl text-titre',
+  h3: 'mt-8 text-xl font-bold text-titre',
   p: 'mt-4 leading-relaxed',
   ul: 'mt-4 list-disc space-y-1 pl-6',
   ol: 'mt-4 list-decimal space-y-1 pl-6',
@@ -38,7 +38,7 @@ export default function Article({ article, textes }: { article: ArticleComplet; 
         <Link href={`/blog/categorie/${article.categorie}`} className="font-bold text-accent hover:underline">{article.categorieLibelle}</Link>
         {' · '}{formatDate(article.datePublication)}
       </p>
-      <h1 className="mt-2 text-4xl font-bold">{article.titre}</h1>
+      <h1 className="mt-2 font-titre text-4xl text-titre">{article.titre}</h1>
       {article.image && <Image src={article.image} alt={article.imageAlt} width={1200} height={750} priority className="mt-8 aspect-[16/10] w-full rounded-2xl object-cover" />}
       <div className="mt-8">
         <Markdown

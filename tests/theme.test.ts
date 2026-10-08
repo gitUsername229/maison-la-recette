@@ -33,10 +33,10 @@ const contraste = (a: Rvb, b: Rvb) => {
   return (claire + 0.05) / (sombre + 0.05);
 };
 
-test('palette : les variables de la maquette Figma, le vert de l’en-tête, et pas de noir pur', () => {
+test('palette : les variables de la maquette Figma, le vert vif, et pas de noir pur', () => {
   assert.deepEqual(
-    { fond: palette['fond-clair'], texte: palette['vert-fonce'], vert: palette['vert-tendre'], olive: palette['vert-olive'], orange: palette.orange, entete: palette['vert-entete'] },
-    { fond: '#e9edd7', texte: '#123f1b', vert: '#bdd3a7', olive: '#90ae2d', orange: '#f57f03', entete: '#146048' },
+    { fond: palette['fond-clair'], texte: palette['vert-fonce'], vert: palette['vert-tendre'], olive: palette['vert-olive'], orange: palette.orange, vif: palette['vert-vif'] },
+    { fond: '#e9edd7', texte: '#123f1b', vert: '#bdd3a7', olive: '#90ae2d', orange: '#f57f03', vif: '#187622' },
   );
   // Corail de la maquette (#e75a47) assombri sans changer de teinte : mêmes proportions rouge / vert / bleu.
   const [r, v, b] = rvb(palette.corail);
@@ -54,7 +54,8 @@ test('contrastes WCAG AA des couleurs employées ensemble', () => {
     ['sur-secondaire', 'secondaire', 4.5], ['sur-secondaire', 'secondaire-clair', 4.5],
     ['accent', 'fond', 4.5], ['accent', 'surface', 4.5], ['sur-accent', 'accent', 4.5],
     ['erreur', 'erreur-fond', 4.5], ['erreur', 'fond', 4.5], ['succes', 'succes-fond', 4.5],
-    ['sur-fond-sombre', 'fond-sombre', 4.5], ['lien-sur-sombre', 'fond-sombre', 4.5], ['sur-fond-sombre', 'voile', 4.5],
+    ['titre', 'fond', 4.5], ['titre', 'fond-doux', 4.5], ['titre', 'surface', 4.5],
+    ['sur-fond-sombre', 'fond-sombre', 4.5], ['sur-fond-sombre', 'voile', 4.5],
     ['bordure-forte', 'fond', 3], ['bordure-forte', 'surface', 3],
     ['texte', 'fond', 3], ['sur-fond-sombre', 'fond-sombre', 3], // contour de focus (sombre sur clair, blanc sur vert foncé)
   ];
@@ -89,11 +90,12 @@ test('orange et vert olive : décor uniquement, jamais en couleur de texte', () 
   assert.deepEqual(texteDecor, []);
 });
 
-test('police Inria Serif partout, avec polices de secours', () => {
+test('polices de la maquette : Anton pour les titres, Inria Sans pour le texte, avec polices de secours', () => {
   const layout = readFileSync('src/app/layout.tsx', 'utf8');
-  assert.match(layout, /Inria_Serif\(\{[^}]*variable: '--police-site'[^}]*fallback: \[[^\]]*'serif'\]/);
-  assert.match(CSS, /--font-serif: var\(--police-site\)/);
-  assert.match(CSS, /--font-sans: var\(--police-site\)/);
+  assert.match(layout, /Anton\(\{[^}]*variable: '--police-titre'[^}]*fallback: \[[^\]]*'sans-serif'\]/);
+  assert.match(layout, /Inria_Sans\(\{[^}]*variable: '--police-texte'[^}]*fallback: \[[^\]]*'sans-serif'\]/);
+  assert.match(CSS, /--font-titre: var\(--police-titre\)/);
+  assert.match(CSS, /--font-sans: var\(--police-texte\)/);
 });
 
 test('échelle typographique : texte courant à 16 px minimum, étiquettes à 14 px minimum', () => {

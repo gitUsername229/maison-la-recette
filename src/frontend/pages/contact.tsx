@@ -58,7 +58,7 @@ export default function Contact({ experiences, experienceId }: Props) {
   if (merci) {
     return (
       <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
-        <h1 className="text-4xl font-bold">Demande envoyée</h1>
+        <h1 className="font-titre text-4xl text-titre">Demande envoyée</h1>
         <p className="mt-4 leading-relaxed text-texte-doux">{merci} Un e-mail récapitulatif vient de vous être envoyé.</p>
         <Link href="/experiences" className="mt-8 inline-block underline">Découvrir les expériences</Link>
       </main>
@@ -70,8 +70,8 @@ export default function Contact({ experiences, experienceId }: Props) {
 
   return (
     <main className="mx-auto max-w-xl px-5 py-8 lg:px-6 lg:py-12">
-      <h1 className="border-b border-texte pb-2 text-4xl font-bold">Contact</h1>
-      <h2 className="mt-6 text-lg font-bold">Demande de devis</h2>
+      <h1 className="border-b border-texte pb-2 font-titre text-4xl text-titre">Contact</h1>
+      <h2 className="mt-6 text-lg font-bold text-titre">Demande de devis</h2>
       <p className="mt-2 leading-relaxed text-texte-doux">Une expérience pour votre équipe, le studio podcast, un sponsoring ou un événement : décrivez votre projet, Julie vous rappelle sous 48 h.</p>
 
       <form onSubmit={envoyer} className="relative mt-8 grid gap-4">

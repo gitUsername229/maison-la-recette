@@ -18,7 +18,7 @@ type TextesEpisode = { titre: string; bouton: string; lien: string };
 export function BlocEpisode({ episode, textes }: { episode: EpisodeLie; textes: TextesEpisode }) {
   return (
     <section className={classeBloc} aria-labelledby="bloc-episode">
-      <h2 id="bloc-episode" className="text-2xl font-bold">{textes.titre}</h2>
+      <h2 id="bloc-episode" className="font-titre text-2xl text-titre">{textes.titre}</h2>
       <div className="mt-4 flex items-start gap-4">
         {episode.image && <Image src={episode.image} alt="" width={80} height={80} className="h-20 w-20 shrink-0 rounded-xl object-cover" />}
         <div>
@@ -40,7 +40,7 @@ type TextesExperiences = { titre: string; texte: string; bouton: string };
 export function BlocExperiences({ experiences, textes }: { experiences: ExperienceLiee[]; textes: TextesExperiences }) {
   return (
     <section className={classeBloc} aria-labelledby="bloc-experiences">
-      <h2 id="bloc-experiences" className="text-2xl font-bold">{textes.titre}</h2>
+      <h2 id="bloc-experiences" className="font-titre text-2xl text-titre">{textes.titre}</h2>
       {experiences.length === 0 ? (
         <p className="mt-3 whitespace-pre-line leading-relaxed">{textes.texte}</p>
       ) : (
@@ -48,7 +48,7 @@ export function BlocExperiences({ experiences, textes }: { experiences: Experien
           {experiences.map(experience => (
             <li key={experience.id} className="grid content-start gap-3">
               <div>
-                <Link href={`/experiences/${experience.slug}`} className="text-xl font-bold hover:underline">{experience.titre}</Link>
+                <Link href={`/experiences/${experience.slug}`} className="text-xl font-bold text-titre hover:underline">{experience.titre}</Link>
                 <p className="mt-1 text-sm">{experience.accroche}</p>
               </div>
               {experience.reservableEnLigne ? (
@@ -74,7 +74,7 @@ type TextesDevis = { titre: string; texte: string; bouton: string };
 export function AppelDevis({ experience, textes }: { experience?: string; textes: TextesDevis }) {
   return (
     <section className="mt-12 rounded-2xl bg-primaire p-6 text-sur-primaire sm:p-8" aria-labelledby="bloc-devis">
-      <h2 id="bloc-devis" className="text-2xl font-bold">{textes.titre}</h2>
+      <h2 id="bloc-devis" className="font-titre text-2xl">{textes.titre}</h2>
       <p className="mt-3 whitespace-pre-line leading-relaxed text-sur-primaire">{textes.texte}</p>
       <Link href={experience ? `/contact?experience=${experience}` : '/contact'} className="mt-5 inline-flex rounded-full bg-fond px-5 py-3 font-medium text-texte hover:bg-surface">
         {textes.bouton}

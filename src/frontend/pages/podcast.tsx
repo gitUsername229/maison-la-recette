@@ -38,7 +38,7 @@ export default function Podcast({ episodes, saisons, saison, filtre, compteurs, 
       <PresentationEmission nom={emission.nom} accroche={emission.accroche} niveau="h1" />
       <div className="mt-8 grid gap-4 leading-relaxed">
         <p>
-          <strong className="text-xl">Depuis 2023</strong>, Julie Van Ossel, journaliste, vous emmène à la rencontre de celles et ceux
+          <strong className="font-titre text-2xl font-normal text-titre">Depuis 2023</strong>, Julie Van Ossel, journaliste, vous emmène à la rencontre de celles et ceux
           qui façonnent l’alimentation de demain : des chefs, productrices, artisans, entrepreneuses qui bousculent les codes
           pour réinventer notre façon de manger.
         </p>

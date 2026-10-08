@@ -86,7 +86,7 @@ export default function LecteurPodcast({ episodes, lecteur, etiquette, liste = t
         <div className="flex gap-4">
           <Image src={episode.image} alt="" width={96} height={96} className="h-24 w-24 shrink-0 rounded-lg object-cover" />
           <div className="min-w-0">
-            <Titre className="text-2xl leading-tight">{nom}</Titre>
+            <Titre className="text-2xl leading-tight text-titre">{nom}</Titre>
             {sujet && <p className="mt-1 line-clamp-3 text-sm leading-snug">{sujet}</p>}
             <p className="mt-2 flex items-center gap-2 text-xs">
               <Icone nom="calendrier" taille={15} />
@@ -146,7 +146,7 @@ export default function LecteurPodcast({ episodes, lecteur, etiquette, liste = t
                     <Icone nom="calendrier" taille={13} />
                     {formatDate(e.datePublication)}
                   </p>
-                  <h3 className="mt-1 font-bold leading-snug">{nomEpisode}</h3>
+                  <h3 className="mt-1 font-bold leading-snug text-titre">{nomEpisode}</h3>
                   {sujetEpisode && <p className="line-clamp-2 text-sm leading-snug" title={sujetEpisode}>{sujetEpisode}</p>}
                 </div>
                 <button

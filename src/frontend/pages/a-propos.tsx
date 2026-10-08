@@ -20,7 +20,7 @@ export default function APropos({ textes, partenaires, avis, photos }: Props) {
   return (
     <main className="mx-auto max-w-4xl px-5 py-8 lg:px-6 lg:py-12">
       <p className={classeSurtitre}>{textes.surtitre}</p>
-      <h1 className="mt-4 text-4xl font-bold">{textes.titre}</h1>
+      <h1 className="mt-4 font-titre text-4xl text-titre">{textes.titre}</h1>
       <p className="mt-6 whitespace-pre-line text-lg leading-relaxed">{textes.introduction}</p>
       <div className="mt-10 grid gap-6 sm:grid-cols-2">
         {[
@@ -28,7 +28,7 @@ export default function APropos({ textes, partenaires, avis, photos }: Props) {
           { titre: textes.podcastTitre, texte: textes.podcastTexte, bouton: textes.podcastBouton, href: '/podcast' },
         ].map(bloc => (
           <div key={bloc.href} className="flex flex-col rounded-2xl bg-fond p-6">
-            <h2 className="text-2xl font-bold">{bloc.titre}</h2>
+            <h2 className="font-titre text-2xl text-titre">{bloc.titre}</h2>
             <p className="mt-2 whitespace-pre-line">{bloc.texte}</p>
             <Link href={bloc.href} className={`mt-6 ${classeGrandBouton.contour}`}>{bloc.bouton}</Link>
           </div>
@@ -37,7 +37,7 @@ export default function APropos({ textes, partenaires, avis, photos }: Props) {
 
       {partenaires.length > 0 && (
         <section className="mt-14">
-          <h2 className="text-xl font-bold">{textes.partenairesTitre}</h2>
+          <h2 className="text-xl font-bold text-titre">{textes.partenairesTitre}</h2>
           <ul className="mt-5 grid gap-4 sm:grid-cols-2">
             {partenaires.map(p => (
               <li key={p.id} className="flex gap-4 rounded-2xl bg-fond p-5">

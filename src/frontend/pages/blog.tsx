@@ -27,7 +27,7 @@ export default function Blog({ textes, articles, categories, categorieActive }: 
   return (
     <main className="mx-auto max-w-4xl px-5 py-8 lg:px-6 lg:py-12">
       <p className={classeSurtitre}>{textes.surtitre}</p>
-      <h1 className="mt-4 text-4xl font-bold">{categorieActive?.libelle ?? textes.titre}</h1>
+      <h1 className="mt-4 font-titre text-4xl text-titre">{categorieActive?.libelle ?? textes.titre}</h1>
       <p className="mt-6 whitespace-pre-line text-lg leading-relaxed">{categorieActive?.description ?? textes.introduction}</p>
 
       <nav aria-label="Catégories du blog" className="mt-10 flex flex-wrap gap-2">
@@ -57,7 +57,7 @@ export default function Blog({ textes, articles, categories, categorieActive }: 
                   <p className="text-sm">
                     <span className="font-bold text-accent">{article.categorieLibelle}</span> · {formatDate(article.datePublication)}
                   </p>
-                  <h2 className="mt-1 text-2xl font-bold group-hover:underline">{article.titre}</h2>
+                  <h2 className="mt-1 font-titre text-2xl text-titre group-hover:underline">{article.titre}</h2>
                   <p className="mt-2 leading-relaxed">{article.extrait}</p>
                 </div>
               </Link>

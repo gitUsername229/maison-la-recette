@@ -219,7 +219,7 @@ Le logo et les polices restent ceux d'avant en attendant les fichiers de Romain,
 conservé (la maquette dit « Événements »).
 
 **Couleurs, police et tailles de texte sont dans un seul fichier : [`src/frontend/styles/globals.css`](src/frontend/styles/globals.css).**
-- La **palette** (`:root`) reprend les variables Figma (collection « Temp ») et le vert de l'en-tête :
+- La **palette** (`:root`) reprend les variables Figma (collection « Temp ») et le vert vif de la maquette :
 
   | Nom | Valeur | Variable Figma | Usage |
   |---|---|---|---|
@@ -230,16 +230,16 @@ conservé (la maquette dit « Événements »).
   | `vert-olive` | #90ae2d | 3 | Décor uniquement |
   | `orange` | #f57f03 | Accent 1 | Boutons et étiquettes secondaires, avec texte vert foncé (le blanc n'atteint pas AA) ; jamais en couleur de texte |
   | `corail` | #c94e3e | Accent 2 (#e75a47) | Boutons ; assombri de 13 % pour le contraste AA du texte blanc |
-  | `vert-entete` | #146048 | — | Menu ouvert, sections sombres de l'accueil (expériences, newsletter) |
+  | `vert-vif` | #187622 | vert vif | Titres, menu ouvert, sections sombres de l'accueil (expériences, newsletter), étiquettes |
 
   Le corail en couleur de texte (liens, catégories, erreurs) est à peine plus foncé, pour rester AA sur les fonds teintés.
 - Les **rôles** (`@theme inline`) sont les seules classes de couleur employées par les composants : `bg-fond`,
   `bg-fond-doux`, `text-texte`, `text-texte-doux`, `bg-primaire`, `bg-secondaire`, `text-accent`, `bg-fond-sombre`, `border-decor`…
   Les couleurs par défaut de Tailwind sont retirées : une classe comme `text-stone-600` ne produit rien.
-- **Police** : Inria Serif partout (celle de la première maquette ; la mise à jour du 8 octobre en utilise d'autres, en
-  attente de leurs noms), chargée par `next/font` dans `src/app/layout.tsx`, avec ses polices de secours (Georgia, serif).
+- **Polices** (maquette) : Anton pour les titres (classe `font-titre`, une seule graisse : jamais `font-bold`), Inria
+  Sans pour le texte et les boutons, chargées par `next/font` dans `src/app/layout.tsx` avec leurs polices de secours.
 - **Échelle des tailles** (`--text-*`), tirée de la maquette : 14 px (étiquettes, dates), 16 px (texte courant,
-  jamais moins), 20, 24, 28, 32 (titres de page), 40, 48, 58 (menu) et 72 px.
+  jamais moins : 15 px dans la maquette), 20 (boutons), 24, 28, 32, 40 (titres de page), 48, 58 (menu) et 72 px.
 - **Icônes** de la maquette dans `public/images/icones/`, affichées par le composant `Icone` en masque : la forme vient
   du fichier, la couleur du thème.
 - `tests/theme.test.ts` vérifie les valeurs Figma, les contrastes WCAG AA de chaque couple utilisé, l'échelle des

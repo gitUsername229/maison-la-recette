@@ -31,7 +31,7 @@ export default function InscriptionNewsletter({ titre, texte, bouton }: { titre:
   return (
     <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
       <div>
-        <h2 className="text-4xl font-bold">{titre}</h2>
+        <h2 className="font-titre text-4xl">{titre}</h2>
         <p className="mt-3 whitespace-pre-line">{texte}</p>
       </div>
       <form onSubmit={inscrire} className="relative grid gap-4">

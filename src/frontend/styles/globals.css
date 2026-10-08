@@ -8,16 +8,16 @@
  * Les contrastes (WCAG AA) et la taille minimale du texte courant sont vérifiés par tests/theme.test.ts.
  */
 
-/* 1. Palette : les variables Figma (collection « Temp ») et le vert de l'en-tête. */
+/* 1. Palette : les variables Figma (collection « Temp ») et le vert vif de la maquette. */
 :root {
   --blanc: #ffffff;        /* cartes et encarts */
   --fond-clair: #e9edd7;   /* Figma « BG » : fond des pages */
   --vert-fonce: #123f1b;   /* Figma « 1 » : texte (remplace le noir de la maquette) */
+  --vert-vif: #187622;     /* Figma « vert vif » : titres, sections sombres de l'accueil, menu, étiquettes */
   --vert-tendre: #bdd3a7;  /* Figma « 2 » : aplats, étiquettes */
   --vert-olive: #90ae2d;   /* Figma « 3 » : décor uniquement (contraste insuffisant pour du texte) */
   --orange: #f57f03;       /* Figma « Accent 1 » : décor, boutons et étiquettes secondaires (texte vert foncé dessus), jamais en texte */
   --corail: #c94e3e;       /* Figma « Accent 2 » #e75a47, assombri de 13 % pour le contraste AA du texte blanc */
-  --vert-entete: #146048;  /* en-tête et menu de la maquette */
 }
 
 /* 2. Rôles. Les couleurs par défaut de Tailwind sont retirées : une classe hors thème (ex : text-stone-600) ne produit rien. */
@@ -30,6 +30,7 @@
   --color-fond-doux: var(--fond-clair);
   --color-surface: color-mix(in srgb, var(--fond-clair) 35%, #ffffff);
   --color-texte: var(--vert-fonce);
+  --color-titre: var(--vert-vif);             /* titres sur fond clair */
   --color-texte-doux: color-mix(in srgb, var(--vert-fonce) 78%, #ffffff);
   --color-bordure: color-mix(in srgb, var(--vert-fonce) 15%, #ffffff);
   --color-bordure-forte: color-mix(in srgb, var(--vert-fonce) 58%, #ffffff); /* contour des champs : 3:1 minimum */
@@ -47,29 +48,31 @@
   --color-sur-accent: var(--blanc);
   --color-decor: var(--orange);
   --color-decor-vert: var(--vert-olive);
-  --color-fond-sombre: var(--vert-entete);
+  --color-fond-sombre: var(--vert-vif);
   --color-sur-fond-sombre: var(--blanc);
-  --color-lien-sur-sombre: var(--vert-tendre);
   --color-voile: var(--vert-fonce); /* voile sur les photos sous un texte blanc */
   --color-erreur: color-mix(in srgb, var(--corail) 85%, var(--vert-fonce));
   --color-erreur-fond: color-mix(in srgb, var(--corail) 10%, #ffffff);
   --color-succes: var(--vert-fonce);
   --color-succes-fond: color-mix(in srgb, var(--vert-tendre) 50%, #ffffff);
 
-  /* Police de la maquette (Inria Serif), chargée par next/font dans src/app/layout.tsx, avec ses polices de secours. */
-  --font-serif: var(--police-site);
-  --font-sans: var(--police-site);
+  /* Polices de la maquette, chargées par next/font dans src/app/layout.tsx avec leurs polices de secours :
+     Anton (une seule graisse) pour les titres, Inria Sans pour le texte et les boutons. */
+  --font-sans: var(--police-texte);
+  --font-titre: var(--police-titre);
+  --font-serif: var(--police-titre); /* ancien nom des titres, encore employé par l'admin */
 }
 
 /*
- * 3. Échelle des tailles de texte, tirée de la maquette (12, 14, 16, 20, 24, 32, 40, 58 px).
- * Le texte courant ne descend jamais sous 16 px (text-sm, text-base) ; 14 px (text-xs) est réservé
- * aux étiquettes, dates et mentions. Les 12 px de la maquette passent à 14 px.
+ * 3. Échelle des tailles de texte, tirée de la maquette (12, 14, 15, 20, 24, 32, 40, 58 px).
+ * Le texte courant ne descend jamais sous 16 px (text-sm, text-base) : les 15 px de la maquette passent à 16 px,
+ * avec un interligne proche du sien (20 px pour 15 px). 14 px (text-xs) est réservé aux étiquettes, dates et
+ * mentions ; les 12 px de la maquette passent à 14 px. Titres en Anton 40 px (text-4xl), boutons en 20 px (text-lg).
  */
 @theme {
   --text-xs: 0.875rem;  --text-xs--line-height: 1.4;    /* 14 px : étiquettes, dates, mentions */
-  --text-sm: 1rem;      --text-sm--line-height: 1.5;    /* 16 px : texte secondaire */
-  --text-base: 1rem;    --text-base--line-height: 1.6;  /* 16 px : texte courant */
+  --text-sm: 1rem;      --text-sm--line-height: 1.4;    /* 16 px : texte secondaire */
+  --text-base: 1rem;    --text-base--line-height: 1.4;  /* 16 px : texte courant */
   --text-lg: 1.25rem;   --text-lg--line-height: 1.45;   /* 20 px : chapô, boutons */
   --text-xl: 1.5rem;    --text-xl--line-height: 1.3;    /* 24 px : titres de carte */
   --text-2xl: 1.75rem;  --text-2xl--line-height: 1.25;  /* 28 px : titres de section (ordinateur) */

@@ -85,7 +85,7 @@ export default function EnTete() {
           <ul className="grid gap-3">
             {PRINCIPAUX.map(lien => (
               <li key={lien.href}>
-                <Link href={lien.href} onClick={fermer} aria-current={courant(lien.href)} className={`text-5xl min-[380px]:text-6xl ${estActif(lien.href) ? 'underline decoration-decor decoration-2 underline-offset-8' : ''}`}>
+                <Link href={lien.href} onClick={fermer} aria-current={courant(lien.href)} className={`font-titre text-5xl min-[380px]:text-6xl ${estActif(lien.href) ? 'underline decoration-decor decoration-2 underline-offset-8' : ''}`}>
                   {lien.label}
                 </Link>
               </li>

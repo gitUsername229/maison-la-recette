@@ -37,7 +37,7 @@ function Carte({ image, imageAlt, type, places, titre, lienTitre, lignes, action
         </ul>
       </div>
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="text-2xl font-bold leading-tight">
+        <h3 className="font-titre text-2xl leading-tight text-titre">
           {lienTitre ? <Link href={lienTitre} className="underline-offset-4 hover:underline">{titre}</Link> : titre}
         </h3>
         <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">

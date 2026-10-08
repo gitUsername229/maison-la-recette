@@ -1,15 +1,19 @@
 import type { Metadata } from 'next';
-import { Inria_Serif } from 'next/font/google';
+import { Anton, Inria_Sans } from 'next/font/google';
 import '@/frontend/styles/globals.css';
 import { adresseDuSite, NOM_DU_SITE } from '@/backend/site';
 import EnTete from '@/frontend/components/EnTete';
 import PiedDePage from '@/frontend/components/PiedDePage';
 
-// Police de la maquette Figma (Inria Serif) pour tout le site, avec ses polices de secours.
-// La variable CSS est reprise dans src/frontend/styles/globals.css (font-serif et font-sans).
-const police = Inria_Serif({
+// Polices de la maquette Figma, avec leurs polices de secours : Anton pour les titres, Inria Sans pour le texte
+// et les boutons. Les variables CSS sont reprises dans src/frontend/styles/globals.css (font-titre et font-sans).
+const policeTitres = Anton({
+  subsets: ['latin'], weight: '400', display: 'swap',
+  variable: '--police-titre', fallback: ['Impact', 'Arial Narrow', 'sans-serif'],
+});
+const policeTexte = Inria_Sans({
   subsets: ['latin'], weight: ['400', '700'], style: ['normal', 'italic'], display: 'swap',
-  variable: '--police-site', fallback: ['Georgia', 'Times New Roman', 'serif'],
+  variable: '--police-texte', fallback: ['Arial', 'Helvetica', 'sans-serif'],
 });
 
 export const metadata: Metadata = {
@@ -21,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={police.variable}>
+    <html lang="fr" className={`${policeTitres.variable} ${policeTexte.variable}`}>
       <body className="flex min-h-screen flex-col">
         <EnTete />
         <div className="flex-1">{children}</div>
