@@ -49,8 +49,8 @@ export default function EnTete() {
 
   return (
     <header className={`${accueil ? 'absolute inset-x-0' : 'sticky'} top-0 z-50 ${apparence}`}>
-      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-6 px-5 lg:px-6">
-        <Link href="/" onClick={fermer} className="flex shrink-0 items-center gap-2 whitespace-nowrap text-2xl lowercase lg:text-xl xl:text-2xl">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-3 px-5 sm:gap-6 lg:px-6">
+        <Link href="/" onClick={fermer} className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xl lowercase min-[360px]:text-2xl lg:text-xl xl:text-2xl">
           <Feuille className="h-7 w-7" />
           Maison La recette
         </Link>
