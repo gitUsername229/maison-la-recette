@@ -3,7 +3,8 @@ import type { DetailEvenementLuma, EntreeListeLuma, EvenementLuma } from './type
 import { modeLuma } from './client';
 
 // Faux serveur Luma (LUMA_MODE=simulation) : il répond aux deux GET utilisés par le site, avec les formats de la
-// vraie API (voir types.ts). Les événements ci-dessous sont fictifs, datés par rapport au jour où la page est
+// vraie API (voir types.ts) pour les événements du calendrier de la clé (format « manage » : capacité et nombre
+// d'inscrits compris, jamais leurs noms). Les événements ci-dessous sont fictifs, datés par rapport au jour où la page est
 // affichée (toujours des dates à venir et des dates passées). Leur lien mène à une page factice du site
 // (/luma-simule/<id>), marquée « Simulation Luma ». Pour en ajouter : copier un bloc de SIMULES.
 
@@ -14,20 +15,21 @@ type Simule = {
   heure: string;            // heure de début à Paris, ex : '18:30'
   duree: number;            // minutes
   prix: number | null;      // euros ; null : gratuit
-  places: number | null;    // places restantes ; null : sans limite
+  capacite: number | null;  // places en tout ; null : sans limite
+  inscrits: number;         // billets acceptés (places restantes : capacite - inscrits)
   ville: string;
   etiquette: string;        // tag du calendrier Luma : relie l'événement à une expérience (src/contenu/experiences.ts)
   description: string;
 };
 
 const SIMULES: Simule[] = [
-  { id: 'evt-SimAtelier01', nom: 'Atelier cuisine anti-gaspi', jours: 9, heure: '18:30', duree: 150, prix: 70, places: 8, ville: 'La Rochelle', etiquette: 'Atelier', description: 'Cuisiner avec ce qu’on jette d’habitude : fanes, pain sec, légumes fatigués.' },
-  { id: 'evt-SimFoodTour01', nom: 'Food tour : marché et producteurs', jours: 16, heure: '10:00', duree: 180, prix: 60, places: 11, ville: 'La Rochelle', etiquette: 'Food tour', description: 'Une matinée au marché, à la rencontre de celles et ceux qui nous nourrissent.' },
-  { id: 'evt-SimAtelier02', nom: 'Atelier cuisine anti-gaspi', jours: 30, heure: '10:00', duree: 150, prix: 70, places: 2, ville: 'La Rochelle', etiquette: 'Atelier', description: 'Cuisiner avec ce qu’on jette d’habitude : fanes, pain sec, légumes fatigués.' },
-  { id: 'evt-SimFoodTour02', nom: 'Food tour : marché et producteurs', jours: 44, heure: '10:00', duree: 180, prix: 60, places: null, ville: 'La Rochelle', etiquette: 'Food tour', description: 'Une matinée au marché, à la rencontre de celles et ceux qui nous nourrissent.' },
-  { id: 'evt-SimAtelier00', nom: 'Atelier cuisine anti-gaspi', jours: -20, heure: '18:30', duree: 150, prix: 70, places: 0, ville: 'La Rochelle', etiquette: 'Atelier', description: 'Cuisiner avec ce qu’on jette d’habitude.' },
-  { id: 'evt-SimFoodTour00', nom: 'Food tour : marché et producteurs', jours: -45, heure: '10:00', duree: 180, prix: 60, places: 0, ville: 'La Rochelle', etiquette: 'Food tour', description: 'Une matinée au marché.' },
-  { id: 'evt-SimAtelierAn', nom: 'Atelier cuisine anti-gaspi', jours: -300, heure: '18:30', duree: 150, prix: 70, places: 0, ville: 'La Rochelle', etiquette: 'Atelier', description: 'Cuisiner avec ce qu’on jette d’habitude.' },
+  { id: 'evt-SimAtelier01', nom: 'Atelier cuisine anti-gaspi', jours: 9, heure: '18:30', duree: 150, prix: 70, capacite: 12, inscrits: 4, ville: 'La Rochelle', etiquette: 'Atelier', description: 'Cuisiner avec ce qu’on jette d’habitude : fanes, pain sec, légumes fatigués.' },
+  { id: 'evt-SimFoodTour01', nom: 'Food tour : marché et producteurs', jours: 16, heure: '10:00', duree: 180, prix: 60, capacite: 15, inscrits: 4, ville: 'La Rochelle', etiquette: 'Food tour', description: 'Une matinée au marché, à la rencontre de celles et ceux qui nous nourrissent.' },
+  { id: 'evt-SimAtelier02', nom: 'Atelier cuisine anti-gaspi', jours: 30, heure: '10:00', duree: 150, prix: 70, capacite: 12, inscrits: 10, ville: 'La Rochelle', etiquette: 'Atelier', description: 'Cuisiner avec ce qu’on jette d’habitude : fanes, pain sec, légumes fatigués.' },
+  { id: 'evt-SimFoodTour02', nom: 'Food tour : marché et producteurs', jours: 44, heure: '10:00', duree: 180, prix: 60, capacite: null, inscrits: 6, ville: 'La Rochelle', etiquette: 'Food tour', description: 'Une matinée au marché, à la rencontre de celles et ceux qui nous nourrissent.' },
+  { id: 'evt-SimAtelier00', nom: 'Atelier cuisine anti-gaspi', jours: -20, heure: '18:30', duree: 150, prix: 70, capacite: 12, inscrits: 12, ville: 'La Rochelle', etiquette: 'Atelier', description: 'Cuisiner avec ce qu’on jette d’habitude.' },
+  { id: 'evt-SimFoodTour00', nom: 'Food tour : marché et producteurs', jours: -45, heure: '10:00', duree: 180, prix: 60, capacite: 15, inscrits: 15, ville: 'La Rochelle', etiquette: 'Food tour', description: 'Une matinée au marché.' },
+  { id: 'evt-SimAtelierAn', nom: 'Atelier cuisine anti-gaspi', jours: -300, heure: '18:30', duree: 150, prix: 70, capacite: 12, inscrits: 12, ville: 'La Rochelle', etiquette: 'Atelier', description: 'Cuisiner avec ce qu’on jette d’habitude.' },
 ];
 
 const FUSEAU = 'Europe/Paris';
@@ -46,6 +48,7 @@ function dateDeParis(jours: number, heure: string, maintenant: Date) {
 /** Champs communs à la liste et au détail. */
 function evenement(s: Simule, origine: string, maintenant: Date): EvenementLuma {
   const debut = dateDeParis(s.jours, s.heure, maintenant);
+  const placesRestantes = s.capacite === null ? null : Math.max(0, s.capacite - s.inscrits);
   return {
     platform: 'luma',
     id: s.id,
@@ -61,13 +64,17 @@ function evenement(s: Simule, origine: string, maintenant: Date): EvenementLuma 
     url: `${origine}/luma-simule/${s.id}`,
     visibility: 'public',
     location_type: 'offline',
+    meeting_url: null,
     // Comme souvent sur Luma, l'adresse exacte n'est donnée qu'aux inscrits : la ville seulement.
     location_visibility: 'guests-only',
     waitlist_status: 'enabled',
-    registration_open: s.jours > 0 && s.places !== 0,
+    registration_open: s.jours > 0 && placesRestantes !== 0,
     require_approval: false,
-    spots_remaining: s.places,
+    max_capacity: s.capacite,
+    can_register_for_multiple_tickets: false,
+    spots_remaining: placesRestantes,
     display_price: s.prix === null ? null : { amount: s.prix * 100, currency: 'eur', is_flexible: false },
+    feedback_email: { enabled: false },
     access: 'manage',
     geo_address_json: { address: s.ville, city: s.ville, region: 'Nouvelle-Aquitaine', country: 'France', city_state: `${s.ville}, Nouvelle-Aquitaine`, full_address: null },
     coordinate: null,
@@ -81,12 +88,22 @@ const entree = (s: Simule, origine: string, maintenant: Date): EntreeListeLuma =
   submitted_by: null,
 });
 
-/** Détail : l'événement, sa description et ses organisateurs. */
+const nombre = (n: number) => ({ guests: n, tickets: n });
+
+/** Détail : l'événement, sa description, ses organisateurs et le nombre d'inscrits par statut. */
 const detail = (s: Simule, origine: string, maintenant: Date): DetailEvenementLuma => ({
   ...evenement(s, origine, maintenant),
   description: s.description,
   description_md: s.description,
   hosts: [{ id: 'usr-SimJulie', name: 'Maison La recette', avatar_url: `${origine}/images/podcast/logo-la-recette.png` }],
+  guest_counts: {
+    approved: nombre(s.inscrits), pending_approval: nombre(0), waitlist: nombre(0), invited: nombre(0), declined: nombre(0),
+    checked_in: nombre(s.jours < 0 ? s.inscrits : 0),
+  },
+  confirmation_email_md: '',
+  pending_approval_email_md: '',
+  declined_email_md: '',
+  tax_config: null,
 });
 
 const erreur = (statut: number, message: string) => Response.json({ message }, { status: statut });

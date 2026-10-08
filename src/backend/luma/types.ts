@@ -3,7 +3,8 @@ import { z } from 'zod';
 // Formats des réponses de l'API Luma utilisées par le site, d'après la spécification officielle
 // (https://public-api.luma.com/openapi.json, vérifiée le 8 octobre 2026) :
 // - GET /v1/calendars/events/list → { entries: [événement + tags], has_more, next_cursor? } ;
-// - GET /v1/events/get?event_id=evt-… → l'événement, avec sa description et ses organisateurs.
+// - GET /v1/events/get?event_id=evt-… → l'événement, avec sa description et ses organisateurs ; pour un événement
+//   du calendrier de la clé (format « manage »), aussi sa capacité (max_capacity) et ses inscrits (guest_counts).
 // Les schémas ne vérifient que les champs lus par le site ; les autres champs sont acceptés tels quels.
 
 const adresse = z.object({
@@ -38,6 +39,8 @@ export const evenementSchema = z.looseObject({
   require_approval: z.boolean(),
   /** Places restantes avant d'atteindre la capacité ; null sans limite de capacité. */
   spots_remaining: z.number().nullable(),
+  /** Capacité (billets acceptés au plus) ; null sans limite. Seulement pour les événements gérés par la clé. */
+  max_capacity: z.number().nullable().optional(),
   /** Prix de départ, en centimes (unité mineure de la devise), ou null si l'inscription est gratuite. */
   display_price: z.object({ amount: z.number(), currency: z.string(), is_flexible: z.boolean() }).nullable(),
   geo_address_json: adresse.nullable(),
@@ -57,6 +60,8 @@ export const detailSchema = evenementSchema.extend({
   description: z.string(),
   description_md: z.string(),
   hosts: z.array(z.object({ id: z.string(), name: z.string().nullable(), avatar_url: z.string() })),
+  /** Nombre d'inscrits par statut (seulement pour les événements gérés par la clé) : des chiffres, aucun nom. */
+  guest_counts: z.looseObject({ approved: z.object({ guests: z.number(), tickets: z.number() }) }).optional(),
 });
 
 export type EvenementLuma = z.infer<typeof evenementSchema>;

@@ -101,9 +101,10 @@ async function lireListe(quand: 'a-venir' | 'passes', lire: typeof fetch, mainte
 }
 
 const caches = new Map<string, { evenements: EvenementAffiche[]; luLe: number }>();
+const frequentations = new Map<string, { frequentation: Frequentation; luLe: number }>();
 
 /** Oublie les réponses gardées en mémoire (tests). */
-export const viderCacheLuma = () => caches.clear();
+export const viderCacheLuma = () => { caches.clear(); frequentations.clear(); };
 
 /**
  * Événements publics du calendrier : à venir (le plus proche d'abord) ou passés (le plus récent d'abord).
@@ -131,5 +132,30 @@ export async function evenementLuma(id: string, { lire = fetch }: Options = {}):
   } catch (erreur) {
     console.error('[luma] événement illisible :', erreur instanceof Error ? erreur.message : erreur);
     return null;
+  }
+}
+
+/** Inscrits (billets acceptés) et capacité d'un événement ; null quand Luma ne les donne pas (pas de limite de places). */
+export type Frequentation = { inscrits: number | null; capacite: number | null };
+
+/**
+ * Inscrits et capacité d'un événement, pour le tableau de bord : des chiffres seulement, lus dans le détail de
+ * l'événement (guest_counts, max_capacity), jamais dans la liste des invités. Sans guest_counts, les inscrits sont
+ * déduits de la capacité et des places restantes. Gardés DUREE_CACHE_MS ; null si l'événement est illisible.
+ */
+export async function frequentationLuma(id: string, { lire = fetch, maintenant = Date.now() }: Options = {}): Promise<Frequentation | null> {
+  const cle = `${modeLuma()}:${id}`;
+  const enMemoire = frequentations.get(cle);
+  if (enMemoire && maintenant - enMemoire.luLe < DUREE_CACHE_MS) return enMemoire.frequentation;
+  try {
+    const detail = detailSchema.parse(await getLuma('/v1/events/get', { event_id: id }, lire));
+    const capacite = detail.max_capacity ?? null;
+    const deduits = capacite !== null && detail.spots_remaining !== null ? Math.max(0, capacite - detail.spots_remaining) : null;
+    const frequentation = { inscrits: detail.guest_counts?.approved.tickets ?? deduits, capacite };
+    frequentations.set(cle, { frequentation, luLe: maintenant });
+    return frequentation;
+  } catch (erreur) {
+    console.error('[luma] inscrits illisibles :', erreur instanceof Error ? erreur.message : erreur);
+    return enMemoire?.frequentation ?? null;
   }
 }
