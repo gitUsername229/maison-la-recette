@@ -3,15 +3,18 @@
 Site web de la marque chapeau Maison La recette : podcast, expériences, studio et blog.
 Projet de workshop M1 (Groupe 3), 100 % local.
 
+Le site n'a **pas d'administration** : la cliente gère ses événements dans **Luma** et son podcast dans **Ausha** ;
+le site les lit et les affiche. Tout le reste (textes, expériences, avis, photos, articles) est du **contenu fixe**
+dans le code, dans `src/contenu/`. La base de données ne garde que les demandes de devis et les inscriptions à la
+newsletter, aussi envoyées par e-mail à Julie.
+
 ## Documentation
 
 | Fichier | Contenu |
 |---|---|
-| [docs/base-de-donnees.md](docs/base-de-donnees.md) | Tables et colonnes de la base |
-| [docs/api.md](docs/api.md) | Liste des routes API (GET / POST / admin) |
-| [docs/curl-public.md](docs/curl-public.md) | Exemples curl des routes publiques |
-| [docs/curl-admin.md](docs/curl-admin.md) | Exemples curl des routes admin (pour les devs) |
-| [docs/stripe.md](docs/stripe.md) | Paiement Stripe Checkout (sandbox) : installation, parcours et tests |
+| [docs/base-de-donnees.md](docs/base-de-donnees.md) | Les deux tables de la base |
+| [docs/api.md](docs/api.md) | Les routes API (devis, newsletter, faux serveur Luma) |
+| [docs/curl-public.md](docs/curl-public.md) | Exemples curl de ces routes |
 | [public/images/demo/CREDITS.md](public/images/demo/CREDITS.md) | Photos de démonstration : auteurs, liens et licence Unsplash |
 
 ## Lancer le projet
@@ -22,118 +25,157 @@ Prérequis : Node.js 22.12 ou supérieur et npm.
 git clone https://github.com/gitUsername229/maison-la-recette.git
 cd maison-la-recette
 npm install
-cp .env.example .env.local      # puis remplir les clés (voir ci-dessous)
-npx prisma migrate dev          # crée la base SQLite
-npx prisma db seed              # données de démo, compte admin, textes des pages, articles et photos de démo
+cp .env.example .env.local      # puis vérifier les valeurs (voir « Variables d'environnement »)
+npx prisma migrate dev          # crée la base SQLite (demandes de devis, newsletter)
 npm run dev                     # http://localhost:3000
 ```
 
 Sous PowerShell, utiliser `Copy-Item .env.example .env.local` à la place de `cp`.
-Les commandes Prisma et Next.js chargent toutes deux le fichier `.env.local`.
+Les commandes Prisma et Next.js chargent toutes deux le fichier `.env.local`. Il n'y a plus de seed : rien à créer
+en base, le contenu est dans le code.
 
-Dans `.env.local`, avant le seed :
-- `BETTER_AUTH_SECRET` : une longue chaîne aléatoire (`openssl rand -base64 32`), qui signe les sessions ;
-- `ADMIN_EMAIL` et `ADMIN_PASSWORD` (8 caractères minimum) : le seed crée le compte admin avec ces identifiants
-  (connexion sur `/admin/connexion`). Ils ne sont jamais écrits dans le code ; le seed ne remplace pas le mot de passe
-  d'un compte existant ;
-- les clés Stripe sandbox pour tester le paiement (voir [docs/stripe.md](docs/stripe.md)) ;
-- les e-mails : `SMTP_HOST`/`SMTP_PORT` (Mailpit en local, voir plus bas) et `MAIL_ADMIN_TO`, la boîte de Julie
-  qui reçoit les devis et les réservations (**adresse fictive en démo**, ex : `julie@exemple.fr`).
+Dans un autre terminal, la boîte mail locale (tous les e-mails du site arrivent sur http://localhost:8025, rien ne
+part réellement) :
 
-Après un `git pull` qui ajoute une migration : `npx prisma migrate dev`, puis `npx prisma db seed`, puis
-**redémarrer `npm run dev`** (sinon le serveur garde l'ancien client Prisma et répond « Un problème technique est survenu »).
-La migration `suppression_comptes_clients` supprime les comptes clients (seuls les admins restent) ; leurs réservations
-et demandes de devis sont conservées, avec le nom, l'e-mail et le téléphone saisis.
-Tests automatiques : `npm test` (base SQLite jetable, n'utilise pas `dev.db`).
+```bash
+docker run --rm -p 8025:8025 -p 1025:1025 axllent/mailpit
+```
+
+Après un `git pull` qui ajoute une migration : `npx prisma migrate dev`, puis **redémarrer `npm run dev`** (sinon le
+serveur garde l'ancien client Prisma et répond « Un problème technique est survenu »). La migration
+`contenus_fixes_luma` supprime les anciennes tables (contenus, épisodes, expériences, sessions, réservations, comptes) ;
+les demandes de devis et les inscriptions sont gardées, l'expérience d'un devis devient son slug.
+
+Commandes : `npm test` (base SQLite jetable, n'utilise pas `dev.db`), `npm run lint`, `npm run typecheck`,
+`npm run build`, puis `npm start` (après compilation).
+
+## Ce qui se met à jour tout seul
+
+| Quoi | D'où | Comment |
+|---|---|---|
+| **Événements** (ateliers, food tours) : dates, lieu, prix, places restantes, lien d'inscription | Calendrier **Luma** de la cliente | Lus en GET à l'affichage (`src/backend/luma/client.ts`), gardés 5 minutes en mémoire. Un événement est relié à une expérience par son **étiquette (tag) Luma** (`etiquetteLuma` dans `src/contenu/experiences.ts`). Inscription et paiement se font sur Luma (« Réserver sur Luma », nouvel onglet). Si Luma ne répond pas : dernière réponse gardée, sinon lien de secours vers https://luma.com/larecette |
+| **Épisodes du podcast** | Flux RSS **Ausha** (`AUSHA_RSS_URL`) | Lus à l'affichage (`src/backend/podcast/episodes.ts`), gardés 30 minutes en mémoire ; type (complet, extrait, replay), invité et sujet déduits du titre. Si Ausha ne répond pas : dernière lecture gardée, sinon renvoi vers les plateformes d'écoute |
+| **Demandes de devis** et **inscriptions à la newsletter** | Formulaires du site | Enregistrées en base et envoyées par e-mail à Julie (`MAIL_ADMIN_TO`) ; accusé de réception au client pour un devis |
+
+## Où modifier le reste
+
+Tout se modifie dans le code, puis se commite et se déploie (en local, `npm run dev` l'affiche aussitôt).
+
+| Pour changer… | Fichier |
+|---|---|
+| Les textes des pages (titres, paragraphes, boutons, mentions légales, confidentialité) | `src/contenu/textes.ts` : un commentaire dit où chaque texte s'affiche |
+| Les expériences (titre, description, durée, photo, Luma ou devis, étiquette Luma) | `src/contenu/experiences.ts` |
+| Les avis (les trois avis actuels sont fictifs, `demo: true`, à remplacer) | `src/contenu/avis.ts` |
+| Les partenaires (page À propos, après leur accord) | `src/contenu/partenaires.ts` |
+| Les photos : fond de l'accueil, galeries (fichiers dans `public/images/`) | `src/contenu/photos.ts` |
+| Les articles du blog : un fichier Markdown par article, son nom donne l'adresse | `src/contenu/blog/*.md` (voir ci-dessous) |
+| Les catégories du blog | `src/backend/contenus/categories-blog.ts` |
+| Le calendrier Luma, Instagram, LinkedIn | `src/contenu/liens.ts` |
+| Les liens d'écoute du podcast, le lecteur (sur mesure ou Ausha) | `src/backend/podcast/emission.ts` |
+| L'adresse e-mail de contact affichée | `src/backend/site.ts` |
+| Couleurs, polices, tailles | `src/frontend/styles/globals.css` (voir « Thème ») |
+
+**Article du blog** (`src/contenu/blog/mon-article.md` → `/blog/mon-article`) : un en-tête entre deux lignes `---`,
+une ligne `clé: valeur` par information, puis le texte en Markdown. Un fichier mal rempli est ignoré et signalé dans
+le terminal, sans faire tomber le blog.
+
+```markdown
+---
+titre: Retour sur un atelier cuisine anti-gaspi
+extrait: La phrase qui résume l'article, dans la liste et pour Google.
+image: /images/demo/herbes-ciselees.jpg
+imageAlt: Des mains ciselent des herbes sur une planche
+categorie: retours-experience
+date: 2026-10-04
+publie: oui
+experiences: atelier-cuisine-anti-gaspi, immersion-producteur
+episode: Jean Marie Pédron, cueilleur d'algues : celui qui donne le goût des algues
+---
+
+Le texte de l'article, en **Markdown**.
+```
+
+`categorie` : une clé de `categories-blog.ts` ; `publie: non` cache l'article ; `experiences` (slugs) et `episode`
+(titre exact sur Ausha) sont facultatifs et ajoutent leurs blocs sous l'article.
+
+## Luma : passer de la simulation à la vraie API
+
+Par défaut (`LUMA_MODE=simulation`), le site lit un **faux serveur Luma** intégré au projet
+(`/api/luma-simule/v1/calendars/events/list` et `/api/luma-simule/v1/events/get`) : mêmes routes, mêmes paramètres
+et mêmes formats de réponse que la vraie API, d'après sa spécification officielle
+(https://public-api.luma.com/openapi.json). Ses événements sont fictifs (ateliers à 70 €, food tours à 60 €, datés
+par rapport au jour) et se modifient dans `src/backend/luma/simulation.ts`. Leur lien « Réserver sur Luma » mène à une
+page factice du site, marquée « Simulation Luma », où aucune inscription n'est enregistrée.
+
+Pour lire le vrai calendrier :
+1. La cliente crée une clé d'API sur https://luma.com/calendar/manage/api-keys (abonnement **Luma Plus**). La clé
+   donne accès à un seul calendrier.
+2. Dans `.env.local` (jamais commité) : `LUMA_MODE=api` et `LUMA_API_KEY=` la clé. Redémarrer le serveur.
+3. Dans Luma, mettre à chaque événement l'étiquette (tag) de son expérience : `Atelier`, `Food tour`… (champ
+   `etiquetteLuma` de `src/contenu/experiences.ts`). Un événement sans étiquette connue s'affiche quand même dans la
+   liste des expériences, sans page d'expérience.
+
+En mode `api`, le faux serveur et la page factice répondent 404. **Ce mode n'a pas pu être essayé faute de clé** :
+les requêtes (`GET https://public-api.luma.com/v1/calendars/events/list` avec l'en-tête `x-luma-api-key`) et la
+lecture des réponses sont vérifiées par les tests sur le format officiel, pas sur le vrai calendrier. À la première
+mise en service, vérifier l'affichage des dates, des prix et des places, et les messages `[luma]` du terminal.
 
 ## Séparation front / back
 
-Le projet conserve **Next.js pour le front et les routes API**, avec un seul serveur
-sur le port 3000. Le code est séparé par responsabilité :
+Le projet conserve **Next.js pour le front et les routes API**, avec un seul serveur sur le port 3000 :
 
 ```text
 src/
   app/              Pages Next.js et points d'entrée /api
+  contenu/          Contenu fixe du site : textes, expériences, avis, partenaires, photos, liens, blog (Markdown)
   frontend/         Pages de présentation, composants et styles Tailwind
-  backend/          Accès Prisma, services, sécurité admin et intégration Stripe
-prisma/             Schéma SQLite, migrations et données de démonstration
+  backend/          Lecture de Luma et d'Ausha, devis, newsletter, e-mails, anti-spam, référencement
+prisma/             Schéma SQLite et migrations
 public/images/      Images locales
 ```
 
-Les fichiers `src/app/page.tsx` et `src/app/api/**/route.ts` délèguent aux dossiers
-front et back. Les modules sensibles du backend sont réservés au serveur avec
-`server-only`; le frontend utilisera les routes `/api` pour accéder aux données.
+Les fichiers `src/app/**/page.tsx` et `src/app/api/**/route.ts` délèguent aux dossiers front et back. Les modules du
+backend sont réservés au serveur (`server-only`) ; le frontend ne les importe jamais (règle ESLint).
 
 ### État du projet
 
 **En place :**
-- Next.js, React, TypeScript, Tailwind, Prisma (SQLite) ; seed de trois expériences avec sessions, du compte admin,
-  des textes des pages (textes d'origine) et de trois articles de démonstration du blog (à remplacer).
-- **Pas de compte pour les visiteurs** : on réserve, on paie et on demande un devis sans se connecter. Seule l'équipe
-  (rôle admin) se connecte, sur `/admin/connexion`, une page qu'aucun lien du site public n'affiche
-  ([Better Auth](https://www.better-auth.com) : inscription désactivée, mots de passe argon2id, session de 30 jours
-  prolongée à chaque visite, cookie httpOnly).
-- **Site public sans compte**, alimenté par l'admin (un changement apparaît aussitôt) : accueil (avis, galerie,
-  newsletter), `/experiences` et `/experiences/[slug]` (couverture, galerie, dates et places restantes),
-  `/a-propos` (partenaires, avis, galerie), `/blog` (voir ci-dessous), `/podcast`, `/studio`.
-- **Blog** : 4 catégories (`src/backend/contenus/categories-blog.ts`), une page par catégorie (`/blog/categorie/guides`).
-  Sous chaque article : l'épisode lié (« Écouter l'épisode »), les expériences liées avec leurs prochaines dates ouvertes
-  (lues dans les sessions, rien à ressaisir) ou un lien vers toutes les expériences, et pour « Pour les entreprises »
-  un encadré « Demander un devis ».
-- **Référencement** : titre, description, adresse canonique et balises de partage (Open Graph, X) avec la couverture
-  pour chaque article ; `/sitemap.xml` et `/robots.txt` (`src/backend/seo.ts`).
-- **Réservation et paiement Stripe Checkout (sandbox), sans compte** : nom, e-mail, téléphone (facultatif) et nombre de
-  participants saisis sur la page de l'expérience (voir [docs/stripe.md](docs/stripe.md) et [docs/ateliers-stripe.md](docs/ateliers-stripe.md)).
-  La page de succès ne montre la réservation que si la session Stripe existe et la désigne.
-- **Demande de devis** (`/contact`), sans compte : nom, entreprise, e-mail, téléphone et le projet.
-- **Anti-spam des formulaires publics** (devis, réservation, newsletter) : champ piège pour les robots, limite d'envois
-  par adresse IP (réglable dans `.env.local`), case de consentement obligatoire dont la date est enregistrée
-  (`src/backend/anti-spam.ts`).
-- **Mentions légales et politique de confidentialité** (`/mentions-legales`, `/confidentialite`, liens dans le pied de
-  page) : texte de base à compléter, modifiable dans `/admin/textes`.
-- **Administration `/admin`** (rôle admin) : Julie gère tout le site seule (voir plus bas), avec des règles qui
-  protègent l'historique : on masque une expérience, on ferme une session, on annule une réservation.
-- **Newsletter** : inscription sur l'accueil (sans compte, case de consentement), liste des inscrits dans `/admin/newsletter`.
-- **E-mails** (Nodemailer, Mailpit en local) : confirmation de réservation au client (tout le récapitulatif) et
-  information à Julie (une seule fois par paiement), demande de devis à Julie et accusé de réception au client ; la
-  réponse du client à ces e-mails arrive à Julie (`Reply-To` : `MAIL_ADMIN_TO`). Pour l'équipe : mot de passe oublié
-  (`/admin/mot-de-passe-oublie`) et invitation d'un nouvel admin. Envoyés après la réponse ; un échec est journalisé
-  sans rien annuler (`src/backend/mails/`).
-- **Podcast** (`/podcast`) : les 101 épisodes de « la recette » importés depuis le flux Ausha (bouton dans
-  `/admin/episodes`), classés en épisodes complets (affichés par défaut), extraits et replays, une saison à la fois
-  (liste déroulante), avec le **lecteur sur mesure** de la maquette : il lit le fichier audio du flux (`Episode.audioUrl`).
-  Pour revenir au lecteur Ausha (statistiques d'écoute), passer `LECTEUR_PODCAST` à `'ausha'` dans
-  `src/backend/podcast/emission.ts`. Liens d'écoute de l'émission dans le même fichier.
-- **Expériences** : `/experiences` (Particuliers : expériences à venir avec date, lieu, durée, prix et places restantes,
-  ou « Sur devis » ; avis et note moyenne ; expériences passées par année) et `/experiences/entreprises` (sur-mesure,
-  mosaïque de photos, « Demander un devis », témoignages).
-- **Places** : un paiement Stripe expiré ne bloque plus de place, même si l'événement d'expiration n'arrive jamais.
+- Next.js, React, TypeScript, Tailwind, Prisma (SQLite), sans compte ni administration.
+- **Accueil** (photo, podcast avec le dernier extrait, expériences et leurs prochaines dates Luma, avis, offre
+  entreprises, studio, newsletter), **Podcast**, **Expériences** (particuliers et entreprises), une page par
+  expérience, **Blog** (4 catégories, une page par catégorie et par article), **À propos**, **Studio**, **Contact**
+  (demande de devis), **Mentions légales** et **Confidentialité** (texte de base à compléter).
+- **Événements Luma** : prochaines dates (titre, date, lieu, prix, places si Luma les donne) avec « Réserver sur Luma »,
+  « Prochaines dates bientôt » sans événement, événements passés par année ; immersions et entreprises sur devis.
+- **Podcast Ausha** : épisodes complets, extraits et replays, une saison à la fois, lecteur sur mesure (fichier audio
+  du flux) ou lecteur Ausha (`LECTEUR_PODCAST` dans `src/backend/podcast/emission.ts`).
+- **Demande de devis** (`/contact`) et **newsletter** (accueil), sans compte, avec anti-spam (voir plus bas) ;
+  e-mails par Nodemailer (Mailpit en local), envoyés après la réponse : un échec est journalisé sans rien annuler.
+- **Référencement** : titre, description, adresse canonique et balises de partage ; `/sitemap.xml` et `/robots.txt`
+  (`src/backend/seo.ts`).
 
 **Reste à faire :**
-1. Contenus réels (photos, articles, avis, partenaires, textes des pages) : Julie les saisit dans `/admin`. Le seed
-   ne contient que trois articles de démonstration, marqués « Contenu de démonstration à remplacer », trois avis
-   fictifs (« Démo : Oui » dans `/admin/avis`, à supprimer avant la mise en ligne) et des photos
-   provisoires (voir « Thème (maquette Figma) et images provisoires ») : à remplacer. Les épisodes, eux, viennent d'Ausha.
-2. En production : `NEXT_PUBLIC_BASE_URL` = la vraie adresse du site (sitemap, adresses canoniques, aperçus de partage),
-   puis déclarer `/sitemap.xml` dans Google Search Console.
-3. **Mentions légales et politique de confidentialité** : compléter les éléments entre crochets (forme juridique,
-   SIRET, hébergeur, prestataires, durées de conservation), faire valider le texte par la cliente, puis vider le
-   bandeau « Texte de base, à compléter… » dans `/admin/textes`.
-4. **Questions à Romain (maquette)** : icônes de la coche (« Pour les entreprises ») et de l'onde sonore (épisode en
-   cours), non fournies ; adresse LinkedIn ; vrais logos clients pour « Ils me font confiance » (ceux de la maquette
-   sont provisoires) et autorisation de les afficher ; valeurs des autres couleurs (cartes, orange, corail, texte : le
-   site garde les siennes) ; la photo `aproposnous.svg` (Julie ?) est-elle pour la page À propos ? Les e-mails gardent
-   leurs propres couleurs (`src/backend/mails/modeles.ts`).
+1. Contenus réels : textes, avis (les trois avis actuels sont fictifs), partenaires, photos (provisoires, Unsplash),
+   articles du blog (trois articles de démonstration) ; voir « Où modifier le reste ».
+2. Luma : passer en mode `api` avec la clé de la cliente et étiqueter ses événements (voir plus haut).
+3. En production : `NEXT_PUBLIC_BASE_URL` = la vraie adresse du site (sitemap, adresses canoniques, aperçus de partage,
+   faux serveur Luma), puis déclarer `/sitemap.xml` dans Google Search Console.
+4. **Mentions légales et politique de confidentialité** : compléter les éléments entre crochets (forme juridique,
+   SIRET, hébergeur, prestataires, durées de conservation), faire valider le texte par la cliente, puis vider
+   `avertissement` dans `src/contenu/textes.ts`.
+5. **Questions à Romain (maquette)** : icônes de la coche (« Pour les entreprises ») et de l'onde sonore (épisode en
+   cours), non fournies ; vrais logos clients pour « Ils me font confiance » (ceux de la maquette sont provisoires) et
+   autorisation de les afficher ; valeurs des autres couleurs (cartes, orange, corail, texte : le site garde les
+   siennes) ; la photo `aproposnous.svg` (Julie ?) est-elle pour la page À propos ? Les e-mails gardent leurs propres
+   couleurs (`src/backend/mails/modeles.ts`).
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
   (« driver adapter »), nouveau générateur `prisma-client` et imports du client à adapter partout.
 - **Cache Components**, nouveau modèle de cache de Next.js 16 (optionnel) : activer `cacheComponents`
   et restructurer les pages (`Suspense`, `"use cache"`).
-- **Renvoyer un e-mail** depuis l'admin (ex : « Renvoyer la confirmation » dans `/admin/reservations`) ;
-  aujourd'hui un envoi échoué est seulement journalisé.
-- **Newsletter** : confirmation de l'inscription par e-mail (double opt-in), lien de désinscription et export
-  des adresses vers l'outil d'envoi (Brevo, Mailchimp…). Aujourd'hui, les adresses sont seulement enregistrées.
+- **Newsletter** : confirmation de l'inscription par e-mail (double opt-in), lien de désinscription et envoi des
+  adresses à l'outil d'envoi (Brevo, Mailchimp…). Aujourd'hui, chaque adresse est enregistrée et envoyée à Julie.
 - **ESLint 10**, dès que la config ESLint de Next.js le supportera (ses plugins `react`, `import` et `jsx-a11y`
   s'arrêtent à ESLint 9, d'où l'avertissement `npm warn deprecated eslint@9` à l'installation).
 
@@ -143,72 +185,42 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 
 ### Sécurité
 
-- **Les visiteurs n'ont pas de compte.** Seule l'équipe se connecte, sur `/admin/connexion` : aucun lien du site public
-  n'y mène, et tout `/admin` est en `noindex`, interdit dans `robots.txt` et absent du sitemap. Cacher l'adresse ne
-  protège rien : la protection reste la connexion et le rôle admin vérifiés côté serveur.
-- Un seul contrôle d'accès, `verifierAcces` (`src/backend/auth/acces.ts`, rôle admin par défaut), appelé dans chaque
-  route admin (`401` non connecté, `403` rôle insuffisant) et dans chaque page de `/admin` (`exigerAdminPage`, pas
-  seulement dans un layout). `/admin` sans connexion redirige vers `/admin/connexion` ; un compte sans le rôle admin
-  n'a aucun droit (« Accès refusé »).
-- Aucune inscription possible : la route d'inscription de Better Auth est désactivée (`/api/auth/sign-up/email`
-  répond `400`). Les admins sont créés par le seed ou ajoutés par un admin dans `/admin/utilisateurs` ; le rôle ne se
-  choisit jamais par une route Better Auth.
-- Session de 30 jours, prolongée à chaque visite (au plus une écriture en base par jour).
-- Mot de passe oublié : même réponse que l'adresse ait un accès ou non (aucune adresse révélée), lien valable 1 h
-  et à usage unique, autres connexions fermées après le changement.
-- Page de succès et `GET /api/reservations?session_id=` : la réservation n'est montrée que si Stripe confirme que
-  la session de paiement existe et la désigne ; ni nom, ni e-mail, ni téléphone.
-- Formulaires publics : champ piège, limite d'envois par IP et consentement (voir « Anti-spam » ci-dessous).
-- Les e-mails échappent tout texte saisi (nom, message) : impossible d'y injecter du HTML.
-- Le header `x-admin-key` (`ADMIN_KEY`) remplace la session admin **en développement uniquement**,
-  pour les tests curl ([docs/curl-admin.md](docs/curl-admin.md)) ; il est refusé en production (`npm start`).
+- **Ni compte ni administration** : aucune page de connexion, aucune route de modification. Les anciennes adresses
+  `/admin` répondent 404. Le contenu ne change que par le code (relu, commité).
+- Les seules écritures sont les deux formulaires publics, protégés contre les robots (voir ci-dessous) ; tout ce qui
+  est saisi est validé côté serveur (zod) et échappé dans les e-mails (impossible d'y injecter du HTML).
+- La clé Luma (`LUMA_API_KEY`) reste côté serveur : le navigateur ne voit que les événements publics. Les événements
+  privés ou réservés aux membres ne sont jamais affichés.
+- Le faux serveur Luma n'existe qu'en simulation, et exige l'en-tête `x-luma-api-key` comme la vraie API.
 
 ### Anti-spam des formulaires publics
 
-| Protection | Devis (`/api/devis`) | Réservation (`/api/checkout`) | Newsletter (`/api/newsletter`) |
-|---|---|---|---|
-| Champ piège `siteWeb` rempli (robot) | `201` comme d'habitude, rien d'enregistré ni d'envoyé | `400` (aucune place bloquée) | `201`, rien d'enregistré |
-| Limite d'envois par IP (`429`) | 5 / 10 min | 10 / 10 min | 5 / 10 min |
-| Case de consentement (lien vers `/confidentialite`) | obligatoire, date en base (`consentementLe`) | obligatoire, date en base | obligatoire, date en base |
+| Protection | Devis (`/api/devis`) | Newsletter (`/api/newsletter`) |
+|---|---|---|
+| Champ piège `siteWeb` rempli (robot) | `201` comme d'habitude, rien d'enregistré ni d'envoyé | `201`, rien d'enregistré ni d'envoyé |
+| Limite d'envois par IP (`429`) | 5 / 10 min | 5 / 10 min |
+| Case de consentement (lien vers `/confidentialite`) | obligatoire, date en base (`consentementLe`) | obligatoire, date en base |
 
 - Les limites ci-dessus valent en production ; en développement (`npm run dev`), elles sont **20 fois plus larges**
-  (essais et démonstrations depuis la même adresse). Pour les changer : `LIMITE_DEVIS`, `LIMITE_CHECKOUT`,
-  `LIMITE_NEWSLETTER` et `LIMITE_PERIODE_MINUTES` dans `.env.local` (voir `.env.example`), puis redémarrer.
+  (essais et démonstrations depuis la même adresse). Pour les changer : `LIMITE_DEVIS`, `LIMITE_NEWSLETTER` et
+  `LIMITE_PERIODE_MINUTES` dans `.env.local` (voir `.env.example`), puis redémarrer.
 - Les compteurs sont en mémoire : remis à zéro au redémarrage et propres à un serveur (suffisant pour un seul
   serveur ; avec plusieurs, il faudrait un stockage partagé comme Redis).
 - Adresse IP : `x-forwarded-for` n'est cru que derrière un proxy de confiance (`PROXY_DE_CONFIANCE`, nombre de proxys,
   ex : `1` derrière nginx). Sans proxy, l'en-tête envoyé par le visiteur est retiré au démarrage du serveur
   (`src/instrumentation.ts`) et Next.js y écrit l'IP de connexion.
-- L'ajout d'une adresse à la newsletter depuis l'admin n'est pas concerné (pas de case : la date reste vide).
-
-Commandes complémentaires : `npm run lint`, `npm run typecheck`, `npm run build`
-et `npm start` (après compilation).
-
-Dans d'autres terminaux :
-
-```bash
-# Confirmations de paiement Stripe
-stripe listen --events checkout.session.completed,checkout.session.expired,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed --forward-to localhost:3000/api/webhook
-
-# Boîte mail locale (Mailpit) : tous les e-mails du site arrivent sur http://localhost:8025, rien ne part réellement
-docker run --rm -p 8025:8025 -p 1025:1025 axllent/mailpit
-```
-
-Pour récupérer les épisodes du podcast : bouton « Importer depuis Ausha » dans `/admin/episodes` (ou `POST /api/episodes/import`,
-voir [docs/curl-admin.md](docs/curl-admin.md)). L'import est rejouable : il ajoute les nouveaux épisodes et met à jour les autres
-sans écraser le type, le résumé, l'invité ni les liens modifiés dans l'admin.
 
 ## Principes du site
 
 - **Français uniquement** : pas de traduction, `<html lang="fr">`, dates et prix au format français (`14 novembre 2026`, `70,00 €`).
 - **Mobile d'abord** : chaque page est pensée pour le téléphone, puis élargie pour la tablette et l'ordinateur (préfixes Tailwind `md:` et `lg:`).
 - **SEO de base** :
-  - chaque page a un titre (`<title>`) et une meta description (via `metadata` de Next.js) ; les articles et les
-    catégories du blog ont aussi une adresse canonique et des balises de partage (`metadonnees()` dans `src/backend/seo.ts`) ;
-  - `/sitemap.xml` liste les pages publiques, et `/robots.txt` écarte les pages privées (`/admin` et sa page de connexion,
-    réservation, API) ;
-  - toutes les images ont un texte alternatif (`alt`), obligatoire en base (`imageAlt`, `photoAlt`, `alt`) ;
-  - des URLs lisibles grâce aux slugs (`/experiences/atelier-cuisine-anti-gaspi`, `/blog/cuisiner-les-epluchures`).
+  - chaque page a un titre (`<title>`) et une meta description ; les articles, les expériences et les catégories du
+    blog ont aussi une adresse canonique et des balises de partage (`metadonnees()` dans `src/backend/seo.ts`) ;
+  - `/sitemap.xml` liste les pages publiques, les expériences et les articles ; `/robots.txt` écarte l'API et la page
+    factice de simulation Luma ;
+  - toutes les images ont un texte alternatif (`alt`, `imageAlt` dans les fichiers de contenu) ;
+  - des URLs lisibles grâce aux slugs (`/experiences/atelier-cuisine-anti-gaspi`, `/blog/retour-atelier-cuisine-anti-gaspi`).
 
 ## Thème (maquette Figma) et images provisoires
 
@@ -223,7 +235,7 @@ fichiers de Romain ; le libellé « Expériences » est conservé (la maquette d
 
   | Nom | Valeur | Variable Figma | Usage |
   |---|---|---|---|
-  | `blanc` | #ffffff | — | Cartes et encarts (lecteur, épisodes, expériences, réservation) |
+  | `blanc` | #ffffff | — | Cartes et encarts (lecteur, épisodes, expériences, dates) |
   | `fond-clair` | #e9edd7 | BG | Fond des pages, en-tête et pied de page |
   | `vert-fonce` | #123f1b | 1 | Texte, à la place du noir de la maquette |
   | `vert-tendre` | #bdd3a7 | 2 | Aplats, étiquettes |
@@ -250,18 +262,15 @@ fichiers de Romain ; le libellé « Expériences » est conservé (la maquette d
   de couleur de texte.
 - Accessibilité : focus clavier visible partout (vert foncé, blanc dans les zones sombres) ; un seul effet animé, le
   léger zoom des photos au survol des cartes, désactivé avec `prefers-reduced-motion`.
-- Pas d'émojis sur le site : ceux des descriptions Ausha sont retirés à l'import et à l'affichage (`sansEmojis`).
+- Pas d'émojis sur le site : ceux des descriptions Ausha sont retirés à l'affichage (`sansEmojis`).
 
 **Images de démonstration** : 12 photos [Unsplash](https://unsplash.com/license) (licence libre, usage commercial
 autorisé, sans Unsplash+), dans `public/images/demo/` et commitées pour que la démo fonctionne sans internet ; auteurs
 et liens dans [`CREDITS.md`](public/images/demo/CREDITS.md). Thèmes : ateliers de cuisine, marchés, producteurs,
-légumes de saison, mains qui cuisinent, tablées ; pas de logo de marque ni de visage mis en avant.
-Le seed (`prisma/images-demo.ts`) les pose seulement sur les couvertures vides (expériences, articles de démo) et les
-pages sans galerie (accueil, à propos, expériences) : une photo choisie dans l'admin n'est jamais remplacée. La première
-photo de la galerie de l'accueil sert d'image de fond (par défaut la serre de la maquette,
-`public/images/accueil/fond-accueil.jpg` ; les suivantes ne sont plus affichées) ; la mosaïque « Pour les
-entreprises » (accueil et onglet Entreprises) reprend les galeries des expériences, puis leurs couvertures. Pour les remplacer : `/admin/photos`, et la couverture dans
-`/admin/experiences` ou `/admin/articles`.
+légumes de saison, mains qui cuisinent, tablées ; pas de logo de marque ni de visage mis en avant. Le fond de l'accueil
+est la serre de la maquette (`public/images/accueil/fond-accueil.jpg`) ; la mosaïque « Pour les entreprises » reprend
+les galeries des expériences, puis leurs couvertures. Tout se remplace dans `src/contenu/photos.ts` et
+`src/contenu/experiences.ts`.
 
 ## Technologies utilisées
 
@@ -271,71 +280,31 @@ Tout tourne en local sur `http://localhost:3000`.
 |---|---|---|
 | Front | **Next.js (React) + Tailwind CSS** | Un seul projet pour toutes les pages, rendu fidèle aux maquettes Figma |
 | Back | **Routes API de Next.js** | Pas de serveur séparé : front et back se lancent avec `npm run dev` |
-| Base de données | **SQLite + Prisma** | Un simple fichier, rien à installer, même structure pour toute l'équipe |
-| Images | **Dossier `public/images/`** + chemins stockés en base (table `Image` pour les galeries) | Pas d'hébergement externe, les images sont servies par Next.js |
-| Paiement | **Stripe Checkout (sandbox)** | Paiement simulé, gratuit, carte de test `4242 4242 4242 4242`. Seulement pour les expériences réservables en ligne |
-| E-mails | **Nodemailer + Mailpit** | Réservations, devis, mot de passe oublié et invitation des admins ; en local, Mailpit capture les e-mails sans rien envoyer. En production, il suffit de changer `SMTP_*` |
-| Podcast | **Flux RSS Ausha** importé dans la table `Episode` + lecteur sur mesure (fichier audio du flux), ou lecteur intégré Ausha au choix | Pas de double saisie : les audios restent chez Ausha, seuls les liens et métadonnées sont en base |
-| Comptes | **Better Auth** + argon2id (`@node-rs/argon2`) | Connexion de l'équipe seulement (pas de compte visiteur, inscription désactivée) : librairie reconnue, sessions en base et cookie httpOnly, sans authentification faite maison |
-| Admin | **Interface `/admin` réservée au rôle admin** + clé `x-admin-key` pour les devs (développement uniquement) | Julie gère le site seule, sans toucher au code (voir plus bas) |
+| Contenu | **Fichiers TypeScript et Markdown** (`src/contenu/`) | Pas d'administration à maintenir : le contenu change par le code |
+| Événements | **API Luma** (lecture seule) + faux serveur de simulation | La cliente gère ses événements, inscriptions et paiements dans Luma ; le site les affiche |
+| Podcast | **Flux RSS Ausha** lu à l'affichage + lecteur sur mesure (fichier audio du flux), ou lecteur intégré Ausha au choix | Pas de double saisie : les audios et leurs informations restent chez Ausha |
+| Base de données | **SQLite + Prisma** | Un simple fichier pour les demandes de devis et la newsletter |
+| E-mails | **Nodemailer + Mailpit** | Devis et inscriptions envoyés à Julie, accusé au client ; en local, Mailpit capture les e-mails sans rien envoyer. En production, il suffit de changer `SMTP_*` |
+| Images | **Dossier `public/images/`** | Pas d'hébergement externe, les images sont servies par Next.js |
 
 ## Pages du site
 
-| Page | Contenu | Public visé | Routes utilisées |
+| Page | Contenu | Public visé | Données |
 |---|---|---|---|
-| Accueil | Photo plein écran et accroche ; le podcast (dernier extrait, plateformes) ; les expériences en carrousel et la note moyenne des avis ; l'offre entreprises (mosaïque, points forts) ; le studio ; la newsletter | Tous | `GET /api/avis`, `GET /api/images?page=/`, `GET /api/episodes?type=extrait`, `POST /api/newsletter` |
-| Podcast (`/podcast`) | Présentation de l'émission, liens d'écoute (Apple Podcasts, Spotify, Deezer, YouTube), lecteur sur mesure (invité et sujet lus dans le titre, progression, −15 s / +30 s, résumé replié), liste de la saison choisie (`?saison=`), complets par défaut, filtre extraits / replays | Auditeurs | `GET /api/episodes?type=` |
-| Offre podcast | Studio de production pour d'autres marques, sponsoring du podcast | B2B | `POST /api/devis` |
-| Expériences (`/experiences`) | Onglet Particuliers : expériences à venir (date, lieu, durée, prix, places restantes, « Réserver » ou « Sur devis »), avis avec la note moyenne, expériences passées de l'année choisie (`?annee=`) | B2C | `GET /api/experiences` |
-| Expériences entreprises (`/experiences/entreprises`) | Onglet Entreprises : présentation du sur-mesure, mosaïque de photos, « Demander un devis », témoignages | B2B | `POST /api/devis` |
-| Ateliers / Food tours / Immersions | 1 page par expérience, galerie photos. Ateliers et food tours : sessions réservables et payables en ligne, sans compte (nom, e-mail, téléphone facultatif). Immersions (surtout B2B) : sur devis uniquement | B2C et B2B | `GET /api/experiences/[slug]`, `GET /api/sessions`, `POST /api/checkout`, `POST /api/devis` |
-| Blog (`/blog`) | Articles publiés, onglets par catégorie | Tous | `GET /api/articles` |
-| Catégorie (`/blog/categorie/[categorie]`) | Les articles d'une catégorie, avec son titre et sa description | Tous (« Pour les entreprises » : B2B) | `GET /api/articles?categorie=` |
-| Article (`/blog/[slug]`) | Un article mis en forme en Markdown, puis l'épisode lié, les expériences liées et leurs prochaines dates, l'encadré devis pour les entreprises | Tous | `GET /api/articles/[slug]` |
-| À propos | Mission, histoire, Julie Van Ossel, partenaires, avis, galerie photos | Tous | `GET /api/partenaires`, `GET /api/avis` |
-| Contact (`/contact`) | Demande de devis sans compte (B2B : expérience, sponsoring, studio, événement ; réponse sous 48h) : nom, entreprise, e-mail, téléphone | B2B | `POST /api/devis` |
-| Réservation (succès / annulée) | Confirmation après le paiement (succès : seulement si la session Stripe existe et désigne la réservation) | B2C | `GET /api/reservations?session_id=` |
-| Mentions légales (`/mentions-legales`), Confidentialité (`/confidentialite`) | Texte de base à compléter, modifiable dans `/admin/textes` | Tous | — |
-| Admin (`/admin`) | Interface de gestion ; connexion sur `/admin/connexion`, sans lien depuis le site (voir ci-dessous) | Julie | routes admin, `/api/auth/*` |
+| Accueil | Photo plein écran et accroche ; le podcast (dernier extrait, plateformes) ; les expériences et leur prochaine date ; la note moyenne des avis ; l'offre entreprises ; le studio ; la newsletter | Tous | `src/contenu/`, Luma, Ausha, `POST /api/newsletter` |
+| Podcast (`/podcast`) | Présentation de l'émission, liens d'écoute, lecteur sur mesure (invité et sujet lus dans le titre, progression, −15 s / +30 s, résumé replié), saison choisie (`?saison=`), complets par défaut, filtre extraits / replays | Auditeurs | Ausha |
+| Studio (`/studio`) | Studio de production pour d'autres marques, sponsoring du podcast | B2B | `src/contenu/textes.ts` |
+| Expériences (`/experiences`) | Onglet Particuliers : prochains événements Luma (« Réserver sur Luma »), expériences sur devis, avis, événements passés de l'année choisie (`?annee=`) | B2C | Luma, `src/contenu/` |
+| Expériences entreprises (`/experiences/entreprises`) | Onglet Entreprises : présentation du sur-mesure, mosaïque de photos, « Demander un devis », témoignages | B2B | `src/contenu/` |
+| Une expérience (`/experiences/[slug]`) | Présentation, galerie et prochaines dates Luma ; immersions : sur devis | B2C et B2B | `src/contenu/experiences.ts`, Luma |
+| Blog (`/blog`, `/blog/categorie/[categorie]`) | Articles publiés, onglets par catégorie | Tous | `src/contenu/blog/` |
+| Article (`/blog/[slug]`) | Un article en Markdown, puis l'épisode lié, les expériences liées et leurs prochaines dates, l'encadré devis pour les entreprises | Tous | `src/contenu/blog/`, Ausha, Luma |
+| À propos | Mission, histoire, partenaires, avis, galerie photos | Tous | `src/contenu/` |
+| Contact (`/contact`) | Demande de devis sans compte (expérience, sponsoring, studio, événement ; réponse sous 48 h) | B2B | `POST /api/devis` |
+| Mentions légales, Confidentialité | Texte de base à compléter (`src/contenu/textes.ts`) | Tous | — |
+| Simulation Luma (`/luma-simule/[id]`) | Page factice d'inscription Luma, en simulation seulement (non indexée) | Démo | faux serveur Luma |
 
-Chaque page peut afficher une galerie de photos : `GET /api/images?page=<chemin de la page>`.
 Pas de logos clients : la crédibilité passe par les avis et les partenaires (affichés seulement après leur accord).
-
-## Interface d'administration (`/admin`)
-
-Julie gère le site seule et n'est pas technique : tout se fait avec des formulaires dans `/admin`.
-L'accès est réservé aux comptes au rôle **admin** : Julie se connecte sur **`/admin/connexion`** avec le compte créé
-par le seed (`ADMIN_EMAIL` / `ADMIN_PASSWORD`). Aucun lien du site public n'y mène : elle garde l'adresse en favori.
-`/admin` ouvert sans connexion y redirige ; la connexion dure 30 jours, prolongée à chaque visite. « Voir le site » et
-« Déconnexion » sont dans la navigation de l'admin. Mot de passe oublié : lien sur la page de connexion.
-
-| Page admin | Ce que Julie peut y faire |
-|---|---|
-| `/admin/reservations` | Voir la liste et la fiche d'une réservation, filtrer par statut, l'annuler. Jamais de suppression (historique, comptabilité) |
-| `/admin/devis` | Voir la fiche d'une demande, changer son statut, ajouter une note interne (jamais vue par le client), la supprimer |
-| `/admin/experiences` | Créer, modifier, masquer ou afficher une expérience, choisir « réservable en ligne » ou « sur devis ». Une expérience qui a des sessions ne se supprime pas : l'admin propose de la masquer |
-| `/admin/sessions` | Ajouter des dates, les modifier, fermer ou rouvrir une session. Une session réservée ne se supprime pas (l'admin propose de la fermer) et ses places ne descendent pas sous les places réservées |
-| `/admin/textes` | Modifier les titres, paragraphes et boutons de l'accueil, d'« À propos », du studio, des expériences et du blog, et le texte des mentions légales et de la confidentialité (filtre par page), ou remettre le texte d'origine. Les liens et la mise en page restent fixes |
-| `/admin/photos` | Envoyer, modifier ou supprimer une photo (le fichier est effacé du disque), choisir sa page dans une liste, sa description et son ordre |
-| `/admin/episodes` | Importer depuis Ausha, changer le type (complet, extrait, replay), modifier le résumé, l'invité et les liens, supprimer (un épisode supprimé revient au prochain import) |
-| `/admin/articles` | Écrire (mise en forme Markdown), publier ou dépublier, supprimer un article du blog ; choisir sa catégorie, l'épisode lié (du plus récent au plus ancien) et les expériences liées (cases à cocher) ; filtrer par catégorie |
-| `/admin/avis` | Ajouter, modifier, afficher ou masquer, supprimer un avis client |
-| `/admin/partenaires` | Ajouter, modifier, supprimer un partenaire ; l'afficher une fois son accord obtenu |
-| `/admin/utilisateurs` | « Administrateurs » : ajouter un admin (nom, e-mail ; il reçoit un lien valable 1 h pour choisir son mot de passe, ensuite « Mot de passe oublié »), voir s'il l'a choisi, supprimer un accès. Le dernier admin ne peut pas être supprimé |
-| `/admin/newsletter` | Voir les inscrits et la date de leur consentement, ajouter, corriger ou désinscrire une adresse |
-
-Pour que Julie s'en serve sans aide :
-- chaque suppression demande une confirmation qui nomme l'élément (« Supprimer l'atelier « … » ? Cette action est définitive. ») ;
-- après chaque action, un message dit ce qui a été fait (« Expérience enregistrée ») ou quoi corriger, sous le champ
-  en cause (« Champ obligatoire. ») ; une suppression refusée explique pourquoi et propose le bon bouton (« Masquer », « Fermer la session ») ;
-- les champs obligatoires sont marqués d'un astérisque, les prix se saisissent en euros (`45` ou `45,50`) ;
-- une photo ou une couverture remplacée ou supprimée est effacée du disque, sauf si elle sert encore ailleurs.
-
-Toutes les rubriques utilisent la même page (`src/app/admin/(espace)/[ressource]`), décrite dans `src/frontend/admin/ressources.ts` :
-ajouter une rubrique revient à y décrire ses colonnes et ses champs. Les formulaires appellent les mêmes routes API
-que les exemples de [docs/curl-admin.md](docs/curl-admin.md).
-
-> En production, on recommandera un CMS (par exemple Strapi, Sanity ou Payload) : éditeur visuel, gestion des médias, plusieurs comptes. L'interface `/admin` couvre les besoins du projet.
 
 ## Variables d'environnement
 
@@ -345,40 +314,24 @@ que les exemples de [docs/curl-admin.md](docs/curl-admin.md).
 DATABASE_URL="file:./dev.db"
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
-STRIPE_SECRET_KEY=sk_test_xxx
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-
-BETTER_AUTH_SECRET=remplacer-par-une-longue-chaine-aleatoire
-ADMIN_EMAIL=admin@exemple.fr
-ADMIN_PASSWORD=remplacer-par-un-mot-de-passe-solide
-ADMIN_KEY=remplacer-par-une-cle-locale-aleatoire   # x-admin-key, développement uniquement
-
 SMTP_HOST=localhost          # Mailpit en local ; sans SMTP_HOST, e-mails seulement annoncés dans le terminal
 SMTP_PORT=1025
 SMTP_USER=                   # vides avec Mailpit, identifiants d'un vrai fournisseur en production
 SMTP_PASSWORD=
 MAIL_FROM="Maison La recette <site@maison-la-recette.local>"
-MAIL_ADMIN_TO=julie@exemple.fr   # boîte de Julie (devis, réservations) : adresse fictive en démo
+MAIL_ADMIN_TO=julie@exemple.fr   # boîte de Julie (devis, newsletter) : adresse fictive en démo
 
-AUSHA_RSS_URL=https://feed.ausha.co/Zg75JI109Rlm   # flux du podcast « la recette » (import des épisodes)
+LUMA_MODE=simulation             # ou api (vraie API, avec LUMA_API_KEY)
+# LUMA_API_KEY=                  # clé du calendrier Luma (Luma Plus), seulement avec LUMA_MODE=api
+
+AUSHA_RSS_URL=https://feed.ausha.co/Zg75JI109Rlm   # flux du podcast « la recette »
 
 # Facultatif : anti-spam (valeurs par défaut en production, 20 fois plus larges en développement)
 # LIMITE_PERIODE_MINUTES=10
 # LIMITE_DEVIS=5
-# LIMITE_CHECKOUT=10
 # LIMITE_NEWSLETTER=5
 # PROXY_DE_CONFIANCE=0                              # nombre de proxys devant le site (x-forwarded-for)
 ```
 
-Exclusions déjà configurées dans `.gitignore` :
-
-```
-.env
-.env.local
-prisma/dev.db
-prisma/dev.db-journal
-public/images/uploads/   (photos envoyées depuis /admin)
-node_modules
-.next
-```
+Les anciennes variables (`STRIPE_*`, `BETTER_AUTH_SECRET`, `ADMIN_*`) ne servent plus : elles peuvent être retirées de
+`.env.local`.
