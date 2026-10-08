@@ -18,4 +18,11 @@ export const classeGrandBouton = {
   contour: `${baseGrandBouton} text-texte ring-2 ring-inset ring-texte hover:bg-fond`,
 };
 
+/** Étiquette du type d'expérience (maquette : atelier en orange, good tour en vert foncé, immersion en vert tendre). */
+const TEINTE_TYPE: Record<string, string> = { atelier: 'bg-secondaire text-sur-secondaire', good_tour: 'bg-fond-sombre text-sur-fond-sombre' };
+export const classeEtiquetteType = (type: string) => `rounded-full px-3 py-1 text-xs font-bold ${TEINTE_TYPE[type] ?? 'bg-pastel text-texte'}`;
+
+/** Surtitre des pages sans maquette, en pastille comme « Extrait du dernier épisode ». */
+export const classeSurtitre = 'w-fit rounded-full bg-fond-sombre px-3 py-1 text-xs font-bold text-sur-fond-sombre';
+
 export const classeErreur = 'rounded-lg bg-erreur-fond px-3 py-2 text-sm text-erreur';

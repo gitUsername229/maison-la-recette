@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Galerie, { type PhotoGalerie } from '@/frontend/components/Galerie';
 import ReservationForm, { type SessionDisponible } from '@/frontend/components/ReservationForm';
 import { formatDuree, formatPrix, libelleType } from '@/frontend/format';
-import { classeBouton } from '@/frontend/styles/classes';
+import { classeEtiquetteType, classeGrandBouton } from '@/frontend/styles/classes';
 
 export type ExperienceDetail = {
   slug: string;
@@ -24,48 +24,43 @@ export type ExperienceDetail = {
 export default function Experience({ experience }: { experience: ExperienceDetail }) {
   return (
     <main className="mx-auto max-w-5xl px-5 py-8 lg:px-6 lg:py-12">
-      <Link href="/experiences" className="text-sm text-texte-doux hover:text-texte">← Toutes les expériences</Link>
+      <Link href="/experiences" className="text-sm underline-offset-4 hover:underline">← Toutes les expériences</Link>
 
       <div className="mt-8 grid gap-12 lg:grid-cols-[1fr_24rem]">
         <article>
-          <p className="w-fit rounded-full bg-pastel px-3 py-1 text-xs font-semibold uppercase tracking-wider">{libelleType(experience.type)}</p>
-          <h1 className="mt-3 text-3xl font-bold lg:text-4xl">{experience.titre}</h1>
+          <p className={`w-fit ${classeEtiquetteType(experience.type)}`}>{libelleType(experience.type)}</p>
+          <h1 className="mt-3 text-4xl font-bold">{experience.titre}</h1>
           <p className="mt-5 text-lg leading-relaxed">{experience.accroche}</p>
           {experience.image && <Image src={experience.image} alt={experience.imageAlt} width={1200} height={750} priority className="mt-8 aspect-[16/10] w-full rounded-2xl object-cover" />}
 
-          <dl className="mt-8 grid grid-cols-2 gap-6 border-t border-bordure-forte pt-6 text-sm sm:grid-cols-3">
-            <div>
-              <dt className="text-texte-doux">Durée</dt>
-              <dd className="mt-1">{formatDuree(experience.dureeMin)}</dd>
-            </div>
-            <div>
-              <dt className="text-texte-doux">Lieu</dt>
-              <dd className="mt-1">{experience.lieu ?? 'Précisé à la réservation'}</dd>
-            </div>
-            <div>
-              <dt className="text-texte-doux">Tarif</dt>
-              <dd className="mt-1">{experience.reservableEnLigne ? `${formatPrix(experience.prixCents)} / personne` : 'Sur devis'}</dd>
-            </div>
+          {/* Mêmes informations que les cartes de la maquette : Lieu / Durée / Prix. */}
+          <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-2xl bg-fond p-5 text-sm">
+            <dt className="font-bold">Lieu</dt>
+            <dd>{experience.lieu ?? 'Précisé à la réservation'}</dd>
+            <dt className="font-bold">Durée</dt>
+            <dd>{formatDuree(experience.dureeMin)}</dd>
+            <dt className="font-bold">Prix</dt>
+            <dd>{experience.reservableEnLigne ? `${formatPrix(experience.prixCents)} par personne` : 'Sur devis'}</dd>
           </dl>
 
-          <p className="mt-8 whitespace-pre-line leading-relaxed text-texte-doux">{experience.description}</p>
+          <p className="mt-8 whitespace-pre-line leading-relaxed">{experience.description}</p>
           <Galerie photos={experience.images} />
         </article>
 
-        <aside id="reserver" className="h-fit scroll-mt-24 rounded-xl bg-fond p-6">
+        <aside id="reserver" className="h-fit scroll-mt-24 rounded-2xl bg-fond p-6">
           {experience.reservableEnLigne ? (
             <>
-              <h2 className="font-serif text-2xl">Réserver</h2>
+              <h2 className="text-2xl font-bold">Réserver</h2>
               <p className="mb-6 mt-1 text-sm text-texte-doux">Paiement sécurisé par Stripe.</p>
               <ReservationForm sessions={experience.sessions} />
             </>
           ) : (
             <>
-              <h2 className="font-serif text-2xl">Sur devis</h2>
-              <p className="mt-3 leading-relaxed text-texte-doux">
+              <h2 className="text-2xl font-bold">Sur devis</h2>
+              <p className="mt-3 leading-relaxed">
                 Cette expérience se prépare avec vous : date, groupe et programme sont définis ensemble.
               </p>
-              <Link href={`/contact?experience=${experience.slug}`} className={`mt-6 flex justify-center ${classeBouton}`}>
+              <Link href={`/contact?experience=${experience.slug}`} className={`mt-6 ${classeGrandBouton.primaire}`}>
                 Demander un devis
               </Link>
             </>

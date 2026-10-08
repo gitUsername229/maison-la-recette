@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { formatDateHeure, formatDuree, formatPrix, libelleType } from '@/frontend/format';
-import { classeGrandBouton } from '@/frontend/styles/classes';
+import { classeEtiquetteType, classeGrandBouton } from '@/frontend/styles/classes';
 
 export type CarteExperienceDonnees = {
   id: number; slug: string; type: string; titre: string; image: string; imageAlt: string; lieu: string | null; dureeMin: number;
@@ -16,9 +16,6 @@ export type SessionPassee = {
 };
 
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
-
-/** Étiquette du type sur la photo (maquette : atelier en orange, good tour en vert foncé). */
-const TEINTE_TYPE: Record<string, string> = { atelier: 'bg-secondaire text-sur-secondaire', good_tour: 'bg-fond-sombre text-sur-fond-sombre' };
 
 type Contenu = {
   image: string; imageAlt: string; type: string; places?: string; titre: string; lienTitre?: string;
@@ -34,9 +31,9 @@ function Carte({ image, imageAlt, type, places, titre, lienTitre, lignes, action
           <Image src={image} alt={imageAlt} fill sizes="(min-width: 1024px) 30vw, (min-width: 640px) 60vw, 85vw"
             className="object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105" />
         )}
-        <ul className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2 text-xs font-bold">
-          <li className={`rounded-full px-3 py-1 ${TEINTE_TYPE[type] ?? 'bg-pastel text-texte'}`}>{libelleType(type)}</li>
-          {places && <li className="rounded-full bg-fond px-3 py-1">{places}</li>}
+        <ul className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2">
+          <li className={classeEtiquetteType(type)}>{libelleType(type)}</li>
+          {places && <li className="rounded-full bg-fond px-3 py-1 text-xs font-bold">{places}</li>}
         </ul>
       </div>
       <div className="flex flex-1 flex-col p-5">

@@ -7,7 +7,7 @@ export default function Galerie({ photos, titre = 'En images' }: { photos: Photo
   if (photos.length === 0) return null;
   return (
     <section className="mt-14">
-      <h2 className="font-serif text-3xl">{titre}</h2>
+      <h2 className="text-xl font-bold">{titre}</h2>
       <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {photos.map(photo => (
           <li key={photo.id}>
