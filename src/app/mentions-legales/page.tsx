@@ -1,6 +1,5 @@
-import { connection } from 'next/server';
-import { textesDePage } from '@/backend/contenus/textes-pages';
 import { metadonnees } from '@/backend/seo';
+import { TEXTES } from '@/contenu/textes';
 import TexteLegal from '@/frontend/pages/texte-legal';
 
 export const metadata = metadonnees({
@@ -9,7 +8,6 @@ export const metadata = metadonnees({
   chemin: '/mentions-legales',
 });
 
-export default async function Page() {
-  await connection(); // texte modifiable dans /admin/textes, lu à chaque requête
-  return <TexteLegal {...await textesDePage('mentions-legales')} lien={{ href: '/confidentialite', texte: 'Lire la politique de confidentialité' }} />;
+export default function Page() {
+  return <TexteLegal {...TEXTES['mentions-legales']} lien={{ href: '/confidentialite', texte: 'Lire la politique de confidentialité' }} />;
 }

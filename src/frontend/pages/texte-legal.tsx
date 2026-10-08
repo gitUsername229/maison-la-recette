@@ -7,7 +7,7 @@ type Props = {
   lien?: { href: string; texte: string };
 };
 
-/** Pages de texte (confidentialité, mentions légales), modifiables dans /admin/textes. */
+/** Pages de texte (confidentialité, mentions légales), écrites dans src/contenu/textes.ts. */
 export default function TexteLegal({ titre, avertissement, contenu, lien }: Props) {
   const lignes = contenu.split('\n').map(ligne => ligne.trim()).filter(Boolean);
   return (

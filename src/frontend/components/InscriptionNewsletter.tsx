@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { CaseConsentement, ChampPiege } from '@/frontend/components/Champ';
 import { classeGrandBouton } from '@/frontend/styles/classes';
 
-/** Inscription à la newsletter (accueil, sur fond vert foncé) ; titre, texte et bouton modifiables dans /admin/textes. */
+/** Inscription à la newsletter (accueil, sur fond vert foncé) ; titre, texte et bouton dans src/contenu/textes.ts. */
 export default function InscriptionNewsletter({ titre, texte, bouton }: { titre: string; texte: string; bouton: string }) {
   const [etat, setEtat] = useState<{ erreur: boolean; texte: string } | null>(null);
   const [envoi, setEnvoi] = useState(false);

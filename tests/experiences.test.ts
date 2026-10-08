@@ -66,19 +66,14 @@ test('expériences passées : sessions terminées des expériences visibles, hor
   assert.equal(passees[0].lieu, 'J+-2');
 });
 
-test('mosaïque entreprises : galeries des expériences visibles, puis leurs couvertures, sans doublon', async () => {
-  await experience('mosaique-visible', { image: '/images/couverture-a.jpg', imageAlt: 'Couverture A' });
-  await experience('mosaique-masquee', { actif: false, image: '/images/couverture-b.jpg', imageAlt: 'Couverture B' });
-  await prisma.image.createMany({ data: [
-    { url: '/images/galerie-1.jpg', alt: 'Galerie 1', page: '/experiences/mosaique-visible', ordre: 1 },
-    { url: '/images/couverture-a.jpg', alt: 'Même photo que la couverture', page: '/experiences/mosaique-visible', ordre: 2 },
-    { url: '/images/galerie-masquee.jpg', alt: 'Expérience masquée', page: '/experiences/mosaique-masquee', ordre: 0 },
-  ] });
+test('mosaïque entreprises : galeries des expériences visibles (src/contenu/photos.ts), puis leurs couvertures, sans doublon', async () => {
+  const { GALERIES_EXPERIENCES } = await import('../src/contenu/photos');
+  const galerie = GALERIES_EXPERIENCES['atelier-cuisine-anti-gaspi'];
+  await experience('atelier-cuisine-anti-gaspi', { image: galerie[0].url, imageAlt: 'Même photo que la galerie' });
+  await experience('immersion-producteur', { actif: false, image: '/images/couverture-masquee.jpg', imageAlt: 'Masquée' });
+  await experience('mosaique-couverture', { image: '/images/couverture-a.jpg', imageAlt: 'Couverture A' });
 
-  assert.deepEqual(await catalogue.photosDesExperiences(), [
-    { url: '/images/galerie-1.jpg', alt: 'Galerie 1' },
-    { url: '/images/couverture-a.jpg', alt: 'Même photo que la couverture' },
-  ]);
+  assert.deepEqual(await catalogue.photosDesExperiences(10), [...galerie, { url: '/images/couverture-a.jpg', alt: 'Couverture A' }]);
 });
 
 test('année d’une session à l’heure de Paris', async () => {

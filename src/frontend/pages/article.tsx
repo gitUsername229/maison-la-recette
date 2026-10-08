@@ -12,14 +12,14 @@ export type ArticleComplet = {
   experiences: ExperienceLiee[];
 };
 
-/** Textes des blocs sous l'article, modifiables dans /admin/textes (page Blog). */
+/** Textes des blocs sous l'article (src/contenu/textes.ts, page Blog). */
 export type TextesArticle = Record<
   | 'tousLesArticles' | 'episodeTitre' | 'episodeBouton' | 'episodeLien'
   | 'experiencesTitre' | 'experiencesTexte' | 'experiencesBouton' | 'entreprisesTitre' | 'entreprisesTexte' | 'entreprisesBouton',
   string
 >;
 
-// Contenu en Markdown (écrit dans /admin/articles) ; le HTML brut n'est jamais interprété.
+// Contenu en Markdown (src/contenu/blog/) ; le HTML brut n'est jamais interprété.
 const STYLES = {
   h2: 'mt-10 font-titre text-2xl text-titre',
   h3: 'mt-8 text-xl font-bold text-titre',

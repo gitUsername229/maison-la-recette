@@ -2,15 +2,7 @@ import 'server-only';
 import { prisma } from '@/backend/db/prisma';
 import type { TypeEpisode } from '@/backend/podcast/emission';
 
-// Lectures publiques (pages du site). Articles du blog : articles.ts.
-
-export function listerAvis({ limite }: { limite?: number } = {}) {
-  return prisma.avis.findMany({ where: { visible: true }, orderBy: { id: 'desc' }, take: limite });
-}
-
-export function listerPartenaires() {
-  return prisma.partenaire.findMany({ where: { visible: true }, orderBy: { nom: 'asc' } });
-}
+// Épisodes du podcast (page podcast, accueil, articles).
 
 /** Épisodes publiés, les plus récents d'abord, éventuellement d'un seul type (page podcast). */
 export function listerEpisodes({ type, saison, limite }: { type?: TypeEpisode; saison?: number; limite?: number } = {}) {

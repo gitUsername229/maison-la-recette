@@ -3,7 +3,7 @@ import ChoixParametre from '@/frontend/components/ChoixParametre';
 import ListeAvis, { type AvisAffiche } from '@/frontend/components/ListeAvis';
 import OngletsExperiences from '@/frontend/components/OngletsExperiences';
 
-/** Textes de la page des expériences, modifiables dans /admin/textes (page Expériences). */
+/** Textes de la page des expériences (src/contenu/textes.ts, page Expériences). */
 export type TextesExperiences = Record<'titre' | 'ongletParticuliers' | 'ongletEntreprises', string>;
 export type TextesParticuliers = TextesExperiences & Record<'aVenirTitre' | 'aucuneExperience' | 'avisTitre' | 'passeesTitre', string>;
 

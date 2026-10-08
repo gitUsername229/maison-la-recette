@@ -2,7 +2,7 @@ import Carrousel from '@/frontend/components/Carrousel';
 import Carottes from '@/frontend/components/Carottes';
 import { formatDate } from '@/frontend/format';
 
-export type AvisAffiche = { id: number; nom: string; citation: string; contexte: string; note: number | null; date: Date | string | null };
+export type AvisAffiche = { nom: string; citation: string; contexte: string; note: number | null; date: Date | string | null };
 
 type Props = {
   avis: AvisAffiche[];
@@ -12,7 +12,7 @@ type Props = {
   surFondSombre?: boolean;
 };
 
-/** Avis clients visibles (gérés dans /admin/avis) : la note moyenne en grand, puis les avis en carrousel sur mobile. */
+/** Avis clients (src/contenu/avis.ts) : la note moyenne en grand, puis les avis en carrousel sur mobile. */
 export default function ListeAvis({ avis, titre, notes: avecNotes = true, nombre = 6, surFondSombre = false }: Props) {
   if (avis.length === 0) return null;
   const notes = avis.flatMap(a => (a.note ? [a.note] : []));
@@ -33,7 +33,7 @@ export default function ListeAvis({ avis, titre, notes: avecNotes = true, nombre
       )}
       <Carrousel libelle="Avis des participants">
         {avis.slice(0, nombre).map(a => (
-          <figure key={a.id} className="flex h-full flex-col gap-2 rounded-2xl bg-fond p-5 text-texte">
+          <figure key={`${a.nom}-${a.citation}`} className="flex h-full flex-col gap-2 rounded-2xl bg-fond p-5 text-texte">
             {avecNotes && a.note && <p><span className="sr-only">Note : {a.note} sur 5</span><Carottes note={a.note} taille={18} /></p>}
             <figcaption className="text-sm">
               {/* Maquette : « Prénom, âge • date » ; sans date, le contexte (ex : l'atelier) à la place. */}

@@ -3,8 +3,8 @@ import { notFound } from 'next/navigation';
 import { connection } from 'next/server';
 import { cache } from 'react';
 import { articlePublie } from '@/backend/contenus/articles';
-import { textesDePage } from '@/backend/contenus/textes-pages';
 import { metadonnees } from '@/backend/seo';
+import { TEXTES } from '@/contenu/textes';
 import Article from '@/frontend/pages/article';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   await connection(); // prochaines dates et places restantes lues à chaque requête
-  const [article, textes] = await Promise.all([charger((await params).slug), textesDePage('blog')]);
-  if (!article) notFound(); // brouillon ou adresse inconnue
-  return <Article article={article} textes={textes} />;
+  const article = await charger((await params).slug);
+  if (!article) notFound(); // non publié ou adresse inconnue
+  return <Article article={article} textes={TEXTES.blog} />;
 }

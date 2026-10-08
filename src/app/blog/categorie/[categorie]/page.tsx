@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { connection } from 'next/server';
 import { pageBlog } from '@/backend/contenus/articles';
 import { CATEGORIES_BLOG, estCategorie } from '@/backend/contenus/categories-blog';
 import { metadonnees } from '@/backend/seo';
@@ -19,6 +18,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CategoriePage({ params }: Props) {
   const { categorie } = await params;
   if (!estCategorie(categorie)) notFound();
-  await connection();
-  return <Blog {...await pageBlog(categorie)} />;
+  return <Blog {...pageBlog(categorie)} />;
 }

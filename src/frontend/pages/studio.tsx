@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { classeGrandBouton, classeSurtitre } from '@/frontend/styles/classes';
 
-/** Textes de la page studio, modifiables dans /admin/textes. */
+/** Textes de la page studio (src/contenu/textes.ts). */
 export type TextesStudio = Record<'surtitre' | 'titre' | 'introduction' | 'projetTitre' | 'projetTexte' | 'bouton', string>;
 
 export default function Studio({ textes }: { textes: TextesStudio }) {

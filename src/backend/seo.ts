@@ -1,5 +1,6 @@
 import 'server-only';
 import type { Metadata, MetadataRoute } from 'next';
+import { articlesPublies } from '@/backend/contenus/blog';
 import { estCategorie } from '@/backend/contenus/categories-blog';
 import { prisma } from '@/backend/db/prisma';
 import { NOM_DU_SITE, urlDuSite } from '@/backend/site';
@@ -39,10 +40,8 @@ export const CHEMINS_PRIVES = ['/reservation', '/api/'];
  * (une catégorie vide n'est pas proposée aux moteurs de recherche).
  */
 export async function pagesDuSitemap(): Promise<MetadataRoute.Sitemap> {
-  const [articles, experiences] = await Promise.all([
-    prisma.article.findMany({ where: { publie: true }, select: { slug: true, categorie: true, datePublication: true }, orderBy: { datePublication: 'desc' } }),
-    prisma.experience.findMany({ where: { actif: true }, select: { slug: true }, orderBy: { id: 'asc' } }),
-  ]);
+  const articles = articlesPublies();
+  const experiences = await prisma.experience.findMany({ where: { actif: true }, select: { slug: true }, orderBy: { id: 'asc' } });
   const categories = [...new Set(articles.map(a => a.categorie))].filter(estCategorie);
   return [
     ...PAGES_PUBLIQUES.map(chemin => ({ url: urlDuSite(chemin) })),

@@ -4,11 +4,11 @@ import { formatDate } from '@/frontend/format';
 import { classeSurtitre } from '@/frontend/styles/classes';
 
 export type ArticleResume = {
-  id: number; slug: string; titre: string; extrait: string; image: string; imageAlt: string; datePublication: Date; categorieLibelle: string;
+  slug: string; titre: string; extrait: string; image: string; imageAlt: string; datePublication: Date; categorieLibelle: string;
 };
 export type CategorieAffichee = { valeur: string; libelle: string; description: string };
 
-/** Textes de la liste du blog, modifiables dans /admin/textes (page Blog). */
+/** Textes de la liste du blog (src/contenu/textes.ts, page Blog). */
 export type TextesBlog = Record<'surtitre' | 'titre' | 'introduction' | 'tousLesArticles' | 'aucunArticle', string>;
 
 type Props = {
@@ -49,7 +49,7 @@ export default function Blog({ textes, articles, categories, categorieActive }: 
       ) : (
         <ul className="mt-10 grid gap-6 sm:grid-cols-2">
           {articles.map(article => (
-            <li key={article.id}>
+            <li key={article.slug}>
               {/* Carte blanche, comme les cartes d'expériences de la maquette. */}
               <Link href={`/blog/${article.slug}`} className="group flex h-full flex-col overflow-hidden rounded-2xl bg-fond">
                 {article.image && <PhotoCarte src={article.image} alt={article.imageAlt} ratio="aspect-[16/10]" sizes="(min-width: 640px) 45vw, 100vw" />}

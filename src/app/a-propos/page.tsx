@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { connection } from 'next/server';
-import { listerAvis, listerPartenaires } from '@/backend/contenus/contenus';
-import { imagesDePage } from '@/backend/contenus/images';
-import { textesDePage } from '@/backend/contenus/textes-pages';
+import { AVIS } from '@/contenu/avis';
+import { PARTENAIRES } from '@/contenu/partenaires';
+import { GALERIE_A_PROPOS } from '@/contenu/photos';
+import { TEXTES } from '@/contenu/textes';
 import APropos from '@/frontend/pages/a-propos';
 
 export const metadata: Metadata = {
@@ -10,8 +10,6 @@ export const metadata: Metadata = {
   description: 'Notre histoire, nos engagements et notre mission autour de l’alimentation.',
 };
 
-export default async function AProposPage() {
-  await connection(); // textes, partenaires, avis et photos gérés dans l'admin, lus à chaque requête
-  const [textes, partenaires, avis, photos] = await Promise.all([textesDePage('a-propos'), listerPartenaires(), listerAvis(), imagesDePage('/a-propos')]);
-  return <APropos textes={textes} partenaires={partenaires} avis={avis} photos={photos} />;
+export default function AProposPage() {
+  return <APropos textes={TEXTES['a-propos']} partenaires={PARTENAIRES} avis={AVIS} photos={GALERIE_A_PROPOS} />;
 }

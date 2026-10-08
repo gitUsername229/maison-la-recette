@@ -12,7 +12,7 @@ import MosaiquePhotos, { type PhotoMosaique } from '@/frontend/components/Mosaiq
 import PresentationEmission from '@/frontend/components/PresentationEmission';
 import { classeGrandBouton } from '@/frontend/styles/classes';
 
-/** Textes de l'accueil, modifiables dans /admin/textes. */
+/** Textes de l'accueil (src/contenu/textes.ts). */
 export type TextesAccueil = Record<
   | 'slogan' | 'presentation' | 'boutonPodcast' | 'boutonEntreprises' | 'podcastBouton'
   | 'experiencesBlocTitre' | 'experiencesBlocTexte' | 'experiencesBouton'
@@ -23,7 +23,7 @@ export type TextesAccueil = Record<
 
 type Props = {
   textes: TextesAccueil;
-  photos: PhotoGalerie[];                     // galerie de l'accueil (/admin/photos) : la première sert de fond
+  fond: PhotoGalerie;                         // photo de fond (src/contenu/photos.ts)
   emission: { nom: string; accroche: string };
   extrait: EpisodeLecteur | null;             // dernier extrait publié
   lecteur: 'sur-mesure' | 'ausha';
@@ -40,8 +40,7 @@ const titreSection = 'font-titre text-4xl'; // en vert vif sur fond clair (text-
  * Accueil (maquette) : photo plein écran, titre et deux boutons ; le podcast et l'extrait du dernier épisode ;
  * les expériences et les avis sur fond vert foncé ; l'offre entreprises ; le studio ; la newsletter.
  */
-export default function Home({ textes, photos, emission, extrait, lecteur, liens, experiences, avis, photosEntreprises }: Props) {
-  const [principale] = photos;
+export default function Home({ textes, fond, emission, extrait, lecteur, liens, experiences, avis, photosEntreprises }: Props) {
   const points = [
     [textes.point1Titre, textes.point1Texte], [textes.point2Titre, textes.point2Texte], [textes.point3Titre, textes.point3Texte],
   ];
@@ -49,7 +48,7 @@ export default function Home({ textes, photos, emission, extrait, lecteur, liens
     <main>
       {/* L'en-tête (transparent sur l'accueil) se pose sur la photo. */}
       <section className="zone-sombre relative isolate flex min-h-svh flex-col justify-center overflow-hidden bg-fond-sombre pb-28 pt-32 text-sur-fond-sombre">
-        {principale && <Image src={principale.url} alt="" fill priority sizes="100vw" className="-z-20 object-cover" />}
+        <Image src={fond.url} alt="" fill priority sizes="100vw" className="-z-20 object-cover" />
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-voile/55" />
         <div className="mx-auto w-full max-w-6xl px-5 lg:px-6">
           <h1 className="max-w-3xl font-titre text-4xl sm:text-6xl">{textes.slogan}</h1>

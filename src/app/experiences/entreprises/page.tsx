@@ -1,8 +1,8 @@
 import { connection } from 'next/server';
 import { photosDesExperiences } from '@/backend/ateliers/catalogue';
-import { listerAvis } from '@/backend/contenus/contenus';
-import { textesDePage } from '@/backend/contenus/textes-pages';
 import { metadonnees } from '@/backend/seo';
+import { AVIS } from '@/contenu/avis';
+import { TEXTES } from '@/contenu/textes';
 import ExperiencesEntreprises from '@/frontend/pages/experiences-entreprises';
 
 export const metadata = metadonnees({
@@ -12,7 +12,6 @@ export const metadata = metadonnees({
 });
 
 export default async function Page() {
-  await connection();
-  const [textes, photos, avis] = await Promise.all([textesDePage('experiences'), photosDesExperiences(), listerAvis()]);
-  return <ExperiencesEntreprises textes={textes} photos={photos} avis={avis} />;
+  await connection(); // couvertures des expériences lues en base
+  return <ExperiencesEntreprises textes={TEXTES.experiences} photos={await photosDesExperiences()} avis={AVIS} />;
 }

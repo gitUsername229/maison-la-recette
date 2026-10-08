@@ -4,9 +4,9 @@ import Galerie, { type PhotoGalerie } from '@/frontend/components/Galerie';
 import ListeAvis, { type AvisAffiche } from '@/frontend/components/ListeAvis';
 import { classeGrandBouton, classeSurtitre } from '@/frontend/styles/classes';
 
-export type PartenaireAffiche = { id: number; nom: string; metier: string; photo: string; photoAlt: string; description: string };
+export type PartenaireAffiche = { nom: string; metier: string; photo: string; photoAlt: string; description: string };
 
-/** Textes de la page « À propos », modifiables dans /admin/textes. */
+/** Textes de la page « À propos » (src/contenu/textes.ts). */
 export type TextesAPropos = Record<
   | 'surtitre' | 'titre' | 'introduction'
   | 'experiencesTitre' | 'experiencesTexte' | 'experiencesBouton' | 'podcastTitre' | 'podcastTexte' | 'podcastBouton'
@@ -40,7 +40,7 @@ export default function APropos({ textes, partenaires, avis, photos }: Props) {
           <h2 className="text-xl font-bold text-titre">{textes.partenairesTitre}</h2>
           <ul className="mt-5 grid gap-4 sm:grid-cols-2">
             {partenaires.map(p => (
-              <li key={p.id} className="flex gap-4 rounded-2xl bg-fond p-5">
+              <li key={p.nom} className="flex gap-4 rounded-2xl bg-fond p-5">
                 {p.photo && <Image src={p.photo} alt={p.photoAlt} width={96} height={96} className="h-24 w-24 shrink-0 rounded-xl object-cover" />}
                 <div>
                   <p className="text-lg font-bold">{p.nom}</p>

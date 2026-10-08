@@ -1,4 +1,3 @@
-import { connection } from 'next/server';
 import { pageBlog } from '@/backend/contenus/articles';
 import { metadonnees } from '@/backend/seo';
 import Blog from '@/frontend/pages/blog';
@@ -9,7 +8,7 @@ export const metadata = metadonnees({
   chemin: '/blog',
 });
 
-export default async function BlogPage() {
-  await connection(); // articles et textes gérés dans l'admin, visibles aussitôt
-  return <Blog {...await pageBlog()} />;
+// Articles lus dans src/contenu/blog/ (un article ajouté apparaît au prochain déploiement, aussitôt en local).
+export default function BlogPage() {
+  return <Blog {...pageBlog()} />;
 }
