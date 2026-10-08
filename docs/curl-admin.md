@@ -138,7 +138,7 @@ curl -X POST "$BASE/api/experiences" \
   -d '{
     "slug": "good-tour-marche-producteurs",
     "type": "good_tour",
-    "titre": "Good tour : marché et producteurs",
+    "titre": "Food tour : marché et producteurs",
     "accroche": "À la rencontre de celles et ceux qui nous nourrissent",
     "description": "Une balade gourmande ...",
     "dureeMin": 180,

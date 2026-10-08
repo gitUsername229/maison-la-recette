@@ -18,7 +18,7 @@ export const classeGrandBouton = {
   contour: `${baseGrandBouton} text-texte ring-2 ring-inset ring-texte hover:bg-fond`,
 };
 
-/** Étiquette du type d'expérience (maquette : atelier en orange, good tour en vert foncé, immersion en vert tendre). */
+/** Étiquette du type d'expérience (maquette : atelier en orange, food tour en vert vif, immersion en vert tendre). */
 const TEINTE_TYPE: Record<string, string> = { atelier: 'bg-secondaire text-sur-secondaire', good_tour: 'bg-fond-sombre text-sur-fond-sombre' };
 export const classeEtiquetteType = (type: string) => `rounded-full px-3 py-1 text-xs font-bold ${TEINTE_TYPE[type] ?? 'bg-pastel text-texte'}`;
 

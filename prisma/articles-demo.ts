@@ -72,7 +72,7 @@ const ARTICLES: ArticleDemo[] = [
       '## Pour quelles occasions',
       'Séminaire, fin de projet, accueil de nouveaux collaborateurs : décrivez les occasions qui s’y prêtent.',
       '## Les formats possibles',
-      '- Un atelier de cuisine en équipe\n- Un good tour à la rencontre de producteurs\n- Une immersion d’une journée',
+      '- Un atelier de cuisine en équipe\n- Un food tour à la rencontre de producteurs\n- Une immersion d’une journée',
       '## Comment se passe une demande',
       'Expliquez les étapes, de la demande de devis au jour de l’expérience.',
     ].join('\n\n'),

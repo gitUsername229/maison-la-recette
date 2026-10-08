@@ -1,6 +1,6 @@
 # Paiement Stripe Checkout (sandbox)
 
-Paiement en ligne des expériences réservables par les particuliers (ateliers, good tours).
+Paiement en ligne des expériences réservables par les particuliers (ateliers, food tours).
 Les immersions et les demandes d'entreprises passent par le devis, pas par Stripe.
 
 Tout est simulé : aucun vrai argent, aucune vérification d'identité.

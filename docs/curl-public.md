@@ -221,7 +221,7 @@ Réponse `200` (seulement les avis visibles) :
     "id": 2,
     "nom": "Marc L.",
     "citation": "On repart avec plein d'idées pour cuisiner autrement.",
-    "contexte": "Good tour du marché",
+    "contexte": "Food tour du marché",
     "note": null
   }
 ]

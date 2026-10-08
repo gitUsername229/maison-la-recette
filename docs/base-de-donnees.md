@@ -4,7 +4,7 @@
 
 | Table | Rôle |
 |---|---|
-| `Experience` | Les offres : atelier, good tour, immersion |
+| `Experience` | Les offres : atelier, food tour (`good_tour`), immersion |
 | `Session` | Une date précise d'une expérience (lieu, places, prix) |
 | `Reservation` | Une réservation B2C payée en ligne sur une session |
 | `DemandeDevis` | Une demande de devis (expérience, sponsoring, studio, événement) |
@@ -43,7 +43,7 @@ dans le formulaire sont enregistrés avec elles.
 | `accroche` | String | Phrase courte pour les cartes |
 | `description` | String | Texte complet |
 | `dureeMin` | Int | Durée en minutes |
-| `prixCents` | Int? | Prix par personne (B2C), en centimes : dès `6000` pour un good tour, dès `7000` pour un atelier. Vide si l'expérience est sur devis uniquement |
+| `prixCents` | Int? | Prix par personne (B2C), en centimes : dès `6000` pour un food tour, dès `7000` pour un atelier. Vide si l'expérience est sur devis uniquement |
 | `prixEntrepriseCents` | Int? | Prix par personne (B2B), optionnel |
 | `reservableEnLigne` | Boolean | `true` : sessions réservables et payées en ligne (Stripe). `false` : sur devis uniquement, pas de paiement en ligne (cas des immersions, surtout B2B) |
 | `capaciteMax` | Int | Nombre maximum de participants |

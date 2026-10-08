@@ -47,7 +47,7 @@ export function decouperTitre(titre: string): { nom: string; sujet: string } {
 
 export type Libelles = Record<string, string>;
 
-export const TYPES_EXPERIENCE: Libelles = { atelier: 'Atelier', good_tour: 'Good tour', immersion: 'Immersion' };
+export const TYPES_EXPERIENCE: Libelles = { atelier: 'Atelier', good_tour: 'Food tour', immersion: 'Immersion' };
 export const STATUTS_RESERVATION: Libelles = { en_attente: 'En attente de paiement', payee: 'Payée', annulee: 'Annulée' };
 export const STATUTS_DEVIS: Libelles = { nouvelle: 'Envoyée', en_cours: 'En cours de traitement', traitee: 'Traitée' };
 export const STATUTS_SESSION: Libelles = { ouverte: 'Ouverte', complete: 'Fermée', annulee: 'Annulée' }; // complete : plus de réservation possible

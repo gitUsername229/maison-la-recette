@@ -7,7 +7,7 @@ import 'server-only';
 export const CATEGORIES_BLOG = {
   'retours-experience': {
     libelle: 'Retours d’expérience',
-    description: 'Récits de nos ateliers, good tours et immersions autour de l’alimentation.',
+    description: 'Récits de nos ateliers, food tours et immersions autour de l’alimentation.',
     appelDevis: false,
   },
   'coulisses-podcast': {
@@ -22,7 +22,7 @@ export const CATEGORIES_BLOG = {
   },
   entreprises: {
     libelle: 'Pour les entreprises',
-    description: 'Ateliers, good tours et immersions pour vos équipes : des repères pour organiser une expérience culinaire en entreprise.',
+    description: 'Ateliers, food tours et immersions pour vos équipes : des repères pour organiser une expérience culinaire en entreprise.',
     appelDevis: true,
   },
 } as const satisfies Record<string, { libelle: string; description: string; appelDevis: boolean }>;

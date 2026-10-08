@@ -91,7 +91,7 @@ function visibilite(champ: string, textes: { masquer: string; afficher: string; 
   ];
 }
 
-const ARTICLES_EXPERIENCE: Libelles = { atelier: 'l’atelier', good_tour: 'le good tour', immersion: 'l’immersion' };
+const ARTICLES_EXPERIENCE: Libelles = { atelier: 'l’atelier', good_tour: 'le food tour', immersion: 'l’immersion' };
 
 const SOURCE_EXPERIENCES: SourceOptions = { api: '/api/experiences', valeur: e => String(e.id), libelle: e => String(e.titre) };
 const SOURCE_CATEGORIES: SourceOptions = { api: '/api/blog/categories', valeur: c => String(c.valeur), libelle: c => String(c.libelle) };
@@ -189,7 +189,7 @@ export const RESSOURCES_ADMIN: RessourceAdmin[] = [
     cle: 'experiences', titre: 'Expériences', singulier: 'une expérience', api: '/api/experiences',
     textes: { enregistre: 'Expérience enregistrée', supprime: 'Expérience supprimée' },
     designation: ligne => `${libelle(ARTICLES_EXPERIENCE, String(ligne.type))} « ${String(ligne.titre)} »`,
-    description: 'Ateliers, good tours et immersions. Une expérience qui a déjà des sessions ne se supprime pas : masquez-la, elle n’apparaîtra plus sur le site.',
+    description: 'Ateliers, food tours et immersions. Une expérience qui a déjà des sessions ne se supprime pas : masquez-la, elle n’apparaîtra plus sur le site.',
     colonnes: [
       { libelle: 'Titre', chemin: 'titre' },
       { libelle: 'Type', chemin: 'type', libelles: TYPES_EXPERIENCE },
