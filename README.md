@@ -104,9 +104,9 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
   (liste déroulante), avec le **lecteur sur mesure** de la maquette : il lit le fichier audio du flux (`Episode.audioUrl`).
   Pour revenir au lecteur Ausha (statistiques d'écoute), passer `LECTEUR_PODCAST` à `'ausha'` dans
   `src/backend/podcast/emission.ts`. Liens d'écoute de l'émission dans le même fichier.
-- **Expériences** : `/experiences` (Particuliers : une carte par expérience, prochaine date, places restantes, autres
-  dates, ou « Sur devis ») et `/experiences/entreprises` (sur-mesure, formats, déroulé appel puis proposition sous 48 h,
-  avis, « Obtenir un devis »).
+- **Expériences** : `/experiences` (Particuliers : expériences à venir avec date, lieu, durée, prix et places restantes,
+  ou « Sur devis » ; avis et note moyenne ; expériences passées par année) et `/experiences/entreprises` (sur-mesure,
+  mosaïque de photos, « Demander un devis », témoignages).
 - **Places** : un paiement Stripe expiré ne bloque plus de place, même si l'événement d'expiration n'arrive jamais.
 
 **Reste à faire :**
@@ -118,9 +118,12 @@ front et back. Les modules sensibles du backend sont réservés au serveur avec
 3. **Mentions légales et politique de confidentialité** : compléter les éléments entre crochets (forme juridique,
    SIRET, hébergeur, prestataires, durées de conservation), faire valider le texte par la cliente, puis vider le
    bandeau « Texte de base, à compléter… » dans `/admin/textes`.
-4. **Questions à Romain (maquette)** : « Événements » ou « Expériences » ; écran d'accueil sans texte (Frame 16) ;
-   cartes grises inclinées et icône globe de la page podcast ; logo définitif ; versions ordinateur. Les e-mails
-   gardent pour l'instant leurs propres couleurs (`src/backend/mails/modeles.ts`).
+4. **Questions à Romain (maquette)** : polices de la nouvelle maquette (titres condensés, texte sans empattement : noms et
+   fichiers), le site garde Inria Serif ; logo dessiné (fichiers SVG) ; icônes des plateformes, carottes de notation,
+   coche et onde sonore de l'épisode en cours ; logos clients « Ils me font confiance » (et leurs autorisations) ;
+   adresses Instagram et LinkedIn du pied de page ; filtre du podcast (un interrupteur « Voir les extraits » : que
+   deviennent les replays ?) ; « food tours » ou « good tours » ; libellé « Expériences » gardé (la maquette dit
+   « Événements »). Les e-mails gardent pour l'instant leurs propres couleurs (`src/backend/mails/modeles.ts`).
 
 **Améliorations futures** (pas urgentes, à faire en équipe) :
 - **Prisma 7**, version stable actuelle (le projet est en 6.19, non dépréciée) : adaptateur SQLite
@@ -209,9 +212,11 @@ sans écraser le type, le résumé, l'invité ni les liens modifiés dans l'admi
 
 ## Thème (maquette Figma) et images provisoires
 
-Le site suit la maquette UX/UI de Romain (Figma « Workshop 1 », page Maquettes : écrans mobiles) ; la version
-ordinateur en est déduite. Le logo reste provisoire, et le libellé « Expériences » est conservé en attendant la réponse
-de Romain (la maquette dit « Événements »).
+Le site suit la maquette UX/UI de Romain (Figma « Workshop 1 », page Maquettes : écrans mobiles, mise à jour du
+8 octobre 2026 pour l'accueil, le podcast et les deux onglets Expériences) ; la version ordinateur en est déduite, et les
+pages sans maquette en reprennent le style (fond vert clair, cartes blanches, grands boutons arrondis, titres en 40 px).
+Le logo et les polices restent ceux d'avant en attendant les fichiers de Romain, et le libellé « Expériences » est
+conservé (la maquette dit « Événements »).
 
 **Couleurs, police et tailles de texte sont dans un seul fichier : [`src/frontend/styles/globals.css`](src/frontend/styles/globals.css).**
 - La **palette** (`:root`) reprend les variables Figma (collection « Temp ») et le vert de l'en-tête :
@@ -231,8 +236,8 @@ de Romain (la maquette dit « Événements »).
 - Les **rôles** (`@theme inline`) sont les seules classes de couleur employées par les composants : `bg-fond`,
   `bg-fond-doux`, `text-texte`, `text-texte-doux`, `bg-primaire`, `bg-secondaire`, `text-accent`, `bg-fond-sombre`, `border-decor`…
   Les couleurs par défaut de Tailwind sont retirées : une classe comme `text-stone-600` ne produit rien.
-- **Police** : Inria Serif partout (comme la maquette), chargée par `next/font` dans `src/app/layout.tsx`, avec ses
-  polices de secours (Georgia, serif).
+- **Police** : Inria Serif partout (celle de la première maquette ; la mise à jour du 8 octobre en utilise d'autres, en
+  attente de leurs noms), chargée par `next/font` dans `src/app/layout.tsx`, avec ses polices de secours (Georgia, serif).
 - **Échelle des tailles** (`--text-*`), tirée de la maquette : 14 px (étiquettes, dates), 16 px (texte courant,
   jamais moins), 20, 24, 28, 32 (titres de page), 40, 48, 58 (menu) et 72 px.
 - **Icônes** de la maquette dans `public/images/icones/`, affichées par le composant `Icone` en masque : la forme vient
