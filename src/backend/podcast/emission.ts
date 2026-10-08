@@ -28,7 +28,7 @@ export const lecteurAusha = (idAudio: string) =>
   `https://player.ausha.co/?podcastId=${encodeURIComponent(idAudio)}&display=horizontal&v=2`;
 
 /**
- * Type d'un épisode, déduit de son titre à l'import (modifiable ensuite dans l'admin).
+ * Type d'un épisode, déduit de son titre à la lecture du flux.
  * Le type « full / bonus » fourni par Ausha ne correspond pas aux titres : il n'est pas utilisé.
  */
 export const REGLES_TYPE: { type: TypeEpisode; titre: RegExp }[] = [

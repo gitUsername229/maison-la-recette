@@ -1,7 +1,6 @@
 import { connection } from 'next/server';
-import { compterEpisodesParType, listerEpisodes, saisonsDisponibles } from '@/backend/contenus/contenus';
 import { LECTEUR_PODCAST, LIENS_EMISSION, PRESENTATION_EMISSION, TYPES_EPISODE, type TypeEpisode } from '@/backend/podcast/emission';
-import { sansEmojis } from '@/backend/podcast/flux';
+import { compterParType, episodesAusha, filtrerEpisodes, pourLecteur, saisonsDisponibles } from '@/backend/podcast/episodes';
 import { metadonnees } from '@/backend/seo';
 import Podcast, { type FiltreEpisodes } from '@/frontend/pages/podcast';
 
@@ -20,21 +19,18 @@ function filtreDepuis(valeur?: string): FiltreEpisodes {
 }
 
 export default async function Page({ searchParams }: Props) {
-  await connection(); // épisodes lus en base à chaque requête (nouveaux imports visibles aussitôt)
-  const parametres = await searchParams;
+  await connection(); // épisodes lus dans le flux Ausha (mis en cache), nouveaux épisodes visibles sans rien faire
+  const [tous, parametres] = await Promise.all([episodesAusha(), searchParams]);
   const filtre = filtreDepuis(parametres.type);
   const type = filtre === 'tous' ? undefined : filtre;
-  const [saisons, compteurs] = await Promise.all([saisonsDisponibles(type), compterEpisodesParType()]);
+  const saisons = saisonsDisponibles(tous ?? [], type);
   // ?saison=3 ; par défaut, ou saison inconnue : la plus récente.
   const saison = saisons.find(s => s === Number(parametres.saison)) ?? saisons[0] ?? null;
-  const episodes = saison === null ? [] : await listerEpisodes({ type, saison });
+  const episodes = saison === null ? [] : filtrerEpisodes(tous ?? [], { type, saison });
   return (
     <Podcast
-      episodes={episodes.map(({ id, titre, invite, resume, datePublication, dureeMin, image, embedUrl, audioUrl }) => (
-        // Les résumés déjà en base (jamais réécrits par l'import) peuvent encore contenir des émojis : retirés à l'affichage.
-        { id, titre: sansEmojis(titre), invite, resume: sansEmojis(resume), datePublication: datePublication.toISOString(), dureeMin, image, embedUrl, audioUrl }
-      ))}
-      saisons={saisons} saison={saison} filtre={filtre} compteurs={compteurs} liens={LIENS_EMISSION} lecteur={LECTEUR_PODCAST}
+      episodes={episodes.map(pourLecteur)} indisponible={tous === null}
+      saisons={saisons} saison={saison} filtre={filtre} compteurs={compterParType(tous ?? [])} liens={LIENS_EMISSION} lecteur={LECTEUR_PODCAST}
       emission={PRESENTATION_EMISSION}
     />
   );

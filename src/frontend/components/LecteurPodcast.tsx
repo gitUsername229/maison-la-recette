@@ -8,7 +8,7 @@ import TexteRepliable from '@/frontend/components/TexteRepliable';
 import { decouperTitre, formatDate } from '@/frontend/format';
 
 export type EpisodeLecteur = {
-  id: number; titre: string; invite: string | null; resume: string; datePublication: string; dureeMin: number;
+  id: string; titre: string; resume: string; datePublication: string; dureeMin: number;
   image: string; embedUrl: string; audioUrl: string | null;
 };
 
@@ -34,8 +34,8 @@ function Pause({ taille }: { taille: 'petite' | 'grande' }) {
   return <span aria-hidden="true" className="flex gap-1"><span className={`${barre} rounded-sm bg-current`} /><span className={`${barre} rounded-sm bg-current`} /></span>;
 }
 
-/** Invité (saisi dans l'admin, sinon lu dans le titre) et sujet de l'épisode. */
-const titres = (episode: EpisodeLecteur) => (episode.invite ? { nom: episode.invite, sujet: episode.titre } : decouperTitre(episode.titre));
+/** Invité et sujet de l'épisode, lus dans son titre. */
+const titres = (episode: EpisodeLecteur) => decouperTitre(episode.titre);
 
 const classeSaut = 'h-10 rounded-full px-4 text-sm ring-1 ring-texte hover:bg-fond-doux';
 

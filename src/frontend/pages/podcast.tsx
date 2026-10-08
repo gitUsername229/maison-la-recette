@@ -8,6 +8,7 @@ export type FiltreEpisodes = 'complet' | 'extrait' | 'replay' | 'tous';
 
 type Props = {
   episodes: EpisodeLecteur[];                 // la saison choisie, la plus récente d'abord
+  indisponible: boolean;                      // flux Ausha jamais lu (absent ou injoignable)
   saisons: number[];
   saison: number | null;
   filtre: FiltreEpisodes;
@@ -29,7 +30,7 @@ const ONGLETS: { filtre: FiltreEpisodes; texte: string; parametre?: string }[] =
  * d'épisodes, puis le lecteur sur mesure et la liste. Les quatre filtres de type restent (la maquette n'a qu'un
  * interrupteur « Voir les extraits » : question posée à Romain pour les replays).
  */
-export default function Podcast({ episodes, saisons, saison, filtre, compteurs, liens, lecteur, emission }: Props) {
+export default function Podcast({ episodes, indisponible, saisons, saison, filtre, compteurs, liens, lecteur, emission }: Props) {
   const total = compteurs.complet + compteurs.extrait + compteurs.replay;
   const nombre = (onglet: FiltreEpisodes) => (onglet === 'tous' ? total : compteurs[onglet]);
 
@@ -49,25 +50,29 @@ export default function Podcast({ episodes, saisons, saison, filtre, compteurs, 
       </div>
       <LiensEcoute titre="À écouter aussi sur" liens={liens} className="mt-8" />
 
-      <div className="mt-10 grid gap-4">
-        {saison !== null && saisons.length > 1 && (
-          <ChoixParametre parametre="saison" etiquette="Saison" valeur={saison} options={saisons.map(s => ({ valeur: s, texte: `Saison ${s}` }))} />
-        )}
-        <nav aria-label="Type d’épisodes" className="flex flex-wrap gap-2">
-          {ONGLETS.map(onglet => (
-            <Link
-              key={onglet.filtre}
-              href={onglet.parametre ? `/podcast?type=${onglet.parametre}` : '/podcast'}
-              aria-current={filtre === onglet.filtre ? 'page' : undefined}
-              className={`rounded-full px-4 py-2 text-sm ${filtre === onglet.filtre ? 'bg-primaire font-bold text-sur-primaire' : 'bg-fond hover:bg-pastel'}`}
-            >
-              {onglet.texte} <span className={filtre === onglet.filtre ? '' : 'text-texte-doux'}>({nombre(onglet.filtre)})</span>
-            </Link>
-          ))}
-        </nav>
-      </div>
+      {!indisponible && (
+        <div className="mt-10 grid gap-4">
+          {saison !== null && saisons.length > 1 && (
+            <ChoixParametre parametre="saison" etiquette="Saison" valeur={saison} options={saisons.map(s => ({ valeur: s, texte: `Saison ${s}` }))} />
+          )}
+          <nav aria-label="Type d’épisodes" className="flex flex-wrap gap-2">
+            {ONGLETS.map(onglet => (
+              <Link
+                key={onglet.filtre}
+                href={onglet.parametre ? `/podcast?type=${onglet.parametre}` : '/podcast'}
+                aria-current={filtre === onglet.filtre ? 'page' : undefined}
+                className={`rounded-full px-4 py-2 text-sm ${filtre === onglet.filtre ? 'bg-primaire font-bold text-sur-primaire' : 'bg-fond hover:bg-pastel'}`}
+              >
+                {onglet.texte} <span className={filtre === onglet.filtre ? '' : 'text-texte-doux'}>({nombre(onglet.filtre)})</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+      )}
 
-      {episodes.length === 0 ? (
+      {indisponible ? (
+        <p className="mt-10 rounded-2xl bg-fond p-5">Les épisodes sont momentanément indisponibles ici : écoutez-les sur l’une des plateformes ci-dessus.</p>
+      ) : episodes.length === 0 ? (
         <p className="mt-10 text-texte-doux">Aucun épisode pour l’instant.</p>
       ) : (
         <div className="mt-6">

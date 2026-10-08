@@ -1,6 +1,6 @@
 import 'server-only';
 import { experiencesAvecProchainesDates } from '@/backend/ateliers/catalogue';
-import { prisma } from '@/backend/db/prisma';
+import { episodesAusha } from '@/backend/podcast/episodes';
 import { TEXTES } from '@/contenu/textes';
 import { articlesPublies, tousLesArticles } from './blog';
 import { appelDevis, listeCategories, type CategorieBlog } from './categories-blog';
@@ -21,7 +21,7 @@ export async function articlePublie(slug: string) {
   const article = tousLesArticles().find(a => a.slug === slug && a.publie);
   if (!article) return null;
   const [episode, experiences] = await Promise.all([
-    article.episode ? prisma.episode.findFirst({ where: { titre: article.episode } }) : null,
+    article.episode ? episodesAusha().then(episodes => episodes?.find(e => e.titre === article.episode) ?? null) : null,
     experiencesAvecProchainesDates(article.experiences),
   ]);
   return { ...article, appelDevis: appelDevis(article.categorie), episode, experiences };
